@@ -40,6 +40,7 @@ $finder = Finder::create()
         '.git/',
         'node_modules/',
         'vendor/',
+        'var',
     ])
     ->name('*.php');
 
