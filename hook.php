@@ -33,20 +33,16 @@
 
 /**
  * Plugin install process
- *
- * @return boolean
  */
-function plugin_advancedforms_install()
+function plugin_advancedforms_install(): bool
 {
     return true;
 }
 
 /**
  * Plugin uninstall process
- *
- * @return boolean
  */
-function plugin_advancedforms_uninstall()
+function plugin_advancedforms_uninstall(): bool
 {
     return true;
 }

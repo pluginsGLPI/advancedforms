@@ -85,7 +85,7 @@ function plugin_version_advancedforms(): array
 
 /**
  * Check pre-requisites before install
- * OPTIONNAL, but recommanded
+ * OPTIONNAL, but recommended
  */
 function plugin_advancedforms_check_prerequisites(): bool
 {
@@ -95,9 +95,9 @@ function plugin_advancedforms_check_prerequisites(): bool
 /**
  * Check configuration process
  *
- * @param boolean $verbose Whether to display message on failure. Defaults to false
+ * @param bool $verbose Whether to display message on failure. Defaults to false.
  */
-function plugin_advancedforms_check_config($verbose = false): bool
+function plugin_advancedforms_check_config(bool $verbose = false): bool
 {
     return true;
 }

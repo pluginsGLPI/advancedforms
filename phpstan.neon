@@ -9,4 +9,4 @@ parameters:
     bootstrapFiles:
         - ../../stubs/glpi_constants.php
         - ../../vendor/autoload.php
-
+    treatPhpDocTypesAsCertain: false
