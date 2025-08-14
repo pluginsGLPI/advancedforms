@@ -52,5 +52,5 @@ $rules = [
 return $config
     ->setRules($rules)
     ->setFinder($finder)
-    ->setCacheFile(sys_get_temp_dir() . '/php-cs-fixer.advancedforms.cache')
+    ->setCacheFile(__DIR__ . '/var/php-cs-fixer/.php-cs-fixer.cache')
 ;

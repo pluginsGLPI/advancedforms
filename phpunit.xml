@@ -2,6 +2,7 @@
     bootstrap="tests/bootstrap.php"
     processIsolation="false"
     colors="true"
+    cacheDirectory="var/phpunit"
 >
     <testsuites>
         <testsuite name="Tests">
