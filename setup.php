@@ -68,8 +68,8 @@ function plugin_version_advancedforms()
             'glpi' => [
                 'min' => PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION,
                 'max' => PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION,
-            ]
-        ]
+            ],
+        ],
     ];
 }
 
