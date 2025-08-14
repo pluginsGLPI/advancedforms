@@ -41,10 +41,8 @@ define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.0.99");
 /**
  * Init hooks of the plugin.
  * REQUIRED
- *
- * @return void
  */
-function plugin_init_advancedforms()
+function plugin_init_advancedforms(): void
 {
     global $PLUGIN_HOOKS;
 }
@@ -54,9 +52,21 @@ function plugin_init_advancedforms()
  * Get the name and the version of the plugin
  * REQUIRED
  *
- * @return array
+ * @return array{
+ *      name: string,
+ *      version: string,
+ *      author: string,
+ *      license: string,
+ *      homepage: string,
+ *      requirements: array{
+ *          glpi: array{
+ *              min: string,
+ *              max: string,
+ *          }
+ *      }
+ * }
  */
-function plugin_version_advancedforms()
+function plugin_version_advancedforms(): array
 {
     return [
         'name'           => 'advancedforms',
@@ -76,10 +86,8 @@ function plugin_version_advancedforms()
 /**
  * Check pre-requisites before install
  * OPTIONNAL, but recommanded
- *
- * @return boolean
  */
-function plugin_advancedforms_check_prerequisites()
+function plugin_advancedforms_check_prerequisites(): bool
 {
     return true;
 }
@@ -88,17 +96,8 @@ function plugin_advancedforms_check_prerequisites()
  * Check configuration process
  *
  * @param boolean $verbose Whether to display message on failure. Defaults to false
- *
- * @return boolean
  */
-function plugin_advancedforms_check_config($verbose = false)
+function plugin_advancedforms_check_config($verbose = false): bool
 {
-    if (true) { // Your configuration check
-        return true;
-    }
-
-    if ($verbose) {
-        echo __('Installed / not configured', 'advancedforms');
-    }
-    return false;
+    return true;
 }
