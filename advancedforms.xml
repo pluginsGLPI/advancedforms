@@ -1,0 +1,41 @@
+<root>
+   <name>Advanced Forms</name>
+   <key>advancedforms</key>
+   <!-- stable, beta, development, alpha, ... -->
+   <state>development</state>
+   <logo>https://raw.githubusercontent.com/pluginsGLPI/advancedforms/main/advancedforms.png</logo>
+   <description>
+      <short>
+         <!-- Add as many lang tag you want -->
+         <en>Advanced Forms GLPI plugin.</en>
+         <fr>Plugin GLPI Advanced Forms.</fr>
+      </short>
+      <long>
+         <!-- Add as many lang tag you want -->
+         <en>Work in progress.</en>
+         <fr>Travaux en cours.</fr>
+      </long>
+   </description>
+   <homepage>https://github.com/pluginsGLPI/advancedforms</homepage>
+   <download>https://github.com/pluginsGLPI/advancedforms/releases</download>
+   <issues>https://github.com/pluginsGLPI/advancedforms/issues</issues>
+   <readme>https://github.com/pluginsGLPI/advancedforms/blob/main/README.md</readme>
+   <authors>
+      <!-- Add as many author tag you want -->
+      <author>Teclib'</author>
+   </authors>
+   <versions>
+      <!-- Add as many version tag you want -->
+      <version>
+         <num>0.0.1</num>
+         <!-- Add as many compatibility tag you want -->
+         <compatibility>~11.0.0</compatibility>
+      </version>
+   </versions>
+   <langs>
+      <!-- Add as many lang tag you want -->
+      <lang>en_GB</lang>
+      <lang>fr_FR</lang>
+   </langs>
+   <license>MIT</license>
+</root>
