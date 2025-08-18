@@ -44,8 +44,8 @@ $configuration->withPaths([
 ]);
 $configuration->withSkip([
     __DIR__ . '/tests/bootstrap.php',
-    // Can't be used yet as the `declare(strict_types=1);` instructions conflict
-    // with our header check tool.
+
+    // Can't be used yet, will lead to conflicts with GLPI's core.
     DeclareStrictTypesRector::class,
 ]);
 $configuration->withCache(
