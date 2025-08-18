@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "71a404f770515ff78c1b90ebca2bfa01",
+    "content-hash": "0b7b0a9d863618903d048d4062e4aa16",
     "packages": [],
     "packages-dev": [
         {
@@ -512,32 +512,35 @@
         },
         {
             "name": "glpi-project/tools",
-            "version": "0.4.5",
+            "version": "0.7.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/glpi-project/tools.git",
-                "reference": "55ffa6566813d3c40d621892713ef63614820c79"
+                "reference": "d08fdedd67253858800a89c98b6721f8067a4370"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/glpi-project/tools/zipball/55ffa6566813d3c40d621892713ef63614820c79",
-                "reference": "55ffa6566813d3c40d621892713ef63614820c79",
+                "url": "https://api.github.com/repos/glpi-project/tools/zipball/d08fdedd67253858800a89c98b6721f8067a4370",
+                "reference": "d08fdedd67253858800a89c98b6721f8067a4370",
                 "shasum": ""
             },
             "require": {
-                "symfony/console": "^4.4 || ^5.0",
+                "symfony/console": "^5.4 || ^6.0",
                 "twig/twig": "^3.3"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^4.13",
+                "phpstan/phpstan-src": "^1.10"
             },
             "bin": [
                 "bin/extract-locales",
                 "bin/licence-headers-check",
-                "tools/extract_template.sh",
                 "tools/plugin-release"
             ],
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "Glpi\\": "src/"
+                    "GlpiProject\\Tools\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -561,7 +564,7 @@
                 "issues": "https://github.com/glpi-project/tools/issues",
                 "source": "https://github.com/glpi-project/tools"
             },
-            "time": "2022-04-20T06:57:59+00:00"
+            "time": "2025-08-18T08:52:25+00:00"
         },
         {
             "name": "phpstan/phpstan",
