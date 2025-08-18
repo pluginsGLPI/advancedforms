@@ -31,11 +31,15 @@
  * -------------------------------------------------------------------------
  */
 
+/** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
 define('PLUGIN_ADVANCEDFORMS_VERSION', '0.0.1');
 
 // Minimal GLPI version, inclusive
+/** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
 define("PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION", "11.0.0");
+
 // Maximum GLPI version, exclusive
+/** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
 define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.0.99");
 
 /**
@@ -46,7 +50,6 @@ function plugin_init_advancedforms(): void
 {
     global $PLUGIN_HOOKS;
 }
-
 
 /**
  * Get the name and the version of the plugin
