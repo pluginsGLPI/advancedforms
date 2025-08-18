@@ -32,15 +32,50 @@
  */
 
 use Rector\Caching\ValueObject\Storage\FileCacheStorage;
+use Rector\Config\RectorConfig;
+use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 
-$configuration = require(__DIR__ . '/../../rector.php');
+$configuration = RectorConfig::configure();
 $configuration->withPaths([
     __DIR__ . '/src',
+    __DIR__ . '/tests',
     __DIR__ . '/hook.php',
     __DIR__ . '/setup.php',
+]);
+$configuration->withSkip([
+    __DIR__ . '/tests/bootstrap.php',
+    // Can't be used yet as the `declare(strict_types=1);` instructions conflict
+    // with our header check tool.
+    DeclareStrictTypesRector::class,
 ]);
 $configuration->withCache(
     cacheClass: FileCacheStorage::class,
     cacheDirectory: __DIR__ . '/var/rector',
 );
+$configuration->withPreparedSets(
+    deadCode: true,
+    codeQuality: true,
+    privatization: true,
+    naming: true,
+    instanceOf: true,
+    earlyReturn: true,
+    strictBooleans: true,
+    carbon: true,
+    rectorPreset: true,
+    phpunitCodeQuality: true,
+    symfonyCodeQuality: true,
+
+    // Our coding styles are already handled by PHP-CS-Fixer
+    codingStyle: false,
+
+    // Type declaration are already handled by PHPStan
+    typeDeclarations: false,
+
+    // We don't use doctrine
+    doctrineCodeQuality: false,
+
+    // Symfony config is handle in GLPI's core
+    symfonyConfigs: false,
+);
+$configuration->withPhpSets();
 return $configuration;
