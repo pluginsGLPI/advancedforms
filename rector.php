@@ -74,7 +74,7 @@ $configuration->withPreparedSets(
     // We don't use doctrine
     doctrineCodeQuality: false,
 
-    // Symfony config is handle in GLPI's core
+    // Symfony config is handled in GLPI's core
     symfonyConfigs: false,
 );
 $configuration->withPhpSets();
