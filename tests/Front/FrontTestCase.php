@@ -31,16 +31,29 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
+namespace GlpiPlugin\Advancedforms\Tests\Front;
 
-chdir(__DIR__ . '/../../..');
+use DbTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
-require 'phpunit/bootstrap.php';
+// Temporary test case until we can the real WebTestCase working
+abstract class FrontTestCase extends DbTestCase
+{
+    public function get(string $url, array $params = []): Crawler
+    {
+        $old_GET = $_GET;
+        $_GET = $params;
 
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
+        try {
+            $this->login();
+            ob_start();
+            $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
+            require(GLPI_ROOT . $url);
+            $html = ob_get_clean();
+        } finally {
+            $_GET = $old_GET;
+        }
+
+        return new Crawler($html);
+    }
 }
-
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";

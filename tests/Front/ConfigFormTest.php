@@ -31,16 +31,35 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
+namespace GlpiPlugin\Advancedforms\Tests\Front;
 
-chdir(__DIR__ . '/../../..');
+use Config;
 
-require 'phpunit/bootstrap.php';
+final class ConfigFormTest extends FrontTestCase
+{
+    public function testTabExistOnConfigPage(): void
+    {
+        // Act: go to config form
+        $crawler = $this->get("/front/config.form.php");
 
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
+        // Assert: a link to the plugin config tab should exist
+        $tab = $crawler->filter('a[data-bs-toggle="tab"][title="Advanced forms"]');
+        $this->assertCount(1, $tab);
+    }
+
+    public function testTabHasContentExistOnConfigPage(): void
+    {
+        // Act: go to the advanced form tab on the config
+        $crawler = $this->get("/ajax/common.tabs.php", [
+            '_glpi_tab'   => "GlpiPlugin\\Advancedforms\\Model\\Config\\ConfigTab$1",
+            '_itemtype'   => Config::class,
+            '_target'     => '/front/config.form.php',
+            'id'          => 1,
+        ]);
+
+        // Assert: just make sure some arbitrary content exist, more detailled
+        // testing will be done in the services tests instead.
+        $config_header = $crawler->filter('[data-testid="advanced-forms-config-header"]');
+        $this->assertCount(1, $config_header);
+    }
 }
-
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";

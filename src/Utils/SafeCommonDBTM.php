@@ -31,16 +31,24 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
+namespace GlpiPlugin\Advancedforms\Utils;
 
-chdir(__DIR__ . '/../../..');
+use RuntimeException;
 
-require 'phpunit/bootstrap.php';
+/**
+ * Temporary class to bypass simple static analysis issues until stronger
+ * types will be implemented in GLPI's core.
+ */
+final class SafeCommonDBTM
+{
+    /** @param class-string<\CommonDBTM> $class */
+    public static function getIcon(string $class): string
+    {
+        $icon = $class::getIcon();
+        if (!is_string($icon)) {
+            throw new RuntimeException();
+        }
 
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
+        return $icon;
+    }
 }
-
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";

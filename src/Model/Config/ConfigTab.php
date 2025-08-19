@@ -31,16 +31,49 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
+namespace GlpiPlugin\Advancedforms\Model\Config;
 
-chdir(__DIR__ . '/../../..');
+use CommonGLPI;
+use Config;
+use Glpi\Form\Form;
+use GlpiPlugin\Advancedforms\Util\SafeCommonDBTM;
+use Override;
 
-require 'phpunit/bootstrap.php';
+final class ConfigTab extends CommonGLPI
+{
+    #[Override]
+    public static function getTypeName($nb = 0)
+    {
+        return __("Advanced forms", "advancedforms");
+    }
 
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
+    #[Override]
+    public function getTabNameForItem(
+        CommonGLPI $item,
+        $withtemplate = 0,
+    ): string {
+        if (!$item instanceof Config) {
+            return "";
+        }
+
+        return self::createTabEntry(
+            text: self::getTypeName(),
+            icon: SafeCommonDBTM::getIcon(Form::class),
+        );
+    }
+
+    #[Override]
+    public static function displayTabContentForItem(
+        CommonGLPI $item,
+        $tabnum = 1,
+        $withtemplate = 0,
+    ): bool {
+        if (!$item instanceof Config) {
+            return false;
+        }
+
+        echo "<h1 data-testid='advanced-forms-config-header'>Advanced forms plugin configuration</h1>";
+
+        return true;
+    }
 }
-
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";

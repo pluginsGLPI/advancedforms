@@ -31,16 +31,6 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
+namespace GlpiPlugin\Advancedforms\Service;
 
-chdir(__DIR__ . '/../../..');
-
-require 'phpunit/bootstrap.php';
-
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
-}
-
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";
+final class ConfigManager {}

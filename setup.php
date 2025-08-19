@@ -31,6 +31,9 @@
  * -------------------------------------------------------------------------
  */
 
+
+use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
 define('PLUGIN_ADVANCEDFORMS_VERSION', '0.0.1');
 
@@ -48,7 +51,16 @@ define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.0.99");
  */
 function plugin_init_advancedforms(): void
 {
-    global $PLUGIN_HOOKS;
+    // Stop here if the plugin is not active
+    $is_active = (new Plugin())->isActivated("advancedforms");
+    if (!$is_active) {
+        return;
+    }
+
+    // Add configuration tab
+    Plugin::registerClass(ConfigTab::class, [
+        'addtabon' => Config::class,
+    ]);
 }
 
 /**
