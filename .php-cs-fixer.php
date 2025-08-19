@@ -36,12 +36,7 @@ use PhpCsFixer\Finder;
 
 $finder = Finder::create()
     ->in(__DIR__)
-    ->exclude([
-        '.git/',
-        'node_modules/',
-        'vendor/',
-        'var',
-    ])
+    ->ignoreVCSIgnored(true)
     ->name('*.php');
 
 $config = new Config();
