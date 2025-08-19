@@ -36,7 +36,7 @@ namespace GlpiPlugin\Advancedforms\Model\Config;
 use CommonGLPI;
 use Config;
 use Glpi\Form\Form;
-use GlpiPlugin\Advancedforms\Util\SafeCommonDBTM;
+use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
 use Override;
 
 final class ConfigTab extends CommonGLPI
