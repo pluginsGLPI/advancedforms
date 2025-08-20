@@ -31,50 +31,24 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Model\Config;
+namespace GlpiPlugin\Advancedforms\Tests\Service;
 
-use CommonGLPI;
-use Config;
-use Glpi\Form\Form;
+use DbTestCase;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
-use Override;
 
-final class ConfigTab extends CommonGLPI
+final class ConfigManagerTest extends DbTestCase
 {
-    #[Override]
-    public static function getTypeName($nb = 0)
+    public function testCanRenderTemplateWithoutErrors(): void
     {
-        return __("Advanced forms", "advancedforms");
+        // Act:: render configuration
+        $html = $this->getConfigManager()->renderConfigForm();
+
+        // Assert: some html was generated and no exception were thrown
+        $this->assertNotEmpty($html);
     }
 
-    #[Override]
-    public function getTabNameForItem(
-        CommonGLPI $item,
-        $withtemplate = 0,
-    ): string {
-        if (!$item instanceof Config) {
-            return "";
-        }
-
-        return self::createTabEntry(
-            text: self::getTypeName(),
-            icon: SafeCommonDBTM::getIcon(Form::class),
-        );
-    }
-
-    #[Override]
-    public static function displayTabContentForItem(
-        CommonGLPI $item,
-        $tabnum = 1,
-        $withtemplate = 0,
-    ): bool {
-        if (!$item instanceof Config) {
-            return false;
-        }
-
-        echo ConfigManager::getInstance()->renderConfigForm();
-
-        return true;
+    private function getConfigManager(): ConfigManager
+    {
+        return ConfigManager::getInstance();
     }
 }

@@ -33,4 +33,26 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
-final class ConfigManager {}
+use Glpi\Application\View\TemplateRenderer;
+
+final class ConfigManager
+{
+    private static ?self $instance = null;
+
+    private function __construct() {}
+
+    public static function getInstance(): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    public function renderConfigForm(): string
+    {
+        $twig = TemplateRenderer::getInstance();
+        return $twig->render('@advancedforms/config_form.html.twig');
+    }
+}
