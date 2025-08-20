@@ -31,51 +31,16 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Front;
+namespace GlpiPlugin\Advancedforms\Model\Config;
 
-use DbTestCase;
-use Glpi\Exception\RedirectException;
-use Session;
-use Symfony\Component\DomCrawler\Crawler;
-
-// Temporary test case until we can the real WebTestCase working
-abstract class FrontTestCase extends DbTestCase
+final class Config
 {
-    public function get(string $url, array $params = []): Crawler
+    public function __construct(
+        private bool $enable_ip_address_question_type = false,
+    ) {}
+
+    public function isIpAddressQuestionTypeEnabled(): bool
     {
-        $old_GET = $_GET;
-        $_GET = $params;
-
-        try {
-            $this->login();
-            ob_start();
-            $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
-            require(GLPI_ROOT . $url);
-            $html = ob_get_clean();
-        } finally {
-            $_GET = $old_GET;
-        }
-
-        return new Crawler($html);
-    }
-
-    public function post(string $url, array $payload): void
-    {
-        $old_POST = $_POST;
-        $_POST = $payload;
-
-        try {
-            $this->login();
-            $_POST['_glpi_csrf_token'] = Session::getNewCSRFToken();
-
-            ob_start();
-            $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
-            require(GLPI_ROOT . $url);
-        } catch (RedirectException) {
-            // In legacy files redirect exception mean success.
-            ob_get_clean();
-        } finally {
-            $_POST = $old_POST;
-        }
+        return $this->enable_ip_address_question_type;
     }
 }

@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
 use Config;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
 
 final class ConfigFormTest extends FrontTestCase
 {
@@ -61,5 +62,44 @@ final class ConfigFormTest extends FrontTestCase
         // testing will be done in the services tests instead.
         $config_header = $crawler->filter('[data-testid="advanced-forms-config-header"]');
         $this->assertCount(1, $config_header);
+    }
+
+    public function testCanDisableQuestionTypeIpConfig(): void
+    {
+        // Arrange: enable config
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        $this->assertTrue($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+
+        // Act: submit config form
+        $this->post("/front/config.form.php", [
+            'config_context' => 'advancedforms',
+            'update' => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+        ]);
+        $this->assertFalse($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+    }
+
+    public function testCanEnableQuestionTypeIpConfig(): void
+    {
+        // Arrange: disable config
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+        ]);
+        $this->assertFalse($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+
+        // Act: submit config form
+        $this->post("/front/config.form.php", [
+            'config_context' => 'advancedforms',
+            'update' => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        $this->assertTrue($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+    }
+
+    private function getConfigManager(): ConfigManager
+    {
+        return ConfigManager::getInstance();
     }
 }

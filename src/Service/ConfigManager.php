@@ -34,9 +34,12 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Glpi\Application\View\TemplateRenderer;
+use GlpiPlugin\Advancedforms\Model\Config\Config;
 
 final class ConfigManager
 {
+    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
+
     private static ?self $instance = null;
 
     private function __construct() {}
@@ -53,6 +56,20 @@ final class ConfigManager
     public function renderConfigForm(): string
     {
         $twig = TemplateRenderer::getInstance();
-        return $twig->render('@advancedforms/config_form.html.twig');
+        return $twig->render('@advancedforms/config_form.html.twig', [
+            'config' => $this->getConfig(),
+        ]);
+    }
+
+    public function getConfig(): Config
+    {
+        $raw_config = \Config::getConfigurationValues(
+            'advancedforms',
+            [self::CONFIG_ENABLE_QUESTION_TYPE_IP],
+        );
+
+        return new Config(
+            enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
+        );
     }
 }

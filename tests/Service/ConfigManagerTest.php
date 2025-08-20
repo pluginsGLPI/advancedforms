@@ -33,19 +33,72 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
+use Config;
 use DbTestCase;
+use DOMElement;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class ConfigManagerTest extends DbTestCase
 {
-    public function testCanRenderTemplateWithoutErrors(): void
+    public function testCanRenderConfigFormWithoutErrors(): void
     {
-        // Act:: render configuration
+        // Act: render configuration
         $html = $this->getConfigManager()->renderConfigForm();
 
         // Assert: some html was generated and no exception were thrown
         $this->assertNotEmpty($html);
     }
+
+    public function testIpQuestionTypeConfigValueIsAppliedInForm(): void
+    {
+        // Act: render configuration with the both enabled and disabled state
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+        ]);
+        $html_disabled = $this->getConfigManager()->renderConfigForm();
+
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        $html_enabled = $this->getConfigManager()->renderConfigForm();
+
+        // Assert: the input should have the correct values
+        $html_disabled = (new Crawler($html_disabled))
+            ->filter('[data-testid="feature-ip-question"]')
+            ->filter('input[data-testid="feature-toggle"]')
+            ->getNode(0);
+        $this->assertInstanceOf(DOMElement::class, $html_disabled);
+        /** @var DOMElement $html_disabled */
+        $this->assertFalse($html_disabled->hasAttribute('checked'));
+
+        $html_enabled = (new Crawler($html_enabled))
+            ->filter('[data-testid="feature-ip-question"]')
+            ->filter('input[data-testid="feature-toggle"]')
+            ->getNode(0);
+        $this->assertInstanceOf(DOMElement::class, $html_enabled);
+        /** @var DOMElement $html_enabled */
+        $this->assertTrue($html_enabled->hasAttribute('checked'));
+    }
+
+    public function testEnableQuestionTypeIpConfigValueIsCorrect(): void
+    {
+        // Act: get configuration with the both enabled and disabled state
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+        ]);
+        $config_disabled = $this->getConfigManager()->getConfig();
+
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        $config_enabled = $this->getConfigManager()->getConfig();
+
+        // Assert: the config should have the correct values
+        $this->assertFalse($config_disabled->isIpAddressQuestionTypeEnabled());
+        $this->assertTrue($config_enabled->isIpAddressQuestionTypeEnabled());
+    }
+
 
     private function getConfigManager(): ConfigManager
     {
