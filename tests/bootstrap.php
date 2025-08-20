@@ -39,4 +39,4 @@ if (!Plugin::isPluginActive("advancedforms")) {
     throw new RuntimeException("Plugin advancedforms is not active in the test database");
 }
 
-require "Front/FrontTestCase.php";
+require __DIR__ . "/Front/FrontTestCase.php";
