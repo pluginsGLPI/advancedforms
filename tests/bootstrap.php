@@ -34,8 +34,7 @@
 $current_plugin_folder = basename(realpath(__DIR__ . '/../'));
 
 chdir(__DIR__ . '/../../..');
-
-require 'phpunit/bootstrap.php';
+require __DIR__ . '/../../../phpunit/bootstrap.php';
 
 if (!Plugin::isPluginActive($current_plugin_folder)) {
     echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
