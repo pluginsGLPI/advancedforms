@@ -31,15 +31,12 @@
  * -------------------------------------------------------------------------
  */
 
-$current_plugin_folder = basename(realpath(__DIR__ . '/../'));
-
-chdir(__DIR__ . '/../../..');
+chdir(__DIR__ . '/../../..'); // Needed because of some exec() call in the core's boostrap file
 require __DIR__ . '/../../../phpunit/bootstrap.php';
+chdir(__DIR__); // Return to normal directory
 
-if (!Plugin::isPluginActive($current_plugin_folder)) {
-    echo("Plugin $current_plugin_folder is not setup for tests" . PHP_EOL);
-    echo("Run `make plugin-test-setup` to setup the plugin." . PHP_EOL);
-    die();
+if (!Plugin::isPluginActive("advancedforms")) {
+    throw new RuntimeException("Plugin advancedforms is not active in the test database");
 }
 
-require "plugins/$current_plugin_folder/tests/Front/FrontTestCase.php";
+require "Front/FrontTestCase.php";
