@@ -67,10 +67,11 @@ final class ConfigFormTest extends FrontTestCase
     public function testCanDisableQuestionTypeIpConfig(): void
     {
         // Arrange: enable config
+        $manager = $this->getConfigManager();
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
-        $this->assertTrue($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+        $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
 
         // Act: submit config form
         $this->post("/front/config.form.php", [
@@ -78,16 +79,19 @@ final class ConfigFormTest extends FrontTestCase
             'update' => 1,
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
         ]);
-        $this->assertFalse($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+
+        // Assert: config should now be disabled
+        $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
     }
 
     public function testCanEnableQuestionTypeIpConfig(): void
     {
         // Arrange: disable config
+        $manager = $this->getConfigManager();
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
         ]);
-        $this->assertFalse($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+        $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
 
         // Act: submit config form
         $this->post("/front/config.form.php", [
@@ -95,7 +99,9 @@ final class ConfigFormTest extends FrontTestCase
             'update' => 1,
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
-        $this->assertTrue($this->getConfigManager()->getConfig()->isIpAddressQuestionTypeEnabled());
+
+        // Assert: config should now be enabled
+        $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
     }
 
     private function getConfigManager(): ConfigManager
