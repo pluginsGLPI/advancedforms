@@ -34,13 +34,14 @@
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
 use Config;
+use Glpi\Exception\Http\AccessDeniedHttpException;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 
 final class ConfigFormTest extends FrontTestCase
 {
-    public function testTabExistOnConfigPage(): void
+    public function testTabExistOnConfigPageForAdmin(): void
     {
-        // Act: go to config form
+        // Act: go to config form as adminstrator
         $this->login();
         $crawler = $this->get("/front/config.form.php");
 
@@ -49,7 +50,16 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertCount(1, $tab);
     }
 
-    public function testTabHasContentExistOnConfigPage(): void
+    public function testTabDoesNotExistOnConfigPageForTech(): void
+    {
+        $this->expectException(AccessDeniedHttpException::class);
+
+        // Act: go to config form as technician
+        $this->login('tech');
+        $this->get("/front/config.form.php");
+    }
+
+    public function testTabHasContentExistOnConfigPageForAdmin(): void
     {
         // Act: go to the advanced form tab on the config
         $this->login();
@@ -59,6 +69,16 @@ final class ConfigFormTest extends FrontTestCase
         // testing will be done in the services tests instead.
         $config_header = $crawler->filter('[data-testid="advanced-forms-config-header"]');
         $this->assertCount(1, $config_header);
+    }
+
+    public function testTabContentIsEmptyForTech(): void
+    {
+        // Act: go to the advanced form tab on the config
+        $this->login('tech');
+        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTagUrlParams());
+
+        // Assert: no html was rendered as we lack rights to view config
+        $this->assertEmpty($crawler);
     }
 
     public function testCanDisableQuestionTypeIpConfig(): void

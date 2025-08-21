@@ -40,6 +40,7 @@ use LogicException;
 use RuntimeException;
 use Session;
 use Symfony\Component\DomCrawler\Crawler;
+use Throwable;
 
 // Temporary test case until we can the real WebTestCase working
 abstract class FrontTestCase extends DbTestCase
@@ -54,6 +55,10 @@ abstract class FrontTestCase extends DbTestCase
             $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
             require(GLPI_ROOT . $url);
             $html = ob_get_clean();
+        } catch (Throwable $e) {
+            $_GET = $old_GET;
+            ob_get_clean();
+            throw $e;
         } finally {
             $_GET = $old_GET;
         }
