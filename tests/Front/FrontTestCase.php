@@ -34,7 +34,10 @@
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
 use DbTestCase;
+use DOMElement;
 use Glpi\Exception\RedirectException;
+use LogicException;
+use RuntimeException;
 use Session;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -47,7 +50,6 @@ abstract class FrontTestCase extends DbTestCase
         $_GET = $params;
 
         try {
-            $this->login();
             ob_start();
             $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
             require(GLPI_ROOT . $url);
@@ -59,23 +61,81 @@ abstract class FrontTestCase extends DbTestCase
         return new Crawler($html);
     }
 
-    public function post(string $url, array $payload): void
+    public function post(string $url, array $payload, bool $add_token = true): void
     {
         $old_POST = $_POST;
         $_POST = $payload;
 
         try {
-            $this->login();
-            $_POST['_glpi_csrf_token'] = Session::getNewCSRFToken();
+            if ($add_token) {
+                $_POST['_glpi_csrf_token'] = Session::getNewCSRFToken();
+            }
 
             ob_start();
             $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
             require(GLPI_ROOT . $url);
+            ob_get_clean();
         } catch (RedirectException) {
             // In legacy files redirect exception mean success.
             ob_get_clean();
         } finally {
             $_POST = $old_POST;
         }
+    }
+
+    public function sendForm(
+        string $form_content_url,
+        array $query_params,
+        array $form_values,
+    ): void {
+        // Get form html content
+        $form_crawler = $this->get($form_content_url, $query_params);
+        $form = $form_crawler->filter('form')->getNode(0);
+        if (!$form instanceof DOMElement) {
+            throw new RuntimeException("Failed to find form");
+        }
+
+        // Parse form attributes
+        $url = $form->getAttribute('action');
+        $method = $form->getAttribute('method');
+        if (strtolower($method) !== "post") {
+            throw new RuntimeException("Only POST forms are supported");
+        }
+
+        // Compute default payload from html
+        $payload = [];
+        foreach ($form_crawler->filter('input') as $input) {
+            if (!$input instanceof DOMElement) {
+                throw new LogicException(); // Impossible
+            }
+
+            // Skip unchecked checkboxes
+            $type = strtolower($input->getAttribute('type'));
+            if ($type === 'checkbox' && !$input->hasAttribute('checked')) {
+                continue;
+            }
+
+            // Add value to payload
+            $payload[$input->getAttribute('name')] = $input->getAttribute('value');
+        }
+
+        // Load submit button value
+        $submits = $form_crawler->filter('button[type=submit]');
+        if (count($submits) > 1) {
+            throw new RuntimeException("Only forms with a single submit are supported");
+        }
+        $submit = $submits->getNode(0);
+        if (!$submit instanceof DOMElement) {
+            throw new LogicException(); // Impossible
+        }
+        $payload[$submit->getAttribute('name')] = $submit->getAttribute('value');
+
+
+        // Insert specified payload values
+        foreach ($form_values as $key => $value) {
+            $payload[$key] = $value;
+        }
+
+        $this->post($url, $payload, add_token: false);
     }
 }

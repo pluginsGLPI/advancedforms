@@ -41,6 +41,7 @@ final class ConfigFormTest extends FrontTestCase
     public function testTabExistOnConfigPage(): void
     {
         // Act: go to config form
+        $this->login();
         $crawler = $this->get("/front/config.form.php");
 
         // Assert: a link to the plugin config tab should exist
@@ -51,12 +52,8 @@ final class ConfigFormTest extends FrontTestCase
     public function testTabHasContentExistOnConfigPage(): void
     {
         // Act: go to the advanced form tab on the config
-        $crawler = $this->get("/ajax/common.tabs.php", [
-            '_glpi_tab'   => "GlpiPlugin\\Advancedforms\\Model\\Config\\ConfigTab$1",
-            '_itemtype'   => Config::class,
-            '_target'     => '/front/config.form.php',
-            'id'          => 1,
-        ]);
+        $this->login();
+        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTagUrlParams());
 
         // Assert: just make sure some arbitrary content exist, more detailled
         // testing will be done in the services tests instead.
@@ -74,9 +71,8 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
 
         // Act: submit config form
-        $this->post("/front/config.form.php", [
-            'config_context' => 'advancedforms',
-            'update' => 1,
+        $this->login();
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTagUrlParams(), [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
         ]);
 
@@ -94,9 +90,8 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
 
         // Act: submit config form
-        $this->post("/front/config.form.php", [
-            'config_context' => 'advancedforms',
-            'update' => 1,
+        $this->login();
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTagUrlParams(), [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
 
@@ -107,5 +102,15 @@ final class ConfigFormTest extends FrontTestCase
     private function getConfigManager(): ConfigManager
     {
         return ConfigManager::getInstance();
+    }
+
+    private function getConfigTagUrlParams(): array
+    {
+        return [
+            '_glpi_tab'   => "GlpiPlugin\\Advancedforms\\Model\\Config\\ConfigTab$1",
+            '_itemtype'   => Config::class,
+            '_target'     => '/front/config.form.php',
+            'id'          => 1,
+        ];
     }
 }
