@@ -130,9 +130,11 @@ abstract class FrontTestCase extends DbTestCase
         }
         $payload[$submit->getAttribute('name')] = $submit->getAttribute('value');
 
-
         // Insert specified payload values
         foreach ($form_values as $key => $value) {
+            if (!isset($payload[$key])) {
+                throw new RuntimeException("Input '$key' does not exist");
+            }
             $payload[$key] = $value;
         }
 
