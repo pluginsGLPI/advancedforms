@@ -31,20 +31,29 @@
  * -------------------------------------------------------------------------
  */
 
+namespace GlpiPlugin\Advancedforms\Tests\Service;
+
+use Config;
+use DbTestCase;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
 
-/**
- * Plugin install process
- */
-function plugin_advancedforms_install(): bool
+final class InstallManagerTest extends DbTestCase
 {
-    return InstallManager::getInstance()->install();
-}
+    public function testUninstallRemoveConfig(): void
+    {
+        // Arrange: set multiples config values
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
 
-/**
- * Plugin uninstall process
- */
-function plugin_advancedforms_uninstall(): bool
-{
-    return InstallManager::getInstance()->uninstall();
+        // Act: uninstall plugin
+        $config_before = Config::getConfigurationValues('advancedforms');
+        InstallManager::getInstance()->uninstall();
+        $config_after = Config::getConfigurationValues('advancedforms');
+
+        // Assert: config should be empty after uninstallation
+        $this->assertNotEmpty($config_before);
+        $this->assertEmpty($config_after);
+    }
 }

@@ -31,20 +31,34 @@
  * -------------------------------------------------------------------------
  */
 
-use GlpiPlugin\Advancedforms\Service\InstallManager;
+namespace GlpiPlugin\Advancedforms\Service;
 
-/**
- * Plugin install process
- */
-function plugin_advancedforms_install(): bool
-{
-    return InstallManager::getInstance()->install();
-}
+use Config;
 
-/**
- * Plugin uninstall process
- */
-function plugin_advancedforms_uninstall(): bool
+final class InstallManager
 {
-    return InstallManager::getInstance()->uninstall();
+    private static ?self $instance = null;
+
+    private function __construct() {}
+
+    public static function getInstance(): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    public function install(): bool
+    {
+        return true;
+    }
+
+    public function uninstall(): bool
+    {
+        $config = new Config();
+        $config->deleteByCriteria(['context' => 'advancedforms']);
+        return true;
+    }
 }
