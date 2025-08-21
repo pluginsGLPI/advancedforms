@@ -33,32 +33,19 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
-use Glpi\Application\View\TemplateRenderer;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
-
-final class ConfigManager
+// Temporary singleton trait until we can get dependency injection rolling
+trait SingletonServiceTrait
 {
-    use SingletonServiceTrait;
+    private static ?self $instance = null;
 
-    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
+    final private function __construct() {}
 
-    public function renderConfigForm(): string
+    public static function getInstance(): static
     {
-        $twig = TemplateRenderer::getInstance();
-        return $twig->render('@advancedforms/config_form.html.twig', [
-            'config' => $this->getConfig(),
-        ]);
-    }
+        if (self::$instance === null) {
+            self::$instance = new static();
+        }
 
-    public function getConfig(): Config
-    {
-        $raw_config = \Config::getConfigurationValues(
-            'advancedforms',
-            [self::CONFIG_ENABLE_QUESTION_TYPE_IP],
-        );
-
-        return new Config(
-            enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
-        );
+        return self::$instance;
     }
 }

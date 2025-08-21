@@ -33,32 +33,27 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
-use Glpi\Application\View\TemplateRenderer;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
+use Config;
+use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use Plugin;
 
-final class ConfigManager
+final class InitManager
 {
     use SingletonServiceTrait;
 
-    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
-
-    public function renderConfigForm(): string
+    public function init(): void
     {
-        $twig = TemplateRenderer::getInstance();
-        return $twig->render('@advancedforms/config_form.html.twig', [
-            'config' => $this->getConfig(),
+        // Add configuration tab
+        Plugin::registerClass(ConfigTab::class, [
+            'addtabon' => Config::class,
         ]);
-    }
 
-    public function getConfig(): Config
-    {
-        $raw_config = \Config::getConfigurationValues(
-            'advancedforms',
-            [self::CONFIG_ENABLE_QUESTION_TYPE_IP],
-        );
-
-        return new Config(
-            enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
-        );
+        // Register questions types
+        $types = QuestionTypesManager::getInstance();
+        $types->registerPluginCategory(new AdvancedCategory());
+        $types->registerPluginQuestionType(new IpAddressQuestion());
     }
 }

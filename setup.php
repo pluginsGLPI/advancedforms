@@ -31,8 +31,7 @@
  * -------------------------------------------------------------------------
  */
 
-
-use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Service\InitManager;
 
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
 define('PLUGIN_ADVANCEDFORMS_VERSION', '0.0.1');
@@ -57,10 +56,7 @@ function plugin_init_advancedforms(): void
         return;
     }
 
-    // Add configuration tab
-    Plugin::registerClass(ConfigTab::class, [
-        'addtabon' => Config::class,
-    ]);
+    InitManager::getInstance()->init();
 }
 
 /**

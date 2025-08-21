@@ -31,34 +31,29 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Service;
+namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
-use Glpi\Application\View\TemplateRenderer;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
+use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use Override;
 
-final class ConfigManager
+final class AdvancedCategory implements QuestionTypeCategoryInterface
 {
-    use SingletonServiceTrait;
-
-    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
-
-    public function renderConfigForm(): string
+    #[Override]
+    public function getLabel(): string
     {
-        $twig = TemplateRenderer::getInstance();
-        return $twig->render('@advancedforms/config_form.html.twig', [
-            'config' => $this->getConfig(),
-        ]);
+        // To rename when we add a second child to this category
+        return __('Ip Address');
     }
 
-    public function getConfig(): Config
+    #[Override]
+    public function getIcon(): string
     {
-        $raw_config = \Config::getConfigurationValues(
-            'advancedforms',
-            [self::CONFIG_ENABLE_QUESTION_TYPE_IP],
-        );
+        return 'ti ti-network';
+    }
 
-        return new Config(
-            enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
-        );
+    #[Override]
+    public function getWeight(): int
+    {
+        return 1000;
     }
 }
