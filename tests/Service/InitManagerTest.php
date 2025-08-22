@@ -57,12 +57,12 @@ final class InitManagerTest extends DbTestCase
         // Assert: the ip address question type should only be found after enabling
         $classes_before = array_map(
             fn($type) => $type::class,
-            $types_before_enabling
+            $types_before_enabling,
         );
         $this->assertNotContains(IpAddressQuestion::class, $classes_before);
         $classes_after = array_map(
             fn($type) => $type::class,
-            $types_after_enabling
+            $types_after_enabling,
         );
         $this->assertContains(IpAddressQuestion::class, $classes_after);
     }
