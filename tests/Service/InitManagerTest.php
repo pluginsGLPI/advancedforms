@@ -31,34 +31,39 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Service;
+namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
+use DbTestCase;
 use Glpi\Form\QuestionType\QuestionTypesManager;
-use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
-use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use Plugin;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use GlpiPlugin\Advancedforms\Service\InitManager;
 
-final class InitManager
+final class InitManagerTest extends DbTestCase
 {
-    use SingletonServiceTrait;
-
-    public function init(): void
+    public function testQuestionTypeIpCanBeEnabled(): void
     {
-        // Add configuration tab
-        Plugin::registerClass(ConfigTab::class, [
-            'addtabon' => Config::class,
-        ]);
-
-        // Get config
-        $config = ConfigManager::getInstance()->getConfig();
-
-        // Register questions types
         $types = QuestionTypesManager::getInstance();
-        if ($config->isIpAddressQuestionTypeEnabled()) {
-            $types->registerPluginCategory(new AdvancedCategory());
-            $types->registerPluginQuestionType(new IpAddressQuestion());
-        }
+
+        // Act: enable question type and collect types before/after
+        $types_before_enabling = $types->getQuestionTypes();
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        InitManager::getInstance()->init();
+        $types_after_enabling = $types->getQuestionTypes();
+
+        // Assert: the ip address question type should only be found after enabling
+        $classes_before = array_map(
+            fn($type) => $type::class,
+            $types_before_enabling
+        );
+        $this->assertNotContains(IpAddressQuestion::class, $classes_before);
+        $classes_after = array_map(
+            fn($type) => $type::class,
+            $types_after_enabling
+        );
+        $this->assertContains(IpAddressQuestion::class, $classes_after);
     }
 }
