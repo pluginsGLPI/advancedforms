@@ -38,6 +38,7 @@ use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use Override;
+use Toolbox;
 
 final class IpAddressQuestion extends AbstractQuestionType
 {
@@ -76,13 +77,14 @@ final class IpAddressQuestion extends AbstractQuestionType
                 name="default_value"
                 placeholder="{{ input_placeholder }}"
                 value="{{ question is not null ? question.fields.default_value : '' }}"
+                disabled
             />
 TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question'          => $question,
-            'input_placeholder' => $this->getName(),
+            'input_placeholder' => "123.123.123.123",
         ]);
     }
 
@@ -93,18 +95,21 @@ TWIG;
         $template = <<<TWIG
             <input
                 type="hidden"
-                class="form-control"
                 name="{{ question.getEndUserInputName() }}"
-                value="{{ question.fields.default_value }}"
-                aria-label="{{ label }}"
-                {{ question.fields.is_mandatory ? 'required' : '' }}
+                value="{{ ip }}"
             >
 TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
-            'question'   => $question,
-            'label'      => $question?->fields['name'] ?? "",
+            'question' => $question,
+            'ip'       => Toolbox::getRemoteIpAddress(),
         ]);
+    }
+
+    #[Override]
+    public function isHiddenInput(): bool
+    {
+        return true;
     }
 }
