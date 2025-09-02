@@ -35,6 +35,7 @@ namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use Glpi\Plugin\Hooks;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
@@ -46,11 +47,29 @@ final class InitManager
 
     public function init(): void
     {
+        $this->registerConfiguration();
+        $this->registerPluginTypes();
+    }
+
+    private function registerConfiguration(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // Register config url
+        $config_class = ConfigTab::class;
+        $url = '../../front/config.form.php?forcetab=' . $config_class . '$1';
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['advancedforms'] = $url;
+
         // Add configuration tab
         Plugin::registerClass(ConfigTab::class, [
             'addtabon' => Config::class,
         ]);
+    }
 
+    private function registerPluginTypes(): void
+    {
         // Get config
         $config = ConfigManager::getInstance()->getConfig();
 
