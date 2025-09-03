@@ -99,7 +99,6 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         $this->assertTrue($config_enabled->isIpAddressQuestionTypeEnabled());
     }
 
-
     private function getConfigManager(): ConfigManager
     {
         return ConfigManager::getInstance();
