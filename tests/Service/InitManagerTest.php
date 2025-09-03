@@ -34,7 +34,9 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
+use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
@@ -42,28 +44,65 @@ use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
 final class InitManagerTest extends AdvancedFormsTestCase
 {
-    public function testQuestionTypeIpCanBeEnabled(): void
+    public function testQuestionTypeIpIsAvailableWhenEnabled(): void
     {
-        $types = QuestionTypesManager::getInstance();
+        // Arrange: enable question type
+        $this->enableIpQuestionType();
 
-        // Act: enable question type and collect types before/after
-        $types_before_enabling = $types->getQuestionTypes();
+        // Act: get enabled types
+        $manager = QuestionTypesManager::getInstance();
+        $types = $manager->getQuestionTypes();
+
+        // Assert: the ip address question type should only be found after enabling
+        $classes = array_map(
+            fn($type) => $type::class,
+            $types,
+        );
+        $this->assertContains(IpAddressQuestion::class, $classes);
+    }
+
+    public function testQuestionTypeIpIsNotAvailableWhenDisabled(): void
+    {
+        // Act: get enabled types
+        $manager = QuestionTypesManager::getInstance();
+        $types = $manager->getQuestionTypes();
+
+        // Assert: the ip address question type should only be found after enabling
+        $classes = array_map(
+            fn($type) => $type::class,
+            $types,
+        );
+        $this->assertNotContains(IpAddressQuestion::class, $classes);
+    }
+
+    public function testQuestionTypeIpIsMappedInConverterWhenEnabled(): void
+    {
+        // Arrange: enable question type
+        $this->enableIpQuestionType();
+
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertInstanceOf(FormcreatorIpTypeMapper::class, $mapped_types['ip']);
+    }
+
+    public function testQuestionTypeIpIsNotMappedInConverterWhenDisabled(): void
+    {
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertNull($mapped_types['ip']);
+    }
+
+    private function enableIpQuestionType(): void
+    {
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
         InitManager::getInstance()->init();
-        $types_after_enabling = $types->getQuestionTypes();
-
-        // Assert: the ip address question type should only be found after enabling
-        $classes_before = array_map(
-            fn($type) => $type::class,
-            $types_before_enabling,
-        );
-        $this->assertNotContains(IpAddressQuestion::class, $classes_before);
-        $classes_after = array_map(
-            fn($type) => $type::class,
-            $types_after_enabling,
-        );
-        $this->assertContains(IpAddressQuestion::class, $classes_after);
     }
 }

@@ -31,62 +31,36 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Service;
+namespace GlpiPlugin\Advancedforms\Model\Mapper;
 
-use Config;
-use Glpi\Form\Migration\TypesConversionMapper;
-use Glpi\Form\QuestionType\QuestionTypesManager;
-use Glpi\Plugin\Hooks;
-use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
-use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
-use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use Plugin;
+use Override;
 
-final class InitManager
+final class FormcreatorIpTypeMapper implements FormQuestionDataConverterInterface
 {
-    use SingletonServiceTrait;
-
-    public function init(): void
+    /** @param array<mixed> $rawData */
+    #[Override]
+    public function convertDefaultValue(array $rawData): null
     {
-        $this->registerConfiguration();
-        $this->registerPluginTypes();
+        return null;
     }
 
-    private function registerConfiguration(): void
+    /** @param array<mixed> $rawData */
+    #[Override]
+    public function convertExtraData(array $rawData): null
     {
-        global $PLUGIN_HOOKS;
-
-        // Register config url
-        $config_class = ConfigTab::class;
-        $url = '../../front/config.form.php?forcetab=' . $config_class . '$1';
-
-        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
-        $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['advancedforms'] = $url;
-
-        // Add configuration tab
-        Plugin::registerClass(ConfigTab::class, [
-            'addtabon' => Config::class,
-        ]);
+        return null;
     }
 
-    private function registerPluginTypes(): void
+    /** @param array<mixed> $rawData */
+    #[Override]
+    public function getTargetQuestionType(array $rawData): string
     {
-        // Get config
-        $config = ConfigManager::getInstance()->getConfig();
-
-        // Services used to register plugin data
-        $types = QuestionTypesManager::getInstance();
-        $type_mapper = TypesConversionMapper::getInstance();
-
-        if ($config->isIpAddressQuestionTypeEnabled()) {
-            $types->registerPluginCategory(new AdvancedCategory());
-            $types->registerPluginQuestionType(new IpAddressQuestion());
-            $type_mapper->registerPluginQuestionTypeConverter(
-                'ip',
-                new FormcreatorIpTypeMapper(),
-            );
-        }
-
+        return IpAddressQuestion::class;
     }
+
+    /** @param array<mixed> $rawData */
+    #[Override]
+    public function beforeConversion(array $rawData): void {}
 }

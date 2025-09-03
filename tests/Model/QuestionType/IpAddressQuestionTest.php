@@ -31,7 +31,7 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Service;
+namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
 use Config;
 use Glpi\Controller\Form\RendererController;

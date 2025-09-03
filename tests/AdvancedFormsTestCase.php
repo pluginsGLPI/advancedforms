@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Tests;
 
 use DbTestCase;
+use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use ReflectionClass;
 
@@ -46,6 +47,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         // Delete form related single instances
         $this->deleteSingletonInstance([
             QuestionTypesManager::class,
+            TypesConversionMapper::class,
         ]);
     }
 
