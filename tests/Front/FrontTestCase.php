@@ -33,9 +33,9 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
-use DbTestCase;
 use DOMElement;
 use Glpi\Exception\RedirectException;
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use LogicException;
 use RuntimeException;
 use Session;
@@ -43,7 +43,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Throwable;
 
 // Temporary test case until we can the real WebTestCase working
-abstract class FrontTestCase extends DbTestCase
+abstract class FrontTestCase extends AdvancedFormsTestCase
 {
     public function get(string $url, array $params = []): Crawler
     {

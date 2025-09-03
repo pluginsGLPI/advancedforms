@@ -51,7 +51,7 @@ final class IpAddressQuestion extends AbstractQuestionType
     #[Override]
     public function getName(): string
     {
-        return __('Ip Address');
+        return __('Ip address');
     }
 
     #[Override]

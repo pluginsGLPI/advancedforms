@@ -34,12 +34,12 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
-use DbTestCase;
 use DOMElement;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
-final class ConfigManagerTest extends DbTestCase
+final class ConfigManagerTest extends AdvancedFormsTestCase
 {
     public function testCanRenderConfigFormWithoutErrors(): void
     {

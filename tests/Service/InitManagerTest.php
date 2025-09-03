@@ -34,13 +34,13 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
-use DbTestCase;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
-final class InitManagerTest extends DbTestCase
+final class InitManagerTest extends AdvancedFormsTestCase
 {
     public function testQuestionTypeIpCanBeEnabled(): void
     {

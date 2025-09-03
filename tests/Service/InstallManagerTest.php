@@ -34,11 +34,11 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
-use DbTestCase;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
-final class InstallManagerTest extends DbTestCase
+final class InstallManagerTest extends AdvancedFormsTestCase
 {
     public function testUninstallRemoveConfig(): void
     {

@@ -42,7 +42,7 @@ final class AdvancedCategory implements QuestionTypeCategoryInterface
     public function getLabel(): string
     {
         // To rename when we add a second child to this category
-        return __('Ip Address');
+        return __('Ip address');
     }
 
     #[Override]

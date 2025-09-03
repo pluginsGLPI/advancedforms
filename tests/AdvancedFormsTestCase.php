@@ -31,13 +31,35 @@
  * -------------------------------------------------------------------------
  */
 
-chdir(__DIR__ . '/../../..'); // Needed because of some exec() call in the core's boostrap file
-require __DIR__ . '/../../../phpunit/bootstrap.php';
-chdir(__DIR__); // Return to normal directory
+namespace GlpiPlugin\Advancedforms\Tests;
 
-if (!Plugin::isPluginActive("advancedforms")) {
-    throw new RuntimeException("Plugin advancedforms is not active in the test database");
+use DbTestCase;
+use Glpi\Form\QuestionType\QuestionTypesManager;
+use ReflectionClass;
+
+abstract class AdvancedFormsTestCase extends DbTestCase
+{
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        // Delete form related single instances
+        $this->deleteSingletonInstance([
+            QuestionTypesManager::class,
+        ]);
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+    }
+
+    private function deleteSingletonInstance(array $classes)
+    {
+        foreach ($classes as $class) {
+            $reflection_class = new ReflectionClass($class);
+            $reflection_property = $reflection_class->getProperty('instance');
+            $reflection_property->setValue(null, null);
+        }
+    }
 }
-
-require __DIR__ . "/AdvancedFormsTestCase.php";
-require __DIR__ . "/Front/FrontTestCase.php";
