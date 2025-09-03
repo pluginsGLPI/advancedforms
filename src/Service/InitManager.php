@@ -37,6 +37,7 @@ use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
+use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
@@ -45,7 +46,7 @@ use Plugin;
 
 final class InitManager
 {
-    use SingletonServiceTrait;
+    use SingletonTrait;
 
     public function init(): void
     {

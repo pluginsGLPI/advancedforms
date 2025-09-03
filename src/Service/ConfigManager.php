@@ -34,11 +34,12 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\Config;
 
 final class ConfigManager
 {
-    use SingletonServiceTrait;
+    use SingletonTrait;
 
     public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
 

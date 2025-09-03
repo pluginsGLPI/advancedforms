@@ -34,10 +34,11 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Toolbox\SingletonTrait;
 
 final class InstallManager
 {
-    use SingletonServiceTrait;
+    use SingletonTrait;
 
     public function install(): bool
     {
