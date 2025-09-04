@@ -36,6 +36,7 @@ namespace GlpiPlugin\Advancedforms\Tests\Service;
 use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
@@ -128,6 +129,29 @@ final class InitManagerTest extends AdvancedFormsTestCase
             $types,
         );
         $this->assertNotContains(HostnameQuestion::class, $classes);
+    }
+
+    public function testQuestionTypeHostnameIsMappedInConverterWhenEnabled(): void
+    {
+        // Arrange: enable question type
+        $this->enableHostnameQuestionType();
+
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertInstanceOf(FormcreatorHostnameTypeMapper::class, $mapped_types['hostname']);
+    }
+
+    public function testQuestionTypeHostnameIsNotMappedInConverterWhenDisabled(): void
+    {
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertNull($mapped_types['hostname']);
     }
 
     private function enableIpQuestionType(): void

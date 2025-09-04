@@ -39,6 +39,7 @@ use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
@@ -98,6 +99,10 @@ final class InitManager
         // Register hostname question
         if ($config->isHostnameQuestionTypeEnabled()) {
             $types->registerPluginQuestionType(new HostnameQuestion());
+            $type_mapper->registerPluginQuestionTypeConverter(
+                'hostname',
+                new FormcreatorHostnameTypeMapper(),
+            );
         }
     }
 }
