@@ -41,6 +41,7 @@ use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use Plugin;
 
@@ -80,8 +81,13 @@ final class InitManager
         $types = QuestionTypesManager::getInstance();
         $type_mapper = TypesConversionMapper::getInstance();
 
-        if ($config->isIpAddressQuestionTypeEnabled()) {
+        // Register advanced forms type category
+        if ($config->hasAtLeastOneQuestionTypeEnabled()) {
             $types->registerPluginCategory(new AdvancedCategory());
+        }
+
+        // Register IP question
+        if ($config->isIpAddressQuestionTypeEnabled()) {
             $types->registerPluginQuestionType(new IpAddressQuestion());
             $type_mapper->registerPluginQuestionTypeConverter(
                 'ip',
@@ -89,5 +95,9 @@ final class InitManager
             );
         }
 
+        // Register hostname question
+        if ($config->isHostnameQuestionTypeEnabled()) {
+            $types->registerPluginQuestionType(new HostnameQuestion());
+        }
     }
 }

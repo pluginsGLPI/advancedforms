@@ -40,6 +40,14 @@ final class Config
         private bool $enable_hostname_question_type = false,
     ) {}
 
+    public function hasAtLeastOneQuestionTypeEnabled(): bool
+    {
+        return
+            $this->isIpAddressQuestionTypeEnabled()
+            || $this->isHostnameQuestionTypeEnabled()
+        ;
+    }
+
     public function isIpAddressQuestionTypeEnabled(): bool
     {
         return $this->enable_ip_address_question_type;

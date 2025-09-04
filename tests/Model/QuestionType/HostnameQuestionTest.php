@@ -39,21 +39,21 @@ use Glpi\Form\Form;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 
-final class IpAddressQuestionTest extends AdvancedFormsTestCase
+final class HostnameQuestionTest extends AdvancedFormsTestCase
 {
     use FormTesterTrait;
 
     public function testIpAddressIsAvailableInTypeDropdownWhenEnabled(): void
     {
-        // Arrange: enable the ip address type and create a form
-        $this->enableIpQuestionType();
+        // Arrange: enable hostname type and create a form
+        $this->enableHostnameQuestionType();
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", QuestionTypeShortText::class);
         $form = $this->createForm($builder);
@@ -61,14 +61,14 @@ final class IpAddressQuestionTest extends AdvancedFormsTestCase
         // Act: render form editor
         $html = $this->renderFormEditor($form);
 
-        // Assert: make sure the IP type is found
+        // Assert: make sure the hostname type is found
         $options = $html
             ->filter('select[name=_type_category]')
             ->eq(0)
             ->filter('option')
             ->each(fn(Crawler $node) => $node->text())
         ;
-        $this->assertContains("Ip address", $options);
+        $this->assertContains("Hostname", $options);
     }
 
     public function testIpAddressIsNotAvailableInTypeDropdownWhenDisabled(): void
@@ -81,37 +81,37 @@ final class IpAddressQuestionTest extends AdvancedFormsTestCase
         // Act: render form editor
         $html = $this->renderFormEditor($form);
 
-        // Assert: make sure the IP type is not found
+        // Assert: make sure the hostname type is not found
         $options = $html
             ->filter('select[name=_type_category]')
             ->eq(0)
             ->filter('option')
             ->each(fn(Crawler $node) => $node->text())
         ;
-        $this->assertNotContains("Ip address", $options);
+        $this->assertNotContains("Hostname", $options);
     }
 
     public function testEditorRenderingWhenEnabled(): void
     {
-        // Arrange: enable the ip address type and create a form using it
-        $this->enableIpQuestionType();
+        // Arrange: enable the hostname type and create a form using it
+        $this->enableHostnameQuestionType();
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
+        $builder->addQuestion("My question", HostnameQuestion::class);
         $form = $this->createForm($builder);
 
         // Act: render form editor
         $html = $this->renderFormEditor($form);
 
         // Assert: item was rendered
-        $input = $html->filter('input[placeholder="123.123.123.123"]');
+        $input = $html->filter('input[placeholder="hostname"]');
         $this->assertNotEmpty($input);
     }
 
     public function testEditorRenderingWhenDisabled(): void
     {
-        // Arrange: enable the ip address type and create a form using it
+        // Arrange: enable the hostname type and create a form using it
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
+        $builder->addQuestion("My question", HostnameQuestion::class);
         $form = $this->createForm($builder);
 
         // Act: render form editor
@@ -130,41 +130,41 @@ final class IpAddressQuestionTest extends AdvancedFormsTestCase
 
     public function testHelpdeskRenderingWhenEnabled(): void
     {
-        // Arrange: enable the ip address type and create a form using it
-        $this->enableIpQuestionType();
+        // Arrange: enable the hostname type and create a form using it
+        $this->enableHostnameQuestionType();
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
+        $builder->addQuestion("My question", HostnameQuestion::class);
         $form = $this->createForm($builder);
 
         // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
+        $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
         $html = $this->renderHelpdeskForm($form);
 
         // Assert: the correct input was set
-        $input = $html->filter('input[value="123.0.0.4"]');
+        $input = $html->filter('input[value="localhost"]');
         $this->assertNotEmpty($input);
     }
 
     public function testHelpdeskRenderingWhenDisabled(): void
     {
-        // Arrange: enable the ip address type and create a form using it
+        // Arrange: enable the hostname type and create a form using it
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
+        $builder->addQuestion("My question", HostnameQuestion::class);
         $form = $this->createForm($builder);
 
         // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
+        $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
         $html = $this->renderHelpdeskForm($form);
 
         // Assert: input should not exist
-        $input = $html->filter('input[value="123.0.0.4"]');
+        $input = $html->filter('input[value="localhost"]');
         $this->assertEmpty($input);
     }
 
-    private function enableIpQuestionType(): void
+    private function enableHostnameQuestionType(): void
     {
         Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
         ]);
         InitManager::getInstance()->init();
     }

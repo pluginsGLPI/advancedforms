@@ -31,41 +31,49 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Model\QuestionType;
+namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use Config;
+use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use Override;
+use GlpiPlugin\Advancedforms\Service\InitManager;
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
-final class AdvancedCategory implements QuestionTypeCategoryInterface
+final class AdvancedCategoryTest extends AdvancedFormsTestCase
 {
-    #[Override]
-    public function getLabel(): string
+    public function testNameWithSingleTypeEnabled(): void
     {
-        $types = ConfigManager::getInstance()->getEnabledQuestionsTypes();
-        if (count($types) === 1) {
-            $type = array_pop($types);
-            return $type->getName();
-        } else {
-            return __('Advanced', 'advancedforms');
-        }
+        // Arrange: enabled one type
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        InitManager::getInstance()->init();
+
+        // Act: render name and icon
+        $name = (new AdvancedCategory())->getLabel();
+        $icon = (new AdvancedCategory())->getIcon();
+
+        // Assert: should be replaced by the questions type name
+        $this->assertEquals((new IpAddressQuestion())->getName(), $name);
+        $this->assertEquals((new IpAddressQuestion())->getIcon(), $icon);
     }
 
-    #[Override]
-    public function getIcon(): string
+    public function testNameWithMultipleTypesEnabled(): void
     {
-        $types = ConfigManager::getInstance()->getEnabledQuestionsTypes();
-        if (count($types) === 1) {
-            $type = array_pop($types);
-            return $type->getIcon();
-        } else {
-            return 'ti ti-adjustments-plus';
-        }
-    }
+        // Arrange: enabled one type
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+        ]);
+        InitManager::getInstance()->init();
 
-    #[Override]
-    public function getWeight(): int
-    {
-        return 1000;
+        // Act: render name
+        $name = (new AdvancedCategory())->getLabel();
+        $icon = (new AdvancedCategory())->getIcon();
+
+        // Assert: should be replaced by the questions type name
+        $this->assertEquals("Advanced", $name);
+        $this->assertEquals('ti ti-adjustments-plus', $icon);
     }
 }

@@ -32,8 +32,8 @@
 {% set available_features = [
     {
         key        : "ip-question",
-        title      : __("IP address question type"),
-        description: __("This question type will automatically register the user's ip address."),
+        title      : __("IP address question type", 'advancedforms'),
+        description: __("This question type will automatically register the user's ip address.", 'advancedforms'),
         icon       : "network",
         input_name : constant(
             "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP",
@@ -42,8 +42,8 @@
     },
     {
         key        : "hostname-question",
-        title      : __("Hostname question type"),
-        description: __("This question type will automatically register the user's hostname."),
+        title      : __("Hostname question type", 'advancedforms'),
+        description: __("This question type will automatically register the user's hostname.", 'advancedforms'),
         icon       : "label",
         input_name : constant(
             "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME",

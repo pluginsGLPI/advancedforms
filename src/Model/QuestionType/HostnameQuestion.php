@@ -40,7 +40,7 @@ use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use Override;
 use Toolbox;
 
-final class IpAddressQuestion extends AbstractQuestionType
+final class HostnameQuestion extends AbstractQuestionType
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -51,19 +51,19 @@ final class IpAddressQuestion extends AbstractQuestionType
     #[Override]
     public function getName(): string
     {
-        return __('Ip address', 'advancedforms');
+        return __('Hostname', 'advancedforms');
     }
 
     #[Override]
     public function getIcon(): string
     {
-        return 'ti ti-network';
+        return 'ti ti-label';
     }
 
     #[Override]
     public function getWeight(): int
     {
-        return 10;
+        return 20;
     }
 
     #[Override]
@@ -84,7 +84,7 @@ TWIG;
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question'          => $question,
-            'input_placeholder' => "123.123.123.123",
+            'input_placeholder' => "hostname",
         ]);
     }
 
@@ -96,14 +96,14 @@ TWIG;
             <input
                 type="hidden"
                 name="{{ question.getEndUserInputName() }}"
-                value="{{ ip }}"
+                value="{{ hostname }}"
             >
 TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question' => $question,
-            'ip'       => Toolbox::getRemoteIpAddress(),
+            'hostname' => gethostbyaddr(Toolbox::getRemoteIpAddress()),
         ]);
     }
 

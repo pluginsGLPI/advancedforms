@@ -113,7 +113,7 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
     }
 
-     public function testCanDisableQuestionTypeHostnameConfig(): void
+    public function testCanDisableQuestionTypeHostnameConfig(): void
     {
         // Arrange: enable config
         $this->enableHostnameQuestionType();

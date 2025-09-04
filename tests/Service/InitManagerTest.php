@@ -37,6 +37,7 @@ use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
@@ -98,10 +99,49 @@ final class InitManagerTest extends AdvancedFormsTestCase
         $this->assertNull($mapped_types['ip']);
     }
 
+    public function testQuestionTypeHostnameIsAvailableWhenEnabled(): void
+    {
+        // Arrange: enable question type
+        $this->enableHostnameQuestionType();
+
+        // Act: get enabled types
+        $manager = QuestionTypesManager::getInstance();
+        $types = $manager->getQuestionTypes();
+
+        // Assert: the hostname address question type should only be found after enabling
+        $classes = array_map(
+            fn($type) => $type::class,
+            $types,
+        );
+        $this->assertContains(HostnameQuestion::class, $classes);
+    }
+
+    public function testQuestionTypeHostnameIsNotAvailableWhenDisabled(): void
+    {
+        // Act: get enabled types
+        $manager = QuestionTypesManager::getInstance();
+        $types = $manager->getQuestionTypes();
+
+        // Assert: the hostname address question type should only be found after enabling
+        $classes = array_map(
+            fn($type) => $type::class,
+            $types,
+        );
+        $this->assertNotContains(HostnameQuestion::class, $classes);
+    }
+
     private function enableIpQuestionType(): void
     {
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+        InitManager::getInstance()->init();
+    }
+
+    private function enableHostnameQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
         ]);
         InitManager::getInstance()->init();
     }

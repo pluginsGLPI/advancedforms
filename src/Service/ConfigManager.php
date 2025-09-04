@@ -36,6 +36,8 @@ namespace GlpiPlugin\Advancedforms\Service;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\Config;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 
 final class ConfigManager
 {
@@ -66,5 +68,21 @@ final class ConfigManager
             enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
             enable_hostname_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME] ?? false) == 1,
         );
+    }
+
+    /** @return \Glpi\Form\QuestionType\QuestionTypeInterface[] */
+    public function getEnabledQuestionsTypes(): array
+    {
+        $types = [];
+        $config = $this->getConfig();
+
+        if ($config->isIpAddressQuestionTypeEnabled()) {
+            $types[] = new IpAddressQuestion();
+        }
+        if ($config->isHostnameQuestionTypeEnabled()) {
+            $types[] = new HostnameQuestion();
+        }
+
+        return $types;
     }
 }
