@@ -63,7 +63,7 @@ final class ConfigFormTest extends FrontTestCase
     {
         // Act: go to the advanced form tab on the config
         $this->login();
-        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTagUrlParams());
+        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
 
         // Assert: just make sure some arbitrary content exist, more detailled
         // testing will be done in the services tests instead.
@@ -75,7 +75,7 @@ final class ConfigFormTest extends FrontTestCase
     {
         // Act: go to the advanced form tab on the config
         $this->login('tech');
-        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTagUrlParams());
+        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
 
         // Assert: no html was rendered as we lack rights to view config
         $this->assertEmpty($crawler);
@@ -84,39 +84,65 @@ final class ConfigFormTest extends FrontTestCase
     public function testCanDisableQuestionTypeIpConfig(): void
     {
         // Arrange: enable config
-        $manager = $this->getConfigManager();
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-        ]);
-        $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
+        $this->enableIpQuestionType();
 
         // Act: submit config form
         $this->login();
-        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTagUrlParams(), [
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
         ]);
 
         // Assert: config should now be disabled
+        $manager = $this->getConfigManager();
         $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
     }
 
     public function testCanEnableQuestionTypeIpConfig(): void
     {
         // Arrange: disable config
-        $manager = $this->getConfigManager();
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
-        ]);
-        $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
+        $this->disableIpQuestionType();
 
         // Act: submit config form
         $this->login();
-        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTagUrlParams(), [
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
 
         // Assert: config should now be enabled
+        $manager = $this->getConfigManager();
         $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
+    }
+
+     public function testCanDisableQuestionTypeHostnameConfig(): void
+    {
+        // Arrange: enable config
+        $this->enableHostnameQuestionType();
+
+        // Act: submit config form
+        $this->login();
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 0,
+        ]);
+
+        // Assert: config should now be disabled
+        $manager = $this->getConfigManager();
+        $this->assertFalse($manager->getConfig()->isHostnameQuestionTypeEnabled());
+    }
+
+    public function testCanEnableQuestionTypeHostnameConfig(): void
+    {
+        // Arrange: disable config
+        $this->disableHostnameQuestionType();
+
+        // Act: submit config form
+        $this->login();
+        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+        ]);
+
+        // Assert: config should now be enabled
+        $manager = $this->getConfigManager();
+        $this->assertTrue($manager->getConfig()->isHostnameQuestionTypeEnabled());
     }
 
     private function getConfigManager(): ConfigManager
@@ -124,7 +150,7 @@ final class ConfigFormTest extends FrontTestCase
         return ConfigManager::getInstance();
     }
 
-    private function getConfigTagUrlParams(): array
+    private function getConfigTabUrlParams(): array
     {
         return [
             '_glpi_tab'   => "GlpiPlugin\\Advancedforms\\Model\\Config\\ConfigTab$1",
@@ -132,5 +158,33 @@ final class ConfigFormTest extends FrontTestCase
             '_target'     => '/front/config.form.php',
             'id'          => 1,
         ];
+    }
+
+    private function disableIpQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+        ]);
+    }
+
+    private function enableIpQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+    }
+
+    private function disableHostnameQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 0,
+        ]);
+    }
+
+    private function enableHostnameQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+        ]);
     }
 }

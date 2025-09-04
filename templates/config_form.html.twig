@@ -40,6 +40,16 @@
         ),
         is_enabled : config.isIpAddressQuestionTypeEnabled(),
     },
+    {
+        key        : "hostname-question",
+        title      : __("Hostname question type"),
+        description: __("This question type will automatically register the user's hostname."),
+        icon       : "label",
+        input_name : constant(
+            "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME",
+        ),
+        is_enabled : config.isHostnameQuestionTypeEnabled(),
+    },
 ] %}
 
 <div class="py-2 px-3 ms-0">

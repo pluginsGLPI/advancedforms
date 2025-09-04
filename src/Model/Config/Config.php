@@ -37,10 +37,16 @@ final class Config
 {
     public function __construct(
         private bool $enable_ip_address_question_type = false,
+        private bool $enable_hostname_question_type = false,
     ) {}
 
     public function isIpAddressQuestionTypeEnabled(): bool
     {
         return $this->enable_ip_address_question_type;
+    }
+
+    public function isHostnameQuestionTypeEnabled(): bool
+    {
+        return $this->enable_hostname_question_type;
     }
 }

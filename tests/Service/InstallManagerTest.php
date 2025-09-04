@@ -45,6 +45,7 @@ final class InstallManagerTest extends AdvancedFormsTestCase
         // Arrange: set multiples config values
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
         ]);
 
         // Act: uninstall plugin

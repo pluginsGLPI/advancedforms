@@ -41,16 +41,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class ConfigManagerTest extends AdvancedFormsTestCase
 {
-    public function testCanRenderConfigFormWithoutErrors(): void
-    {
-        // Act: render configuration
-        $html = $this->getConfigManager()->renderConfigForm();
-
-        // Assert: some html was generated and no exception were thrown
-        $this->assertNotEmpty($html);
-    }
-
-    public function testQuestionTypeConfigFormWhenEnabled(): void
+    public function testQuestionTypeIpConfigFormWhenEnabled(): void
     {
         // Arrange: enable question type IP
         $this->enableIpQuestionType();
@@ -68,7 +59,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         $this->assertTrue($html_disabled->hasAttribute('checked'));
     }
 
-    public function testQuestionTypeConfigFormWhenDisabled(): void
+    public function testQuestionTypeIpConfigFormWhenDisabled(): void
     {
         // Arrange: disable question type IP
         $this->disableIpQuestionType();
@@ -110,6 +101,66 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         $this->assertFalse($config_disable->isIpAddressQuestionTypeEnabled());
     }
 
+    public function testQuestionTypeHostnameFormWhenEnabled(): void
+    {
+        // Arrange: enable question type hostname
+        $this->enableHostnameQuestionType();
+
+        // Act: render configuration
+        $html_disabled = $this->getConfigManager()->renderConfigForm();
+
+        // Assert: the input should be checked
+        $html_disabled = (new Crawler($html_disabled))
+            ->filter('[data-testid="feature-hostname-question"]')
+            ->filter('input[data-testid="feature-toggle"]')
+            ->getNode(0);
+        $this->assertInstanceOf(DOMElement::class, $html_disabled);
+        /** @var DOMElement $html_disabled */
+        $this->assertTrue($html_disabled->hasAttribute('checked'));
+    }
+
+    public function testQuestionTypeHostnameFormWhenDisabled(): void
+    {
+        // Arrange: disable question type hostname
+        $this->disableHostnameQuestionType();
+
+        // Act: render configuration
+        $html_disabled = $this->getConfigManager()->renderConfigForm();
+
+        // Assert: the input should not be checked
+        $html_disabled = (new Crawler($html_disabled))
+            ->filter('[data-testid="feature-hostname-question"]')
+            ->filter('input[data-testid="feature-toggle"]')
+            ->getNode(0);
+        $this->assertInstanceOf(DOMElement::class, $html_disabled);
+        /** @var DOMElement $html_disabled */
+        $this->assertFalse($html_disabled->hasAttribute('checked'));
+    }
+
+    public function testQuestionTypeHostnameConfigValueWhenEnabled(): void
+    {
+        // Arrange: enable question type IP
+        $this->enableHostnameQuestionType();
+
+        // Act: get configuration
+        $config_enabled = $this->getConfigManager()->getConfig();
+
+        // Assert: the config should be enabled
+        $this->assertTrue($config_enabled->isHostnameQuestionTypeEnabled());
+    }
+
+    public function testQuestionTypeHostnameConfigValueWhenDisabled(): void
+    {
+        // Arrange: enable question type IP
+        $this->disableHostnameQuestionType();
+
+        // Act: get configuration
+        $config_disable = $this->getConfigManager()->getConfig();
+
+        // Assert: the config should be enabled
+        $this->assertFalse($config_disable->isHostnameQuestionTypeEnabled());
+    }
+
     private function getConfigManager(): ConfigManager
     {
         return ConfigManager::getInstance();
@@ -126,6 +177,20 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
     {
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+        ]);
+    }
+
+    private function disableHostnameQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 0,
+        ]);
+    }
+
+    private function enableHostnameQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
         ]);
     }
 }

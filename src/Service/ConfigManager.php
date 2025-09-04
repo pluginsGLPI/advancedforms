@@ -41,7 +41,8 @@ final class ConfigManager
 {
     use SingletonTrait;
 
-    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_id_address';
+    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_ip_address';
+    public const CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME = 'enable_question_type_hostname';
 
     public function renderConfigForm(): string
     {
@@ -55,11 +56,15 @@ final class ConfigManager
     {
         $raw_config = \Config::getConfigurationValues(
             'advancedforms',
-            [self::CONFIG_ENABLE_QUESTION_TYPE_IP],
+            [
+                self::CONFIG_ENABLE_QUESTION_TYPE_IP,
+                self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME,
+            ],
         );
 
         return new Config(
             enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
+            enable_hostname_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME] ?? false) == 1,
         );
     }
 }
