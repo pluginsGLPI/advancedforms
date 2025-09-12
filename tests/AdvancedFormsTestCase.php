@@ -60,8 +60,14 @@ abstract class AdvancedFormsTestCase extends DbTestCase
     {
         foreach ($classes as $class) {
             $reflection_class = new ReflectionClass($class);
-            $reflection_property = $reflection_class->getProperty('instance');
-            $reflection_property->setValue(null, null);
+            if ($reflection_class->hasProperty('instance')) {
+                $reflection_property = $reflection_class->getProperty('instance');
+                $reflection_property->setValue(null, null);
+            }
+            if ($reflection_class->hasProperty('_instances')) {
+                $reflection_property = $reflection_class->getProperty('_instances');
+                $reflection_property->setValue(null, []);
+            }
         }
     }
 }
