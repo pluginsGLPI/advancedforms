@@ -37,6 +37,7 @@ use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHiddenTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
@@ -136,6 +137,29 @@ final class InitManagerTest extends AdvancedFormsTestCase
         $this->assertNull($mapped_types['hostname']);
     }
 
+    public function testQuestionTypeHiddenIsMappedInConverterWhenEnabled(): void
+    {
+        // Arrange: enable question type
+        $this->enableHiddenQuestionType();
+
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertInstanceOf(FormcreatorHiddenTypeMapper::class, $mapped_types['hidden']);
+    }
+
+    public function testQuestionTypeHiddenIsNotMappedInConverterWhenDisabled(): void
+    {
+        // Act: get enabled types
+        $mapper = TypesConversionMapper::getInstance();
+        $mapped_types = $mapper->getQuestionTypesConversionMap();
+
+        // Assert: the ip address question type should only be found after enabling
+        $this->assertNull($mapped_types['hidden']);
+    }
+
     private function enableIpQuestionType(): void
     {
         Config::setConfigurationValues('advancedforms', [
@@ -148,6 +172,14 @@ final class InitManagerTest extends AdvancedFormsTestCase
     {
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+        ]);
+        InitManager::getInstance()->init();
+    }
+
+    private function enableHiddenQuestionType(): void
+    {
+        Config::setConfigurationValues('advancedforms', [
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN => 1,
         ]);
         InitManager::getInstance()->init();
     }

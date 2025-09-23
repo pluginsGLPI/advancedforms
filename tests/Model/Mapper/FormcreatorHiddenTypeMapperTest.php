@@ -37,23 +37,29 @@ use Config;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 use RuntimeException;
 
-final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
+final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
 {
-    public function testHostnameTypeMigrationWhenEnabled(): void
+    public function testHiddenTypeMigrationWhenEnabled(): void
     {
         /** @var \DBmysql $DB */
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
-        $this->enableHostnameQuestionType();
+        $this->enableHiddenQuestionType();
         $this->createSimpleFormcreatorForm(
             name: "My form",
-            questions: [['name' => 'My hostname question', 'fieldtype' => 'hostname']],
+            questions: [
+                [
+                    'name'           => 'My hidden question',
+                    'fieldtype'      => 'hidden',
+                    'default_values' => 'my hidden value',
+                ]
+            ],
         );
 
         // Act: execute the migration
@@ -65,14 +71,18 @@ final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
 
         // Assert: make sure the question type was migrated as expected
         $this->assertTrue($result->isFullyProcessed());
-        $hostname_question = getItemByTypeName(Question::class, 'My hostname question');
+        $hidden_question = getItemByTypeName(Question::class, 'My hidden question');
         $this->assertInstanceOf(
-            HostnameQuestion::class,
-            $hostname_question->getQuestionType(),
+            HiddenQuestion::class,
+            $hidden_question->getQuestionType(),
+        );
+        $this->assertEquals(
+            'my hidden value',
+            $hidden_question->fields['default_value'],
         );
     }
 
-    public function testHostnameTypeMigrationWhenDisabled(): void
+    public function testHiddenTypeMigrationWhenDisabled(): void
     {
         /** @var \DBmysql $DB */
         global $DB;
@@ -80,7 +90,13 @@ final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
         // Arrange: add some fomrcreator data
         $this->createSimpleFormcreatorForm(
             name: "My form",
-            questions: [['name' => 'My hostname question', 'fieldtype' => 'hostname']],
+            questions: [
+                [
+                    'name'           => 'My hidden question',
+                    'fieldtype'      => 'hidden',
+                    'default_values' => 'my hidden value',
+                ]
+            ],
         );
 
         // Act: execute the migration
@@ -93,13 +109,13 @@ final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
         // Assert: make sure the question was ignored
         $this->assertTrue($result->isFullyProcessed());
         $this->expectException(RuntimeException::class);
-        getItemByTypeName(Question::class, 'My hostname question');
+        getItemByTypeName(Question::class, 'My hidden question');
     }
 
-    private function enableHostnameQuestionType(): void
+    private function enableHiddenQuestionType(): void
     {
         Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN => 1,
         ]);
         InitManager::getInstance()->init();
     }

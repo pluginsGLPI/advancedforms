@@ -31,54 +31,36 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
+namespace GlpiPlugin\Advancedforms\Model\Mapper;
 
-
-use Glpi\Form\QuestionType\QuestionTypeInterface;
-use Glpi\Tests\FormTesterTrait;
-use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use Override;
-use Symfony\Component\DomCrawler\Crawler;
 
-final class IpAddressQuestionTest extends QuestionTypeTestCase
+final class FormcreatorHiddenTypeMapper implements FormQuestionDataConverterInterface
 {
-    use FormTesterTrait;
-
+    /** @param array<mixed> $rawData */
     #[Override]
-    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
+    public function convertDefaultValue(array $rawData): string
     {
-        return new IpAddressQuestion();
+        return $rawData['default_values'] ?? '';
     }
 
+    /** @param array<mixed> $rawData */
     #[Override]
-    protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
-    ): void {
-        $input = $html->filter('input[placeholder="127.0.0.1"]');
-        $this->assertNotEmpty($input);
-    }
-
-    #[Override]
-    protected function beforeHelpdeskRender(): void
+    public function convertExtraData(array $rawData): null
     {
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
+        return null;
     }
 
+    /** @param array<mixed> $rawData */
     #[Override]
-    protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
-    ): void {
-        $input = $html->filter('input[value="123.0.0.4"]');
-        $this->assertNotEmpty($input);
+    public function getTargetQuestionType(array $rawData): string
+    {
+        return HiddenQuestion::class;
     }
 
+    /** @param array<mixed> $rawData */
     #[Override]
-    protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
-    ): void {
-        $input = $html->filter('input[value="123.0.0.4"]');
-        $this->assertEmpty($input);
-    }
+    public function beforeConversion(array $rawData): void {}
 }

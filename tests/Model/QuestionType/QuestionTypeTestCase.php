@@ -64,11 +64,17 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         Crawler $html
     ): void;
 
-    public function beforeHelpdeskRender(): void
-    {
-    }
+    /**
+     * Can be overriden if you need to set some specific state before the
+     * helpdesk rendering process is called.
+     */
+    protected function beforeHelpdeskRender(): void {}
 
-    public function setDefaultValueBeforeHelpdeskRendering(): mixed
+    /**
+     * Can be overriden if you need a specific default value for the question
+     * used as a test subject.
+     */
+    protected function setDefaultValueBeforeHelpdeskRendering(): mixed
     {
         return '';
     }

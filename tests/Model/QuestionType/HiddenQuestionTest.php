@@ -60,7 +60,7 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
     }
 
     #[Override]
-    public function setDefaultValueBeforeHelpdeskRendering(): string
+    protected function setDefaultValueBeforeHelpdeskRendering(): string
     {
         return 'my hidden value';
     }

@@ -34,14 +34,16 @@
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHiddenTypeMapper;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 
-final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface
+final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -132,5 +134,17 @@ TWIG;
     public function getConfigIcon(): string
     {
         return $this->getIcon();
+    }
+
+    #[Override]
+    public function getLegacyFormcreatorKey(): string
+    {
+        return 'hidden';
+    }
+
+    #[Override]
+    public function getMapperClass(): FormQuestionDataConverterInterface
+    {
+        return new FormcreatorHiddenTypeMapper();
     }
 }

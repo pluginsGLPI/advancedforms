@@ -31,54 +31,67 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
+namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
+use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
-use Glpi\Form\QuestionType\QuestionTypeInterface;
-use Glpi\Tests\FormTesterTrait;
-use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
-use Override;
-use Symfony\Component\DomCrawler\Crawler;
-
-final class IpAddressQuestionTest extends QuestionTypeTestCase
+abstract class MapperTestCase extends AdvancedFormsTestCase
 {
-    use FormTesterTrait;
-
-    #[Override]
-    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
+    public static function setUpBeforeClass(): void
     {
-        return new IpAddressQuestion();
+        global $DB;
+
+        parent::setUpBeforeClass();
+
+        $tables = $DB->listTables('glpi\_plugin\_formcreator\_%');
+        foreach ($tables as $table) {
+            $DB->dropTable($table['TABLE_NAME']);
+        }
+
+        $queries = $DB->getQueriesFromFile(sprintf(
+            '%s/plugins/advancedforms/tests/fixtures/formcreator.sql',
+            GLPI_ROOT,
+        ));
+        foreach ($queries as $query) {
+            $DB->doQuery($query);
+        }
     }
 
-    #[Override]
-    protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
-    ): void {
-        $input = $html->filter('input[placeholder="127.0.0.1"]');
-        $this->assertNotEmpty($input);
-    }
-
-    #[Override]
-    protected function beforeHelpdeskRender(): void
+    public static function tearDownAfterClass(): void
     {
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
+        global $DB;
+
+        $tables = $DB->listTables('glpi\_plugin\_formcreator\_%');
+        foreach ($tables as $table) {
+            $DB->dropTable($table['TABLE_NAME']);
+        }
+
+        parent::tearDownAfterClass();
     }
 
-    #[Override]
-    protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
+    protected function createSimpleFormcreatorForm(
+        string $name,
+        array $questions,
     ): void {
-        $input = $html->filter('input[value="123.0.0.4"]');
-        $this->assertNotEmpty($input);
-    }
+        /** @var \DBmysql $DB */
+        global $DB;
 
-    #[Override]
-    protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
-    ): void {
-        $input = $html->filter('input[value="123.0.0.4"]');
-        $this->assertEmpty($input);
+        // Add form
+        $DB->insert('glpi_plugin_formcreator_forms', [
+            'name' => $name,
+        ]);
+        $form_id = $DB->insertId();
+
+        // Add a section
+        $DB->insert('glpi_plugin_formcreator_sections', [
+            'plugin_formcreator_forms_id' => $form_id,
+        ]);
+        $section_id = $DB->insertId();
+
+        // Add questions
+        foreach ($questions as $data) {
+            $data['plugin_formcreator_sections_id'] = $section_id;
+            $DB->insert('glpi_plugin_formcreator_questions', $data);
+        }
     }
 }

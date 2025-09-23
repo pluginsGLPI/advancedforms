@@ -40,38 +40,10 @@ use Glpi\Form\Question;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
-use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use RuntimeException;
 
-final class FormcreatorIpTypeMapperTest extends AdvancedFormsTestCase
+final class FormcreatorIpTypeMapperTest extends MapperTestCase
 {
-    public static function setUpBeforeClass(): void
-    {
-        global $DB;
-
-        parent::setUpBeforeClass();
-
-        $queries = $DB->getQueriesFromFile(sprintf(
-            '%s/plugins/advancedforms/tests/fixtures/formcreator.sql',
-            GLPI_ROOT,
-        ));
-        foreach ($queries as $query) {
-            $DB->doQuery($query);
-        }
-    }
-
-    public static function tearDownAfterClass(): void
-    {
-        global $DB;
-
-        $tables = $DB->listTables('glpi\_plugin\_formcreator\_%');
-        foreach ($tables as $table) {
-            $DB->dropTable($table['TABLE_NAME']);
-        }
-
-        parent::tearDownAfterClass();
-    }
-
     public function testIpTypeMigrationWhenEnabled(): void
     {
         /** @var \DBmysql $DB */
@@ -130,31 +102,5 @@ final class FormcreatorIpTypeMapperTest extends AdvancedFormsTestCase
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
         ]);
         InitManager::getInstance()->init();
-    }
-
-    private function createSimpleFormcreatorForm(
-        string $name,
-        array $questions,
-    ): void {
-        /** @var \DBmysql $DB */
-        global $DB;
-
-        // Add form
-        $DB->insert('glpi_plugin_formcreator_forms', [
-            'name' => $name,
-        ]);
-        $form_id = $DB->insertId();
-
-        // Add a section
-        $DB->insert('glpi_plugin_formcreator_sections', [
-            'plugin_formcreator_forms_id' => $form_id,
-        ]);
-        $section_id = $DB->insertId();
-
-        // Add questions
-        foreach ($questions as $data) {
-            $data['plugin_formcreator_sections_id'] = $section_id;
-            $DB->insert('glpi_plugin_formcreator_questions', $data);
-        }
     }
 }

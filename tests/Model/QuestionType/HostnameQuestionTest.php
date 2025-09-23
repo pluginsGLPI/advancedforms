@@ -60,7 +60,7 @@ final class HostnameQuestionTest extends QuestionTypeTestCase
     }
 
     #[Override]
-    public function beforeHelpdeskRender(): void
+    protected function beforeHelpdeskRender(): void
     {
         $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
     }

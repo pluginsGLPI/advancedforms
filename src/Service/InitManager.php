@@ -39,12 +39,7 @@ use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
-use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
-use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
 use Plugin;
 
