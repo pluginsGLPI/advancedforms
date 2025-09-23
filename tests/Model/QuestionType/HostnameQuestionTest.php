@@ -33,163 +33,51 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-use Config;
-use Glpi\Controller\Form\RendererController;
-use Glpi\Form\Form;
-use Glpi\Form\QuestionType\QuestionTypeShortText;
-use Glpi\Tests\FormBuilder;
+use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Tests\FormTesterTrait;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
-use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Override;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\HttpFoundation\Request;
 
-final class HostnameQuestionTest extends AdvancedFormsTestCase
+final class HostnameQuestionTest extends QuestionTypeTestCase
 {
     use FormTesterTrait;
 
-    public function testIpAddressIsAvailableInTypeDropdownWhenEnabled(): void
+    #[Override]
+    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
     {
-        // Arrange: enable hostname type and create a form
-        $this->enableHostnameQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", QuestionTypeShortText::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: make sure the hostname type is found
-        $options = $html
-            ->filter('select[name=_type_category]')
-            ->eq(0)
-            ->filter('option')
-            ->each(fn(Crawler $node) => $node->text())
-        ;
-        $this->assertContains("Hostname", $options);
+        return new HostnameQuestion();
     }
 
-    public function testIpAddressIsNotAvailableInTypeDropdownWhenDisabled(): void
-    {
-        // Arrange: create a form
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", QuestionTypeShortText::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: make sure the hostname type is not found
-        $options = $html
-            ->filter('select[name=_type_category]')
-            ->eq(0)
-            ->filter('option')
-            ->each(fn(Crawler $node) => $node->text())
-        ;
-        $this->assertNotContains("Hostname", $options);
-    }
-
-    public function testEditorRenderingWhenEnabled(): void
-    {
-        // Arrange: enable the hostname type and create a form using it
-        $this->enableHostnameQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", HostnameQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: item was rendered
+    #[Override]
+    protected function validateEditorRenderingWhenEnabled(
+        Crawler $html
+    ): void {
         $input = $html->filter('input[placeholder="hostname"]');
         $this->assertNotEmpty($input);
     }
 
-    public function testEditorRenderingWhenDisabled(): void
+    #[Override]
+    public function beforeHelpdeskRender(): void
     {
-        // Arrange: enable the hostname type and create a form using it
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", HostnameQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: the question was mentionned in a warning message
-        $warning = $html
-            ->filter('[data-glpi-form-editor]')
-            ->filter('.alert')
-            ->eq(0)
-            ->filter('ul')
-            ->text()
-        ;
-        $this->assertEquals("My question", $warning);
+        $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
     }
 
-    public function testHelpdeskRenderingWhenEnabled(): void
-    {
-        // Arrange: enable the hostname type and create a form using it
-        $this->enableHostnameQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", HostnameQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
-        $html = $this->renderHelpdeskForm($form);
-
-        // Assert: the correct input was set
+    #[Override]
+    protected function validateHelpdeskRenderingWhenEnabled(
+        Crawler $html
+    ): void {
         $input = $html->filter('input[value="localhost"]');
         $this->assertNotEmpty($input);
     }
 
-    public function testHelpdeskRenderingWhenDisabled(): void
-    {
-        // Arrange: enable the hostname type and create a form using it
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", HostnameQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "127.0.0.1";
-        $html = $this->renderHelpdeskForm($form);
-
-        // Assert: input should not exist
+    #[Override]
+    protected function validateHelpdeskRenderingWhenDisabled(
+        Crawler $html
+    ): void {
         $input = $html->filter('input[value="localhost"]');
         $this->assertEmpty($input);
-    }
-
-    private function enableHostnameQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
-        ]);
-        InitManager::getInstance()->init();
-    }
-
-    private function renderFormEditor(Form $form): Crawler
-    {
-        $this->login();
-        ob_start();
-        (new Form())->showForm($form->getId());
-        return new Crawler(ob_get_clean());
-    }
-
-    private function renderHelpdeskForm(Form $form): Crawler
-    {
-        $this->login();
-        $controller = new RendererController();
-        $response = $controller->__invoke(
-            Request::create(
-                '',
-                'GET',
-                [
-                    'id' => $form->getID(),
-                ],
-            ),
-        );
-        return new Crawler($response->getContent());
     }
 }

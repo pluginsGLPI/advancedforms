@@ -73,7 +73,7 @@ final class HiddenQuestion extends AbstractQuestionType implements ConfigurableI
         $template = <<<TWIG
             <input
                 class="form-control"
-                type="hidden"
+                type="text"
                 name="default_value"
                 placeholder="{{ input_placeholder }}"
                 value="{{ question is not null ? question.fields.default_value : '' }}"
@@ -82,7 +82,7 @@ TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
-            'question'          => $question,
+            'question' => $question,
             'input_placeholder' => __("Hidden value"),
         ]);
     }

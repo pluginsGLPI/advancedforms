@@ -31,14 +31,53 @@
  * -------------------------------------------------------------------------
  */
 
-chdir(__DIR__ . '/../../..'); // Needed because of some exec() call in the core's boostrap file
-require __DIR__ . '/../../../phpunit/bootstrap.php';
-chdir(__DIR__); // Return to normal directory
+namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-if (!Plugin::isPluginActive("advancedforms")) {
-    throw new RuntimeException("Plugin advancedforms is not active in the test database");
+use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Tests\FormTesterTrait;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
+use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Override;
+use Symfony\Component\DomCrawler\Crawler;
+
+final class HiddenQuestionTest extends QuestionTypeTestCase
+{
+    use FormTesterTrait;
+
+    #[Override]
+    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
+    {
+        return new HiddenQuestion();
+    }
+
+    #[Override]
+    protected function validateEditorRenderingWhenEnabled(
+        Crawler $html
+    ): void {
+        $input = $html->filter('input[placeholder="Hidden value"]');
+        $this->assertNotEmpty($input);
+    }
+
+    #[Override]
+    public function setDefaultValueBeforeHelpdeskRendering(): string
+    {
+        return 'my hidden value';
+    }
+
+    #[Override]
+    protected function validateHelpdeskRenderingWhenEnabled(
+        Crawler $html
+    ): void {
+        $input = $html->filter('input[value="my hidden value"]');
+        $this->assertNotEmpty($input);
+    }
+
+    #[Override]
+    protected function validateHelpdeskRenderingWhenDisabled(
+        Crawler $html
+    ): void {
+        $input = $html->filter('input[value="my hidden value"]');
+        $this->assertEmpty($input);
+    }
 }
-
-require __DIR__ . "/AdvancedFormsTestCase.php";
-require __DIR__ . "/Front/FrontTestCase.php";
-require __DIR__ . "/Model/QuestionType/QuestionTypeTestCase.php";

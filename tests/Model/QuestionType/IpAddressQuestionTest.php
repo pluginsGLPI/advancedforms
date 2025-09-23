@@ -33,163 +33,52 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-use Config;
-use Glpi\Controller\Form\RendererController;
-use Glpi\Form\Form;
-use Glpi\Form\QuestionType\QuestionTypeShortText;
-use Glpi\Tests\FormBuilder;
-use Glpi\Tests\FormTesterTrait;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
-use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
-use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\HttpFoundation\Request;
 
-final class IpAddressQuestionTest extends AdvancedFormsTestCase
+use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Tests\FormTesterTrait;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Override;
+use Symfony\Component\DomCrawler\Crawler;
+
+final class IpAddressQuestionTest extends QuestionTypeTestCase
 {
     use FormTesterTrait;
 
-    public function testIpAddressIsAvailableInTypeDropdownWhenEnabled(): void
+    #[Override]
+    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
     {
-        // Arrange: enable the ip address type and create a form
-        $this->enableIpQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", QuestionTypeShortText::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: make sure the IP type is found
-        $options = $html
-            ->filter('select[name=_type_category]')
-            ->eq(0)
-            ->filter('option')
-            ->each(fn(Crawler $node) => $node->text())
-        ;
-        $this->assertContains("Ip address", $options);
+        return new IpAddressQuestion();
     }
 
-    public function testIpAddressIsNotAvailableInTypeDropdownWhenDisabled(): void
-    {
-        // Arrange: create a form
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", QuestionTypeShortText::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: make sure the IP type is not found
-        $options = $html
-            ->filter('select[name=_type_category]')
-            ->eq(0)
-            ->filter('option')
-            ->each(fn(Crawler $node) => $node->text())
-        ;
-        $this->assertNotContains("Ip address", $options);
-    }
-
-    public function testEditorRenderingWhenEnabled(): void
-    {
-        // Arrange: enable the ip address type and create a form using it
-        $this->enableIpQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: item was rendered
-        $input = $html->filter('input[placeholder="123.123.123.123"]');
+    #[Override]
+    protected function validateEditorRenderingWhenEnabled(
+        Crawler $html
+    ): void {
+        $input = $html->filter('input[placeholder="127.0.0.1"]');
         $this->assertNotEmpty($input);
     }
 
-    public function testEditorRenderingWhenDisabled(): void
+    #[Override]
+    public function beforeHelpdeskRender(): void
     {
-        // Arrange: enable the ip address type and create a form using it
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form editor
-        $html = $this->renderFormEditor($form);
-
-        // Assert: the question was mentionned in a warning message
-        $warning = $html
-            ->filter('[data-glpi-form-editor]')
-            ->filter('.alert')
-            ->eq(0)
-            ->filter('ul')
-            ->text()
-        ;
-        $this->assertEquals("My question", $warning);
+        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
     }
 
-    public function testHelpdeskRenderingWhenEnabled(): void
-    {
-        // Arrange: enable the ip address type and create a form using it
-        $this->enableIpQuestionType();
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
-        $html = $this->renderHelpdeskForm($form);
-
-        // Assert: the correct input was set
+    #[Override]
+    protected function validateHelpdeskRenderingWhenEnabled(
+        Crawler $html
+    ): void {
         $input = $html->filter('input[value="123.0.0.4"]');
         $this->assertNotEmpty($input);
     }
 
-    public function testHelpdeskRenderingWhenDisabled(): void
-    {
-        // Arrange: enable the ip address type and create a form using it
-        $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", IpAddressQuestion::class);
-        $form = $this->createForm($builder);
-
-        // Act: render form for end users
-        $_SERVER["REMOTE_ADDR"] = "123.0.0.4";
-        $html = $this->renderHelpdeskForm($form);
-
-        // Assert: input should not exist
+    #[Override]
+    protected function validateHelpdeskRenderingWhenDisabled(
+        Crawler $html
+    ): void {
         $input = $html->filter('input[value="123.0.0.4"]');
         $this->assertEmpty($input);
-    }
-
-    private function enableIpQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-        ]);
-        InitManager::getInstance()->init();
-    }
-
-    private function renderFormEditor(Form $form): Crawler
-    {
-        $this->login();
-        ob_start();
-        (new Form())->showForm($form->getId());
-        return new Crawler(ob_get_clean());
-    }
-
-    private function renderHelpdeskForm(Form $form): Crawler
-    {
-        $this->login();
-        $controller = new RendererController();
-        $response = $controller->__invoke(
-            Request::create(
-                '',
-                'GET',
-                [
-                    'id' => $form->getID(),
-                ],
-            ),
-        );
-        return new Crawler($response->getContent());
     }
 }

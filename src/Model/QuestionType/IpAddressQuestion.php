@@ -87,7 +87,7 @@ TWIG;
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question'          => $question,
-            'input_placeholder' => "123.123.123.123",
+            'input_placeholder' => "127.0.0.1",
         ]);
     }
 
