@@ -58,7 +58,7 @@ final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
                     'name'           => 'My hidden question',
                     'fieldtype'      => 'hidden',
                     'default_values' => 'my hidden value',
-                ]
+                ],
             ],
         );
 
@@ -95,7 +95,7 @@ final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
                     'name'           => 'My hidden question',
                     'fieldtype'      => 'hidden',
                     'default_values' => 'my hidden value',
-                ]
+                ],
             ],
         );
 

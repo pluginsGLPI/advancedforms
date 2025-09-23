@@ -33,7 +33,6 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
@@ -54,7 +53,7 @@ final class IpAddressQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[placeholder="127.0.0.1"]');
         $this->assertNotEmpty($input);
@@ -68,7 +67,7 @@ final class IpAddressQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="123.0.0.4"]');
         $this->assertNotEmpty($input);
@@ -76,7 +75,7 @@ final class IpAddressQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="123.0.0.4"]');
         $this->assertEmpty($input);

@@ -41,9 +41,16 @@ final class FormcreatorHiddenTypeMapper implements FormQuestionDataConverterInte
 {
     /** @param array<mixed> $rawData */
     #[Override]
-    public function convertDefaultValue(array $rawData): string
+    public function convertDefaultValue(array $rawData): ?string
     {
-        return $rawData['default_values'] ?? '';
+        if (
+            isset($rawData['default_values'])
+            && is_string($rawData['default_values'])
+        ) {
+            return $rawData['default_values'];
+        }
+
+        return null;
     }
 
     /** @param array<mixed> $rawData */

@@ -53,7 +53,7 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[placeholder="Hidden value"]');
         $this->assertNotEmpty($input);
@@ -67,7 +67,7 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="my hidden value"]');
         $this->assertNotEmpty($input);
@@ -75,7 +75,7 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="my hidden value"]');
         $this->assertEmpty($input);

@@ -53,15 +53,15 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
     abstract protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface;
 
     abstract protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void;
 
     abstract protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void;
 
     abstract protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
+        Crawler $html,
     ): void;
 
     /**

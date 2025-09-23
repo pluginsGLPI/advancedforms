@@ -53,7 +53,7 @@ final class HostnameQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateEditorRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[placeholder="hostname"]');
         $this->assertNotEmpty($input);
@@ -67,7 +67,7 @@ final class HostnameQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenEnabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="localhost"]');
         $this->assertNotEmpty($input);
@@ -75,7 +75,7 @@ final class HostnameQuestionTest extends QuestionTypeTestCase
 
     #[Override]
     protected function validateHelpdeskRenderingWhenDisabled(
-        Crawler $html
+        Crawler $html,
     ): void {
         $input = $html->filter('input[value="localhost"]');
         $this->assertEmpty($input);
