@@ -38,9 +38,7 @@ use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use ReflectionClass;
 
 abstract class AdvancedFormsTestCase extends DbTestCase
@@ -48,11 +46,8 @@ abstract class AdvancedFormsTestCase extends DbTestCase
     /** @return array<array{ConfigurableItemInterface&QuestionTypeInterface}> */
     final public static function provideQuestionTypes(): array
     {
-        return [
-            [new IpAddressQuestion()],
-            [new HostnameQuestion()],
-            [new HiddenQuestion()],
-        ];
+        $types = ConfigManager::getInstance()->getConfigurableQuestionTypes();
+        return array_map(fn($c): array => [$c], $types);
     }
 
     public function setUp(): void

@@ -34,11 +34,9 @@
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
 use Config;
-use GlpiPlugin\Advancedforms\Model\Config\Config as AdvancedFormsConfig;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class ConfigFormTest extends FrontTestCase
@@ -102,7 +100,7 @@ final class ConfigFormTest extends FrontTestCase
 
         // Assert: config should now be disabled
         $manager = $this->getConfigManager();
-        $this->assertFalse($item->isConfigEnabled($manager->getConfig()));
+        $this->assertFalse($manager->isConfigurableItemEnabled($item));
     }
 
     #[DataProvider('provideQuestionTypes')]
@@ -122,7 +120,7 @@ final class ConfigFormTest extends FrontTestCase
 
         // Assert: config should now be enabled
         $manager = $this->getConfigManager();
-        $this->assertTrue($item->isConfigEnabled($manager->getConfig()));
+        $this->assertTrue($manager->isConfigurableItemEnabled($item));
     }
 
     #[DataProvider('provideQuestionTypes')]

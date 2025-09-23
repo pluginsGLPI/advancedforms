@@ -31,37 +31,13 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Model\Config;
+namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
-final class Config
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
+
+interface LegacyQuestionTypeInterface
 {
-    public function __construct(
-        private bool $enable_ip_address_question_type = false,
-        private bool $enable_hostname_question_type = false,
-        private bool $enable_hidden_question_type = false,
-    ) {}
+    public function getLegacyFormcreatorKey(): string;
 
-    public function hasAtLeastOneQuestionTypeEnabled(): bool
-    {
-        return
-            $this->isIpAddressQuestionTypeEnabled()
-            || $this->isHostnameQuestionTypeEnabled()
-            || $this->isHiddenQuestionTypeEnabled()
-        ;
-    }
-
-    public function isIpAddressQuestionTypeEnabled(): bool
-    {
-        return $this->enable_ip_address_question_type;
-    }
-
-    public function isHostnameQuestionTypeEnabled(): bool
-    {
-        return $this->enable_hostname_question_type;
-    }
-
-    public function isHiddenQuestionTypeEnabled(): bool
-    {
-        return $this->enable_hidden_question_type;
-    }
+    public function getMapperClass(): FormQuestionDataConverterInterface;
 }

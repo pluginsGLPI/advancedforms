@@ -102,10 +102,11 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ]);
 
         // Act: get configuration
-        $config_enabled = $this->getConfigManager()->getConfig();
+        $manager = $this->getConfigManager();
+        $config_enabled = $manager->isConfigurableItemEnabled($item);
 
         // Assert: the config should be enabled
-        $this->assertTrue($item->isConfigEnabled($config_enabled));
+        $this->assertTrue($config_enabled);
     }
 
     #[DataProvider('provideQuestionTypes')]
@@ -118,10 +119,11 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ]);
 
         // Act: get configuration
-        $config_disabled = $this->getConfigManager()->getConfig();
+        $manager = $this->getConfigManager();
+        $config_disabled = $manager->isConfigurableItemEnabled($item);
 
         // Assert: the config should be enabled
-        $this->assertFalse($item->isConfigEnabled($config_disabled));
+        $this->assertFalse($config_disabled);
     }
 
     private function getConfigManager(): ConfigManager

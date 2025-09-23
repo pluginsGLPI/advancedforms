@@ -33,9 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
+use Config;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Toolbox\SingletonTrait;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
@@ -53,55 +54,47 @@ final class ConfigManager
     {
         $twig = TemplateRenderer::getInstance();
         return $twig->render('@advancedforms/config_form.html.twig', [
-            'config' => $this->getConfig(),
+            'config_manager' => $this,
             'question_types' => $this->getConfigurableQuestionTypes(),
         ]);
     }
 
-    public function getConfig(): Config
-    {
-        $raw_config = \Config::getConfigurationValues(
-            'advancedforms',
-            [
-                self::CONFIG_ENABLE_QUESTION_TYPE_IP,
-                self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME,
-                self::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN,
-            ],
-        );
-
-        return new Config(
-            enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
-            enable_hostname_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME] ?? false) == 1,
-            enable_hidden_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN] ?? false) == 1,
-        );
-    }
-
-    /** @return \Glpi\Form\QuestionType\QuestionTypeInterface[] */
-    public function getEnabledQuestionsTypes(): array
-    {
-        $types = [];
-        $config = $this->getConfig();
-
-        if ($config->isIpAddressQuestionTypeEnabled()) {
-            $types[] = new IpAddressQuestion();
-        }
-        if ($config->isHostnameQuestionTypeEnabled()) {
-            $types[] = new HostnameQuestion();
-        }
-        if ($config->isHiddenQuestionTypeEnabled()) {
-            $types[] = new HiddenQuestion();
-        }
-
-        return $types;
-    }
-
-    /** @return array<ConfigurableItemInterface> */
-    private function getConfigurableQuestionTypes(): array
+    /** @return array<ConfigurableItemInterface&QuestionTypeInterface> */
+    public function getConfigurableQuestionTypes(): array
     {
         return [
             new IpAddressQuestion(),
             new HostnameQuestion(),
             new HiddenQuestion(),
         ];
+    }
+
+    public function isConfigurableItemEnabled(
+        ConfigurableItemInterface $item,
+    ): bool {
+        $config = Config::getConfigurationValue(
+            'advancedforms',
+            $item->getConfigKey(),
+        );
+
+        if ($config === null) {
+            return false;
+        }
+
+        return (bool) $config;
+    }
+
+    /** @return QuestionTypeInterface[] */
+    public function getEnabledQuestionsTypes(): array
+    {
+        return array_filter(
+            $this->getConfigurableQuestionTypes(),
+            fn(ConfigurableItemInterface $c): bool => $this->isConfigurableItemEnabled($c),
+        );
+    }
+
+    public function hasAtLeastOneQuestionTypeEnabled(): bool
+    {
+        return count($this->getEnabledQuestionsTypes()) > 0;
     }
 }

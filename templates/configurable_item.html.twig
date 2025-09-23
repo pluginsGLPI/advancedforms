@@ -29,42 +29,42 @@
  # -------------------------------------------------------------------------
  #}
 
-<div class="py-2 px-3 ms-0">
-    <h2
-        data-testid="advanced-forms-config-header"
-        class="d-flex align-items-center"
-    >
-        <i class="ti ti-forms me-2"></i>
-        {{ __("Advanced forms plugin configuration", "advancedforms") }}
-    </h2>
+{# Note: do not use the `|slug` filter here, this values will be checked from the
+   unit tests so it need to call the same "source" method #}
+{% set slug = call('Toolbox::Slugify', [
+    get_class(item)
+] ) %}
 
-    <form
-        method="POST"
-        action="{{ 'Config'|itemtype_form_path }}"
-        data-track-changes="true"
-    >
-        <div class="row">
-            {% for question_type in question_types %}
-                {{ include('@advancedforms/configurable_item.html.twig', {
-                    config_manager: config_manager,
-                    item: question_type,
-                }, with_context: false) }}
-            {% endfor %}
+<div
+    class="col-12 col-lg-6 col-xxl-4 mb-2"
+    data-testid="feature-{{ slug }}"
+>
+    <div class="card cursor-pointer rounded h-100">
+        <div class="card-body d-flex flex-row">
+            <i class="{{ item.getConfigIcon() }} fa-2x me-3 align-self-center"></i>
+
+            <div>
+                <h3 class="mb-1">{{ item.getConfigTitle() }}</h3>
+                <span class="text-muted">{{ item.getConfigDescription() }}</span>
+            </div>
+
+            <label class="form-check mb-0 ms-auto form-switch">
+                <input
+                    type="hidden"
+                    value="0"
+                    name="{{ item.getConfigKey() }}"
+                >
+                <input
+                    aria-label="{{ __("Active") }}"
+                    data-glpi-toggle-control
+                    class="form-check-input"
+                    type="checkbox"
+                    name="{{ item.getConfigKey() }}"
+                    value="1"
+                    data-testid="feature-toggle"
+                    {{ config_manager.isConfigurableItemEnabled(item) == true ? "checked" : "" }}
+                >
+            </label>
         </div>
-
-        <input type="hidden" name="config_context" value="advancedforms"/>
-        <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"/>
-
-        <div class="mx-n2 d-flex">
-            <button
-                type="submit"
-                class="btn btn-primary mt-5 ms-auto"
-                name="update"
-                value="1"
-            >
-                <i class="ti ti-device-floppy me-2"></i>
-                <span> {{ __("Save") }} </span>
-            </button>
-        </div>
-    </form>
+    </div>
 </div>

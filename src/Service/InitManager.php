@@ -45,6 +45,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
 use Plugin;
 
 final class InitManager
@@ -76,39 +77,28 @@ final class InitManager
 
     private function registerPluginTypes(): void
     {
-        // Get config
-        $config = ConfigManager::getInstance()->getConfig();
+        $config_manager = ConfigManager::getInstance();
 
         // Services used to register plugin data
         $types = QuestionTypesManager::getInstance();
         $type_mapper = TypesConversionMapper::getInstance();
 
         // Register advanced forms type category
-        if ($config->hasAtLeastOneQuestionTypeEnabled()) {
+        if ($config_manager->hasAtLeastOneQuestionTypeEnabled()) {
             $types->registerPluginCategory(new AdvancedCategory());
         }
 
-        // Register IP question
-        if ($config->isIpAddressQuestionTypeEnabled()) {
-            $types->registerPluginQuestionType(new IpAddressQuestion());
-            $type_mapper->registerPluginQuestionTypeConverter(
-                'ip',
-                new FormcreatorIpTypeMapper(),
-            );
-        }
+        // Register enabled question types
+        foreach ($config_manager->getEnabledQuestionsTypes() as $type) {
+            $types->registerPluginQuestionType($type);
 
-        // Register hostname question
-        if ($config->isHostnameQuestionTypeEnabled()) {
-            $types->registerPluginQuestionType(new HostnameQuestion());
-            $type_mapper->registerPluginQuestionTypeConverter(
-                'hostname',
-                new FormcreatorHostnameTypeMapper(),
-            );
-        }
-
-        // Register hidden question
-        if ($config->isHiddenQuestionTypeEnabled()) {
-            $types->registerPluginQuestionType(new HiddenQuestion());
+            // Register mapper for legacy questions types
+            if ($type instanceof LegacyQuestionTypeInterface) {
+                $type_mapper->registerPluginQuestionTypeConverter(
+                    $type->getLegacyFormcreatorKey(),
+                    $type->getMapperClass(),
+                );
+            }
         }
     }
 }

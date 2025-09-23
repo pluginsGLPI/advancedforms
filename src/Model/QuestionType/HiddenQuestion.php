@@ -37,7 +37,6 @@ use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
@@ -133,11 +132,5 @@ TWIG;
     public function getConfigIcon(): string
     {
         return $this->getIcon();
-    }
-
-    #[Override]
-    public function isConfigEnabled(Config $config): bool
-    {
-        return $config->isHiddenQuestionTypeEnabled();
     }
 }

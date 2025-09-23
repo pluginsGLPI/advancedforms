@@ -42,6 +42,4 @@ interface ConfigurableItemInterface
     public function getConfigDescription(): string;
 
     public function getConfigIcon(): string;
-
-    public function isConfigEnabled(Config $config): bool;
 }

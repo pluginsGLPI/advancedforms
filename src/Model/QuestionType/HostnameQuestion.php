@@ -34,16 +34,17 @@
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
-use GlpiPlugin\Advancedforms\Model\Config\Config;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 use Toolbox;
 
-final class HostnameQuestion extends AbstractQuestionType implements ConfigurableItemInterface
+final class HostnameQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -139,8 +140,14 @@ TWIG;
     }
 
     #[Override]
-    public function isConfigEnabled(Config $config): bool
+    public function getLegacyFormcreatorKey(): string
     {
-        return $config->isHostnameQuestionTypeEnabled();
+        return 'hostname';
+    }
+
+    #[Override]
+    public function getMapperClass(): FormQuestionDataConverterInterface
+    {
+        return new FormcreatorHostnameTypeMapper();
     }
 }
