@@ -36,6 +36,8 @@ namespace GlpiPlugin\Advancedforms\Service;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\Config;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 
@@ -52,6 +54,7 @@ final class ConfigManager
         $twig = TemplateRenderer::getInstance();
         return $twig->render('@advancedforms/config_form.html.twig', [
             'config' => $this->getConfig(),
+            'question_types' => $this->getConfigurableQuestionTypes(),
         ]);
     }
 
@@ -85,7 +88,20 @@ final class ConfigManager
         if ($config->isHostnameQuestionTypeEnabled()) {
             $types[] = new HostnameQuestion();
         }
+        if ($config->isHiddenQuestionTypeEnabled()) {
+            $types[] = new HiddenQuestion();
+        }
 
         return $types;
+    }
+
+    /** @return array<ConfigurableItemInterface> */
+    private function getConfigurableQuestionTypes(): array
+    {
+        return [
+            new IpAddressQuestion(),
+            new HostnameQuestion(),
+            new HiddenQuestion(),
+        ];
     }
 }

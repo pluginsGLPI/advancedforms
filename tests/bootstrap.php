@@ -41,4 +41,3 @@ if (!Plugin::isPluginActive("advancedforms")) {
 
 require __DIR__ . "/AdvancedFormsTestCase.php";
 require __DIR__ . "/Front/FrontTestCase.php";
-require __DIR__ . "/Provider/QuestionTypesProvider.php";

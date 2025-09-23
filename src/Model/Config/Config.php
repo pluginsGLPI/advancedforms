@@ -46,6 +46,7 @@ final class Config
         return
             $this->isIpAddressQuestionTypeEnabled()
             || $this->isHostnameQuestionTypeEnabled()
+            || $this->isHiddenQuestionTypeEnabled()
         ;
     }
 

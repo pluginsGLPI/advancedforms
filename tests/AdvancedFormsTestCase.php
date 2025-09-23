@@ -35,11 +35,26 @@ namespace GlpiPlugin\Advancedforms\Tests;
 
 use DbTestCase;
 use Glpi\Form\Migration\TypesConversionMapper;
+use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use ReflectionClass;
 
 abstract class AdvancedFormsTestCase extends DbTestCase
 {
+    /** @return array<array{ConfigurableItemInterface&QuestionTypeInterface}> */
+    final public static function provideQuestionTypes(): array
+    {
+        return [
+            [new IpAddressQuestion()],
+            [new HostnameQuestion()],
+            [new HiddenQuestion()],
+        ];
+    }
+
     public function setUp(): void
     {
         parent::setUp();

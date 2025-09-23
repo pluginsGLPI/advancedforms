@@ -34,19 +34,23 @@
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
 use Config;
+use Glpi\Form\QuestionType\QuestionTypeInterface;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class AdvancedCategoryTest extends AdvancedFormsTestCase
 {
-    public function testNameWithSingleTypeEnabled(): void
-    {
-        // Arrange: enabled one type
+    #[DataProvider('provideQuestionTypes')]
+    public function testNameWithSingleTypeEnabled(
+        ConfigurableItemInterface&QuestionTypeInterface $item,
+    ): void {
+        // Arrange: enable one type
         Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+            $item->getConfigKey() => 1,
         ]);
         InitManager::getInstance()->init();
 
@@ -55,13 +59,13 @@ final class AdvancedCategoryTest extends AdvancedFormsTestCase
         $icon = (new AdvancedCategory())->getIcon();
 
         // Assert: should be replaced by the questions type name
-        $this->assertEquals((new IpAddressQuestion())->getName(), $name);
-        $this->assertEquals((new IpAddressQuestion())->getIcon(), $icon);
+        $this->assertEquals($item->getName(), $name);
+        $this->assertEquals($item->getIcon(), $icon);
     }
 
     public function testNameWithMultipleTypesEnabled(): void
     {
-        // Arrange: enabled one type
+        // Arrange: enabled more than one type
         Config::setConfigurationValues('advancedforms', [
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
             ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,

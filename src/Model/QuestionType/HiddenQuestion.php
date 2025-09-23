@@ -41,9 +41,8 @@ use GlpiPlugin\Advancedforms\Model\Config\Config;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
-use Toolbox;
 
-final class IpAddressQuestion extends AbstractQuestionType implements ConfigurableItemInterface
+final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -54,19 +53,19 @@ final class IpAddressQuestion extends AbstractQuestionType implements Configurab
     #[Override]
     public function getName(): string
     {
-        return __('Ip address', 'advancedforms');
+        return __('Hidden', 'advancedforms');
     }
 
     #[Override]
     public function getIcon(): string
     {
-        return 'ti ti-network';
+        return 'ti ti-eye-off';
     }
 
     #[Override]
     public function getWeight(): int
     {
-        return 10;
+        return 30;
     }
 
     #[Override]
@@ -75,18 +74,17 @@ final class IpAddressQuestion extends AbstractQuestionType implements Configurab
         $template = <<<TWIG
             <input
                 class="form-control"
-                type="text"
+                type="hidden"
                 name="default_value"
                 placeholder="{{ input_placeholder }}"
                 value="{{ question is not null ? question.fields.default_value : '' }}"
-                disabled
             />
 TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question'          => $question,
-            'input_placeholder' => "123.123.123.123",
+            'input_placeholder' => __("Hidden value"),
         ]);
     }
 
@@ -97,14 +95,13 @@ TWIG;
             <input
                 type="hidden"
                 name="{{ question.getEndUserInputName() }}"
-                value="{{ ip }}"
+                value="{{ question is not null ? question.fields.default_value : '' }}"
             >
 TWIG;
 
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question' => $question,
-            'ip'       => Toolbox::getRemoteIpAddress(),
         ]);
     }
 
@@ -117,19 +114,19 @@ TWIG;
     #[Override]
     public function getConfigKey(): string
     {
-        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP;
+        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN;
     }
 
     #[Override]
     public function getConfigTitle(): string
     {
-        return __("IP address question type", 'advancedforms');
+        return __("Hidden address question type", 'advancedforms');
     }
 
     #[Override]
     public function getConfigDescription(): string
     {
-        return __("This question type will automatically register the user's ip address.", 'advancedforms');
+        return __("This question type will insert some hidden data into the form.", 'advancedforms');
     }
 
     #[Override]
@@ -141,6 +138,6 @@ TWIG;
     #[Override]
     public function isConfigEnabled(Config $config): bool
     {
-        return $config->isIpAddressQuestionTypeEnabled();
+        return $config->isHiddenQuestionTypeEnabled();
     }
 }

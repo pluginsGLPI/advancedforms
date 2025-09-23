@@ -35,38 +35,32 @@ namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
 use DOMElement;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\DomCrawler\Crawler;
+use Toolbox;
 
 final class ConfigManagerTest extends AdvancedFormsTestCase
 {
-    public static function getConfigurableQuestionTypesWithTestId(): array
-    {
-        return QuestionTypesProvider::provideQuestionTypes([
-            'config_key',
-            'data_testid',
-        ]);
-    }
-
-    #[DataProvider('getConfigurableQuestionTypesWithTestId')]
+    #[DataProvider('provideQuestionTypes')]
     public function testQuestionTypeConfigFormWhenEnabled(
-        string $config_key,
-        string $data_testid,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 1,
+            $item->getConfigKey() => 1,
         ]);
 
         // Act: render configuration
         $html_disabled = $this->getConfigManager()->renderConfigForm();
 
         // Assert: the input should be checked
+        $testid = Toolbox::slugify($item::class);
         $html_disabled = (new Crawler($html_disabled))
-            ->filter("[data-testid=\"$data_testid\"]")
+            ->filter("[data-testid=\"feature-$testid\"]")
             ->filter('input[data-testid="feature-toggle"]')
             ->getNode(0)
         ;
@@ -75,22 +69,22 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         $this->assertTrue($html_disabled->hasAttribute('checked'));
     }
 
-    #[DataProvider('getConfigurableQuestionTypesWithTestId')]
+    #[DataProvider('provideQuestionTypes')]
     public function testQuestionTypeConfigFormWhenDisabled(
-        string $config_key,
-        string $data_testid,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable question type
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 0,
+            $item->getConfigKey() => 0,
         ]);
 
         // Act: render configuration
         $html_disabled = $this->getConfigManager()->renderConfigForm();
 
         // Assert: the input should not be checked
+        $testid = Toolbox::slugify($item::class);
         $html_disabled = (new Crawler($html_disabled))
-            ->filter("[data-testid=\"$data_testid\"]")
+            ->filter("[data-testid=\"feature-$testid\"]")
             ->filter('input[data-testid="feature-toggle"]')
             ->getNode(0);
         $this->assertInstanceOf(DOMElement::class, $html_disabled);
@@ -98,46 +92,36 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         $this->assertFalse($html_disabled->hasAttribute('checked'));
     }
 
-    public static function getConfigurableQuestionTypesWithConfig(): array
-    {
-        return QuestionTypesProvider::provideQuestionTypes([
-            'config_key',
-            'fetch_config',
-        ]);
-    }
-
-    #[DataProvider('getConfigurableQuestionTypesWithConfig')]
+    #[DataProvider('provideQuestionTypes')]
     public function testQuestionTypeConfigValueWhenEnabled(
-        string $config_key,
-        callable $fetch_config,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 1,
+            $item->getConfigKey() => 1,
         ]);
 
         // Act: get configuration
         $config_enabled = $this->getConfigManager()->getConfig();
 
         // Assert: the config should be enabled
-        $this->assertTrue($fetch_config($config_enabled));
+        $this->assertTrue($item->isConfigEnabled($config_enabled));
     }
 
-    #[DataProvider('getConfigurableQuestionTypesWithConfig')]
+    #[DataProvider('provideQuestionTypes')]
     public function testQuestionTypeConfigValueWhenDisabled(
-        string $config_key,
-        callable $fetch_config,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 0,
+            $item->getConfigKey() => 0,
         ]);
 
         // Act: get configuration
         $config_disabled = $this->getConfigManager()->getConfig();
 
         // Assert: the config should be enabled
-        $this->assertFalse($fetch_config($config_disabled));
+        $this->assertFalse($item->isConfigEnabled($config_disabled));
     }
 
     private function getConfigManager(): ConfigManager

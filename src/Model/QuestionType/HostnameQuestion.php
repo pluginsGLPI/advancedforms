@@ -37,10 +37,13 @@ use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use GlpiPlugin\Advancedforms\Model\Config\Config;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 use Toolbox;
 
-final class HostnameQuestion extends AbstractQuestionType
+final class HostnameQuestion extends AbstractQuestionType implements ConfigurableItemInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -69,7 +72,6 @@ final class HostnameQuestion extends AbstractQuestionType
     #[Override]
     public function renderAdministrationTemplate(Question|null $question): string
     {
-        // TODO: real implementation
         $template = <<<TWIG
             <input
                 class="form-control"
@@ -91,7 +93,6 @@ TWIG;
     #[Override]
     public function renderEndUserTemplate(Question|null $question): string
     {
-        // TODO: real implementation
         $template = <<<TWIG
             <input
                 type="hidden"
@@ -111,5 +112,35 @@ TWIG;
     public function isHiddenInput(): bool
     {
         return true;
+    }
+
+    #[Override]
+    public function getConfigKey(): string
+    {
+        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME;
+    }
+
+    #[Override]
+    public function getConfigTitle(): string
+    {
+        return __("Hostname question type", 'advancedforms');
+    }
+
+    #[Override]
+    public function getConfigDescription(): string
+    {
+        return __("This question type will automatically register the user's hostname.", 'advancedforms');
+    }
+
+    #[Override]
+    public function getConfigIcon(): string
+    {
+        return $this->getIcon();
+    }
+
+    #[Override]
+    public function isConfigEnabled(Config $config): bool
+    {
+        return $config->isHostnameQuestionTypeEnabled();
     }
 }

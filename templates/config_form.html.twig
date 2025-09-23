@@ -29,39 +29,6 @@
  # -------------------------------------------------------------------------
  #}
 
-{% set available_features = [
-    {
-        key        : "ip-question",
-        title      : __("IP address question type", 'advancedforms'),
-        description: __("This question type will automatically register the user's ip address.", 'advancedforms'),
-        icon       : "network",
-        input_name : constant(
-            "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP",
-        ),
-        is_enabled : config.isIpAddressQuestionTypeEnabled(),
-    },
-    {
-        key        : "hostname-question",
-        title      : __("Hostname question type", 'advancedforms'),
-        description: __("This question type will automatically register the user's hostname.", 'advancedforms'),
-        icon       : "label",
-        input_name : constant(
-            "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME",
-        ),
-        is_enabled : config.isHostnameQuestionTypeEnabled(),
-    },
-    {
-        key        : "hidden-question",
-        title      : __("Hidden question type", 'advancedforms'),
-        description: __("This question type will insert some hidden data into the form.", 'advancedforms'),
-        icon       : "eye-off",
-        input_name : constant(
-            "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN",
-        ),
-        is_enabled : config.isHiddenQuestionTypeEnabled(),
-    },
-] %}
-
 <div class="py-2 px-3 ms-0">
     <h2
         data-testid="advanced-forms-config-header"
@@ -77,35 +44,41 @@
         data-track-changes="true"
     >
         <div class="row">
-            {% for feature in available_features %}
+            {% for question_type in question_types %}
+                {# Note: do not use the |slug filter here, this values will be
+                checked from the unit tests so it need to call the same source #}
+                {% set slug = call('Toolbox::Slugify', [
+                    get_class(question_type)
+                ] ) %}
+
                 <div
                     class="col-12 col-lg-6 col-xxl-4 mb-2"
-                    data-testid="feature-{{ feature.key }}"
+                    data-testid="feature-{{ slug }}"
                 >
                     <div class="card cursor-pointer rounded h-100">
                         <div class="card-body d-flex flex-row">
-                            <i class="ti ti-{{ feature.icon }} fa-2x me-3 align-self-center"></i>
+                            <i class="{{ question_type.getConfigIcon() }} fa-2x me-3 align-self-center"></i>
 
                             <div>
-                                <h3 class="mb-1">{{ feature.title }}</h3>
-                                <span class="text-muted">{{ feature.description }}</span>
+                                <h3 class="mb-1">{{ question_type.getConfigTitle() }}</h3>
+                                <span class="text-muted">{{ question_type.getConfigDescription() }}</span>
                             </div>
 
                             <label class="form-check mb-0 ms-auto form-switch">
                                 <input
                                     type="hidden"
                                     value="0"
-                                    name="{{ feature.input_name }}"
+                                    name="{{ question_type.getConfigKey() }}"
                                 >
                                 <input
                                     aria-label="{{ __("Active") }}"
                                     data-glpi-toggle-control
                                     class="form-check-input"
                                     type="checkbox"
-                                    name="{{ feature.input_name }}"
+                                    name="{{ question_type.getConfigKey() }}"
                                     value="1"
                                     data-testid="feature-toggle"
-                                    {{ feature.is_enabled == true ? "checked" : "" }}
+                                    {{ question_type.isConfigEnabled(config) == true ? "checked" : "" }}
                                 >
                             </label>
                         </div>

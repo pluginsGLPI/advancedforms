@@ -34,10 +34,8 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
-use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 
 final class InstallManagerTest extends AdvancedFormsTestCase
 {
@@ -45,8 +43,8 @@ final class InstallManagerTest extends AdvancedFormsTestCase
     {
         // Arrange: set multiples config values
         $config_values = [];
-        foreach ($this->getConfigurableQuestionTypesConfigKeys() as $key) {
-            $config_values[$key] = 1;
+        foreach (self::provideQuestionTypes() as $type) {
+            $config_values[$type[0]->getConfigKey()] = 1;
         }
         Config::setConfigurationValues('advancedforms', $config_values);
 
@@ -58,11 +56,5 @@ final class InstallManagerTest extends AdvancedFormsTestCase
         // Assert: config should be empty after uninstallation
         $this->assertNotEmpty($config_before);
         $this->assertEmpty($config_after);
-    }
-
-    private function getConfigurableQuestionTypesConfigKeys(): array
-    {
-        $types = QuestionTypesProvider::provideQuestionTypes(['config_key']);
-        return array_column($types, 'config_key');
     }
 }

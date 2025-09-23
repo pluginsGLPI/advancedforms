@@ -36,6 +36,7 @@ namespace GlpiPlugin\Advancedforms\Tests\Front;
 use Config;
 use GlpiPlugin\Advancedforms\Model\Config\Config as AdvancedFormsConfig;
 use Glpi\Exception\Http\AccessDeniedHttpException;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -84,56 +85,62 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertEmpty($crawler);
     }
 
-    public static function getConfigurableQuestionTypes(): array
-    {
-        return QuestionTypesProvider::provideQuestionTypes([
-            'config_key',
-            'fetch_config',
-        ]);
-    }
-
-    #[DataProvider('getConfigurableQuestionTypes')]
-    /** @var callable(AdvancedFormsConfig): bool $fetch_config */
+    #[DataProvider('provideQuestionTypes')]
     public function testCanDisableQuestionTypeConfig(
-        string $config_key,
-        callable $fetch_config,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable config
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 1,
+            $item->getConfigKey() => 1,
         ]);
 
         // Act: submit config form
         $this->login();
         $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            $config_key => 0,
+            $item->getConfigKey() => 0,
         ]);
 
         // Assert: config should now be disabled
         $manager = $this->getConfigManager();
-        $this->assertFalse($fetch_config($manager->getConfig()));
+        $this->assertFalse($item->isConfigEnabled($manager->getConfig()));
     }
 
-    #[DataProvider('getConfigurableQuestionTypes')]
-    /** @var callable(AdvancedFormsConfig): bool $fetch_config */
+    #[DataProvider('provideQuestionTypes')]
     public function testCanEnableQuestionTypeConfig(
-        string $config_key,
-        callable $fetch_config,
+        ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable config
         Config::setConfigurationValues('advancedforms', [
-            $config_key => 0,
+            $item->getConfigKey() => 0,
         ]);
 
         // Act: submit config form
         $this->login();
         $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            $config_key => 1,
+            $item->getConfigKey() => 1,
         ]);
 
         // Assert: config should now be enabled
         $manager = $this->getConfigManager();
-        $this->assertTrue($fetch_config($manager->getConfig()));
+        $this->assertTrue($item->isConfigEnabled($manager->getConfig()));
+    }
+
+    #[DataProvider('provideQuestionTypes')]
+    public function testGetEnabledQuestionsTypes(
+        ConfigurableItemInterface $item,
+    ): void {
+        // Arrange: enable config
+        Config::setConfigurationValues('advancedforms', [
+            $item->getConfigKey() => 1,
+        ]);
+
+        // Act: get enabled types
+        $types = $this->getConfigManager()->getEnabledQuestionsTypes();
+
+        // Assert: the expected type should be found
+        $this->assertCount(1, $types);
+        $type = array_pop($types);
+        $this->assertInstanceOf($item::class, $type);
     }
 
     private function getConfigManager(): ConfigManager

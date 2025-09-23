@@ -31,41 +31,17 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Provider;
+namespace GlpiPlugin\Advancedforms\Model\Config;
 
-use GlpiPlugin\Advancedforms\Model\Config\Config;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-
-final class QuestionTypesProvider
+interface ConfigurableItemInterface
 {
-    public static function provideQuestionTypes(array $properties): array
-    {
-        $types = [];
-        $types['ip question type'] = [
-            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP,
-            'fetch_config' => fn(Config $c): bool => $c->isIpAddressQuestionTypeEnabled(),
-            'data_testid' => 'feature-ip-question',
-        ];
-        $types['hostname question type'] = [
-            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME,
-            'fetch_config' => fn(Config $c): bool => $c->isHostnameQuestionTypeEnabled(),
-            'data_testid' => 'feature-hostname-question',
-        ];
-        $types['hidden question type'] = [
-            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN,
-            'fetch_config' => fn(Config $c): bool => $c->isHiddenQuestionTypeEnabled(),
-            'data_testid' => 'feature-hidden-question',
-        ];
+    public function getConfigKey(): string;
 
-        // Keep only requested properties
-        foreach ($types as $label => $type) {
-            foreach (array_keys($type) as $key) {
-                if (!in_array($key, $properties)) {
-                    unset($types[$label][$key]);
-                }
-            }
-        }
+    public function getConfigTitle(): string;
 
-        return $types;
-    }
+    public function getConfigDescription(): string;
+
+    public function getConfigIcon(): string;
+
+    public function isConfigEnabled(Config $config): bool;
 }

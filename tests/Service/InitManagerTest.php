@@ -36,35 +36,48 @@ namespace GlpiPlugin\Advancedforms\Tests\Service;
 use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
-use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class InitManagerTest extends AdvancedFormsTestCase
 {
-    public function testQuestionTypeIpIsAvailableWhenEnabled(): void
-    {
+    #[DataProvider('provideQuestionTypes')]
+    public function testQuestionTypeIsAvailableWhenEnabled(
+        ConfigurableItemInterface $item,
+    ): void {
         // Arrange: enable question type
-        $this->enableIpQuestionType();
+        Config::setConfigurationValues('advancedforms', [
+            $item->getConfigKey() => 1,
+        ]);
+        InitManager::getInstance()->init();
 
         // Act: get enabled types
         $manager = QuestionTypesManager::getInstance();
         $types = $manager->getQuestionTypes();
 
-        // Assert: the ip address question type should only be found after enabling
+        // Assert: the question type should only be found after enabling
         $classes = array_map(
             fn($type) => $type::class,
             $types,
         );
-        $this->assertContains(IpAddressQuestion::class, $classes);
+        $this->assertContains($item::class, $classes);
     }
 
-    public function testQuestionTypeIpIsNotAvailableWhenDisabled(): void
-    {
+    #[DataProvider('provideQuestionTypes')]
+    public function testQuestionTypeIsAvailableWhenDisabled(
+        ConfigurableItemInterface $item,
+    ): void {
+        // Arrange: disable question type
+        Config::setConfigurationValues('advancedforms', [
+            $item->getConfigKey() => 0,
+        ]);
+        InitManager::getInstance()->init();
+
         // Act: get enabled types
         $manager = QuestionTypesManager::getInstance();
         $types = $manager->getQuestionTypes();
@@ -74,7 +87,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
             fn($type) => $type::class,
             $types,
         );
-        $this->assertNotContains(IpAddressQuestion::class, $classes);
+        $this->assertNotContains($item::class, $classes);
     }
 
     public function testQuestionTypeIpIsMappedInConverterWhenEnabled(): void
@@ -98,37 +111,6 @@ final class InitManagerTest extends AdvancedFormsTestCase
 
         // Assert: the ip address question type should only be found after enabling
         $this->assertNull($mapped_types['ip']);
-    }
-
-    public function testQuestionTypeHostnameIsAvailableWhenEnabled(): void
-    {
-        // Arrange: enable question type
-        $this->enableHostnameQuestionType();
-
-        // Act: get enabled types
-        $manager = QuestionTypesManager::getInstance();
-        $types = $manager->getQuestionTypes();
-
-        // Assert: the hostname address question type should only be found after enabling
-        $classes = array_map(
-            fn($type) => $type::class,
-            $types,
-        );
-        $this->assertContains(HostnameQuestion::class, $classes);
-    }
-
-    public function testQuestionTypeHostnameIsNotAvailableWhenDisabled(): void
-    {
-        // Act: get enabled types
-        $manager = QuestionTypesManager::getInstance();
-        $types = $manager->getQuestionTypes();
-
-        // Assert: the hostname address question type should only be found after enabling
-        $classes = array_map(
-            fn($type) => $type::class,
-            $types,
-        );
-        $this->assertNotContains(HostnameQuestion::class, $classes);
     }
 
     public function testQuestionTypeHostnameIsMappedInConverterWhenEnabled(): void
