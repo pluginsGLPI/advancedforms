@@ -34,8 +34,10 @@
 namespace GlpiPlugin\Advancedforms\Tests\Front;
 
 use Config;
+use GlpiPlugin\Advancedforms\Model\Config\Config as AdvancedFormsConfig;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class ConfigFormTest extends FrontTestCase
 {
@@ -81,68 +83,60 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertEmpty($crawler);
     }
 
-    public function testCanDisableQuestionTypeIpConfig(): void
+    public static function getConfigurableQuestionTypes(): iterable
     {
+        yield 'ip question type' => [
+            'config_key'   => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP ,
+            'fetch_config' => fn(AdvancedFormsConfig $c): bool => $c->isIpAddressQuestionTypeEnabled(),
+        ];
+        yield 'hostname question type' => [
+            'config_key'   => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME ,
+            'fetch_config' => fn(AdvancedFormsConfig $c): bool => $c->isHostnameQuestionTypeEnabled(),
+        ];
+    }
+
+    #[DataProvider('getConfigurableQuestionTypes')]
+    /** @var callable(AdvancedFormsConfig): bool $fetch_config */
+    public function testCanDisableQuestionTypeConfig(
+        string $config_key,
+        callable $fetch_config,
+    ): void {
         // Arrange: enable config
-        $this->enableIpQuestionType();
+        Config::setConfigurationValues('advancedforms', [
+            $config_key => 1,
+        ]);
 
         // Act: submit config form
         $this->login();
         $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
+            $config_key => 0,
         ]);
 
         // Assert: config should now be disabled
         $manager = $this->getConfigManager();
-        $this->assertFalse($manager->getConfig()->isIpAddressQuestionTypeEnabled());
+        $this->assertFalse($fetch_config($manager->getConfig()));
     }
 
-    public function testCanEnableQuestionTypeIpConfig(): void
-    {
+    #[DataProvider('getConfigurableQuestionTypes')]
+    /** @var callable(AdvancedFormsConfig): bool $fetch_config */
+    public function testCanEnableQuestionTypeConfig(
+        string $config_key,
+        callable $fetch_config,
+    ): void {
         // Arrange: disable config
-        $this->disableIpQuestionType();
+        Config::setConfigurationValues('advancedforms', [
+            $config_key => 0,
+        ]);
 
         // Act: submit config form
         $this->login();
         $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
+            $config_key => 1,
         ]);
 
         // Assert: config should now be enabled
         $manager = $this->getConfigManager();
-        $this->assertTrue($manager->getConfig()->isIpAddressQuestionTypeEnabled());
-    }
-
-    public function testCanDisableQuestionTypeHostnameConfig(): void
-    {
-        // Arrange: enable config
-        $this->enableHostnameQuestionType();
-
-        // Act: submit config form
-        $this->login();
-        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 0,
-        ]);
-
-        // Assert: config should now be disabled
-        $manager = $this->getConfigManager();
-        $this->assertFalse($manager->getConfig()->isHostnameQuestionTypeEnabled());
-    }
-
-    public function testCanEnableQuestionTypeHostnameConfig(): void
-    {
-        // Arrange: disable config
-        $this->disableHostnameQuestionType();
-
-        // Act: submit config form
-        $this->login();
-        $this->sendForm("/ajax/common.tabs.php", $this->getConfigTabUrlParams(), [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
-        ]);
-
-        // Assert: config should now be enabled
-        $manager = $this->getConfigManager();
-        $this->assertTrue($manager->getConfig()->isHostnameQuestionTypeEnabled());
+        $this->assertTrue($fetch_config($manager->getConfig()));
     }
 
     private function getConfigManager(): ConfigManager
@@ -158,33 +152,5 @@ final class ConfigFormTest extends FrontTestCase
             '_target'     => '/front/config.form.php',
             'id'          => 1,
         ];
-    }
-
-    private function disableIpQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 0,
-        ]);
-    }
-
-    private function enableIpQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-        ]);
-    }
-
-    private function disableHostnameQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 0,
-        ]);
-    }
-
-    private function enableHostnameQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
-        ]);
     }
 }
