@@ -31,36 +31,41 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Model\Config;
+namespace GlpiPlugin\Advancedforms\Tests\Provider;
 
-final class Config
+use GlpiPlugin\Advancedforms\Model\Config\Config;
+use GlpiPlugin\Advancedforms\Service\ConfigManager;
+
+final class QuestionTypesProvider
 {
-    public function __construct(
-        private bool $enable_ip_address_question_type = false,
-        private bool $enable_hostname_question_type = false,
-        private bool $enable_hidden_question_type = false,
-    ) {}
-
-    public function hasAtLeastOneQuestionTypeEnabled(): bool
+    public static function provideQuestionTypes(array $properties): array
     {
-        return
-            $this->isIpAddressQuestionTypeEnabled()
-            || $this->isHostnameQuestionTypeEnabled()
-        ;
-    }
+        $types = [];
+        $types['ip question type'] = [
+            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP,
+            'fetch_config' => fn(Config $c): bool => $c->isIpAddressQuestionTypeEnabled(),
+            'data_testid' => 'feature-ip-question',
+        ];
+        $types['hostname question type'] = [
+            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME,
+            'fetch_config' => fn(Config $c): bool => $c->isHostnameQuestionTypeEnabled(),
+            'data_testid' => 'feature-hostname-question',
+        ];
+        $types['hidden question type'] = [
+            'config_key' => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN,
+            'fetch_config' => fn(Config $c): bool => $c->isHiddenQuestionTypeEnabled(),
+            'data_testid' => 'feature-hidden-question',
+        ];
 
-    public function isIpAddressQuestionTypeEnabled(): bool
-    {
-        return $this->enable_ip_address_question_type;
-    }
+        // Keep only requested properties
+        foreach ($types as $label => $type) {
+            foreach (array_keys($type) as $key) {
+                if (!in_array($key, $properties)) {
+                    unset($types[$label][$key]);
+                }
+            }
+        }
 
-    public function isHostnameQuestionTypeEnabled(): bool
-    {
-        return $this->enable_hostname_question_type;
-    }
-
-    public function isHiddenQuestionTypeEnabled(): bool
-    {
-        return $this->enable_hidden_question_type;
+        return $types;
     }
 }

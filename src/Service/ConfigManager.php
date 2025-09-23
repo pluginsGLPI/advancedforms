@@ -45,6 +45,7 @@ final class ConfigManager
 
     public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_ip_address';
     public const CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME = 'enable_question_type_hostname';
+    public const CONFIG_ENABLE_QUESTION_TYPE_HIDDEN = 'enable_question_type_hidden';
 
     public function renderConfigForm(): string
     {
@@ -61,12 +62,14 @@ final class ConfigManager
             [
                 self::CONFIG_ENABLE_QUESTION_TYPE_IP,
                 self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME,
+                self::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN,
             ],
         );
 
         return new Config(
             enable_ip_address_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_IP] ?? false) == 1,
             enable_hostname_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME] ?? false) == 1,
+            enable_hidden_question_type: ($raw_config[self::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN] ?? false) == 1,
         );
     }
 

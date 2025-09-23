@@ -37,16 +37,18 @@ use Config;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 
 final class InstallManagerTest extends AdvancedFormsTestCase
 {
     public function testUninstallRemoveConfig(): void
     {
         // Arrange: set multiples config values
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
-        ]);
+        $config_values = [];
+        foreach ($this->getConfigurableQuestionTypesConfigKeys() as $key) {
+            $config_values[$key] = 1;
+        }
+        Config::setConfigurationValues('advancedforms', $config_values);
 
         // Act: uninstall plugin
         $config_before = Config::getConfigurationValues('advancedforms');
@@ -56,5 +58,11 @@ final class InstallManagerTest extends AdvancedFormsTestCase
         // Assert: config should be empty after uninstallation
         $this->assertNotEmpty($config_before);
         $this->assertEmpty($config_after);
+    }
+
+    private function getConfigurableQuestionTypesConfigKeys(): array
+    {
+        $types = QuestionTypesProvider::provideQuestionTypes(['config_key']);
+        return array_column($types, 'config_key');
     }
 }

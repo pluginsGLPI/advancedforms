@@ -37,6 +37,7 @@ use Config;
 use GlpiPlugin\Advancedforms\Model\Config\Config as AdvancedFormsConfig;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class ConfigFormTest extends FrontTestCase
@@ -83,16 +84,12 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertEmpty($crawler);
     }
 
-    public static function getConfigurableQuestionTypes(): iterable
+    public static function getConfigurableQuestionTypes(): array
     {
-        yield 'ip question type' => [
-            'config_key'   => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP ,
-            'fetch_config' => fn(AdvancedFormsConfig $c): bool => $c->isIpAddressQuestionTypeEnabled(),
-        ];
-        yield 'hostname question type' => [
-            'config_key'   => ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME ,
-            'fetch_config' => fn(AdvancedFormsConfig $c): bool => $c->isHostnameQuestionTypeEnabled(),
-        ];
+        return QuestionTypesProvider::provideQuestionTypes([
+            'config_key',
+            'fetch_config',
+        ]);
     }
 
     #[DataProvider('getConfigurableQuestionTypes')]

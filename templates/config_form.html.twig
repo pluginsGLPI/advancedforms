@@ -50,6 +50,16 @@
         ),
         is_enabled : config.isHostnameQuestionTypeEnabled(),
     },
+    {
+        key        : "hidden-question",
+        title      : __("Hidden question type", 'advancedforms'),
+        description: __("This question type will insert some hidden data into the form.", 'advancedforms'),
+        icon       : "eye-off",
+        input_name : constant(
+            "\\GlpiPlugin\\Advancedforms\\Service\\ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN",
+        ),
+        is_enabled : config.isHiddenQuestionTypeEnabled(),
+    },
 ] %}
 
 <div class="py-2 px-3 ms-0">
@@ -72,7 +82,7 @@
                     class="col-12 col-lg-6 col-xxl-4 mb-2"
                     data-testid="feature-{{ feature.key }}"
                 >
-                    <div class="card cursor-pointer rounded">
+                    <div class="card cursor-pointer rounded h-100">
                         <div class="card-body d-flex flex-row">
                             <i class="ti ti-{{ feature.icon }} fa-2x me-3 align-self-center"></i>
 
