@@ -31,6 +31,7 @@
  * -------------------------------------------------------------------------
  */
 
+use Glpi\Plugin\HookManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
@@ -55,6 +56,10 @@ function plugin_init_advancedforms(): void
     if (!$is_active) {
         return;
     }
+
+    $hook_manager = new HookManager('advancedforms');
+    $hook_manager->registerCSSFile('css/advancedforms.css');
+    $hook_manager->registerJavascriptFile('js/advancedforms.js');
 
     InitManager::getInstance()->init();
 }

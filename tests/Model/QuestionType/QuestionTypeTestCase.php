@@ -130,7 +130,11 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         // Arrange: enable the question type and create a form using it
         $this->enableConfigurableItem($item);
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", $item::class);
+        $builder->addQuestion(
+            "My question",
+            $item::class,
+            extra_data: $this->getDefaultExtraDataForQuestionType($item),
+        );
         $form = $this->createForm($builder);
 
         // Act: render form editor
@@ -146,7 +150,11 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
 
         // Arrange: enable the question type and create a form using it
         $builder = new FormBuilder("My form");
-        $builder->addQuestion("My question", $item::class);
+        $builder->addQuestion(
+            "My question",
+            $item::class,
+            extra_data: $this->getDefaultExtraDataForQuestionType($item),
+        );
         $form = $this->createForm($builder);
 
         // Act: render form editor
@@ -174,6 +182,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
             "My question",
             $item::class,
             $this->setDefaultValueBeforeHelpdeskRendering(),
+            $this->getDefaultExtraDataForQuestionType($item),
         );
         $form = $this->createForm($builder);
 
@@ -194,6 +203,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
             "My question",
             $item::class,
             $this->setDefaultValueBeforeHelpdeskRendering(),
+            $this->getDefaultExtraDataForQuestionType($item),
         );
         $form = $this->createForm($builder);
 
@@ -227,5 +237,16 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
             ),
         );
         return new Crawler($response->getContent());
+    }
+
+    private function getDefaultExtraDataForQuestionType(
+        QuestionTypeInterface $type,
+    ): ?string {
+        $class = $type->getExtraDataConfigClass();
+        if (is_null($class)) {
+            return null;
+        }
+
+        return json_encode(new $class());
     }
 }

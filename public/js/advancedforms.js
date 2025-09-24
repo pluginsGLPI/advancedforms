@@ -1,5 +1,3 @@
-<?php
-
 /**
  * -------------------------------------------------------------------------
  * advancedforms plugin for GLPI
@@ -31,35 +29,28 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Utils;
-
-use CommonDBTM;
-use RuntimeException;
-
-/**
- * Temporary class to bypass simple static analysis issues until stronger
- * types will be implemented in GLPI's core.
- */
-final class SafeCommonDBTM
+async function plugin_advancedforms_on_ldap_change(select)
 {
-    /** @param class-string<CommonDBTM> $class */
-    public static function getIcon(string $class): string
-    {
-        $icon = $class::getIcon();
-        if (!is_string($icon)) {
-            throw new RuntimeException();
-        }
-
-        return $icon;
+    const value = select.value;
+    const parent = select.closest("[data-glpi-form-editor-question]");
+    const filter_input = parent.querySelector("[data-ldap-question-filter_input]");
+    if (value == 0) {
+        filter_input.value = "";
+        return;
     }
 
-    public static function getStringField(CommonDBTM $item, string $field): string
-    {
-        $field = $item->getField($field);
-        if (!is_string($field)) {
-            throw new RuntimeException();
+    const url = CFG_GLPI['root_doc'] + '/plugins/advancedforms/GetAuthLdapFilter';
+    try {
+        const response = await fetch(`${url}?id=${value}`);
+        if (!response.ok) {
+            throw new Error(response.status);
         }
 
-        return $field;
+        const payload = await response.json();
+        filter_input.value = payload.filter;
+    } catch (e) {
+        console.error(e);
+        glpi_toast_error(__("An unexpected error occurred"));
+        filter_input.value = "";
     }
 }

@@ -41,6 +41,7 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 
 final class ConfigManager
 {
@@ -62,6 +63,7 @@ final class ConfigManager
             new IpAddressQuestion(),
             new HostnameQuestion(),
             new HiddenQuestion(),
+            new LdapQuestion(),
         ];
     }
 

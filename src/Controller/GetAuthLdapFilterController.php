@@ -31,35 +31,42 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Utils;
+namespace GlpiPlugin\Advancedforms\Controller;
 
-use CommonDBTM;
-use RuntimeException;
+use AuthLDAP;
+use Glpi\Controller\AbstractController;
+use Glpi\Exception\Http\BadRequestHttpException;
+use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Temporary class to bypass simple static analysis issues until stronger
- * types will be implemented in GLPI's core.
- */
-final class SafeCommonDBTM
+final class GetAuthLdapFilterController extends AbstractController
 {
-    /** @param class-string<CommonDBTM> $class */
-    public static function getIcon(string $class): string
+    #[Route(
+        path: 'GetAuthLdapFilter',
+        name: "get_auth_ldap_filter",
+        methods: "GET",
+    )]
+    public function __invoke(Request $request): Response
     {
-        $icon = $class::getIcon();
-        if (!is_string($icon)) {
-            throw new RuntimeException();
+        if (!AuthLDAP::canView()) {
+            throw new BadRequestHttpException();
         }
 
-        return $icon;
-    }
-
-    public static function getStringField(CommonDBTM $item, string $field): string
-    {
-        $field = $item->getField($field);
-        if (!is_string($field)) {
-            throw new RuntimeException();
+        $ldap = AuthLDAP::getById($request->query->getInt('id'));
+        if (!$ldap) {
+            throw new BadRequestHttpException();
         }
 
-        return $field;
+        $filter = "(" . SafeCommonDBTM::getStringField($ldap, "login_field") . "=*)";
+        $ldap_condition = $ldap->fields['condition'] !== null
+            ? SafeCommonDBTM::getStringField($ldap, "condition")
+            : ''
+        ;
+        return new JsonResponse([
+            'filter' => "(& $filter $ldap_condition)",
+        ]);
     }
 }

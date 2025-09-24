@@ -31,35 +31,49 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Utils;
+namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-use CommonDBTM;
-use RuntimeException;
+use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Tests\FormTesterTrait;
+use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
+use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Override;
+use Symfony\Component\DomCrawler\Crawler;
 
-/**
- * Temporary class to bypass simple static analysis issues until stronger
- * types will be implemented in GLPI's core.
- */
-final class SafeCommonDBTM
+final class LdapQuestionTest extends QuestionTypeTestCase
 {
-    /** @param class-string<CommonDBTM> $class */
-    public static function getIcon(string $class): string
-    {
-        $icon = $class::getIcon();
-        if (!is_string($icon)) {
-            throw new RuntimeException();
-        }
+    use FormTesterTrait;
 
-        return $icon;
+    #[Override]
+    protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
+    {
+        return new LdapQuestion();
     }
 
-    public static function getStringField(CommonDBTM $item, string $field): string
-    {
-        $field = $item->getField($field);
-        if (!is_string($field)) {
-            throw new RuntimeException();
-        }
+    #[Override]
+    protected function validateEditorRenderingWhenEnabled(
+        Crawler $html,
+    ): void {
+        $ldap_dropdown  = $html->filter('select[name="extra_data[authldap_id]"]');
+        $filter_input   = $html->filter('input[name="extra_data[ldap_filter]"]');
+        $field_dropdown = $html->filter('select[name="extra_data[ldap_attribute_id]"]');
+        $this->assertNotEmpty($ldap_dropdown);
+        $this->assertNotEmpty($filter_input);
+        $this->assertNotEmpty($field_dropdown);
+    }
 
-        return $field;
+    #[Override]
+    protected function validateHelpdeskRenderingWhenEnabled(
+        Crawler $html,
+    ): void {
+        // not implemented
+    }
+
+    #[Override]
+    protected function validateHelpdeskRenderingWhenDisabled(
+        Crawler $html,
+    ): void {
+        // not implemented
     }
 }

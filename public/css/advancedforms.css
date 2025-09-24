@@ -1,6 +1,4 @@
-<?php
-
-/**
+/*!
  * -------------------------------------------------------------------------
  * advancedforms plugin for GLPI
  * -------------------------------------------------------------------------
@@ -31,35 +29,7 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Utils;
-
-use CommonDBTM;
-use RuntimeException;
-
-/**
- * Temporary class to bypass simple static analysis issues until stronger
- * types will be implemented in GLPI's core.
- */
-final class SafeCommonDBTM
-{
-    /** @param class-string<CommonDBTM> $class */
-    public static function getIcon(string $class): string
-    {
-        $icon = $class::getIcon();
-        if (!is_string($icon)) {
-            throw new RuntimeException();
-        }
-
-        return $icon;
-    }
-
-    public static function getStringField(CommonDBTM $item, string $field): string
-    {
-        $field = $item->getField($field);
-        if (!is_string($field)) {
-            throw new RuntimeException();
-        }
-
-        return $field;
-    }
+/* Hide ldap preview on active questions */
+[data-glpi-form-editor-active-question] [data-ldap-question-preview] {
+        display: none !important;
 }
