@@ -33,13 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
-use Config;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
 use RuntimeException;
 
 final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
@@ -50,7 +47,7 @@ final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
-        $this->enableHiddenQuestionType();
+        $this->enableConfigurableItem(HiddenQuestion::class);
         $this->createSimpleFormcreatorForm(
             name: "My form",
             questions: [
@@ -110,13 +107,5 @@ final class FormcreatorHiddenTypeMapperTest extends MapperTestCase
         $this->assertTrue($result->isFullyProcessed());
         $this->expectException(RuntimeException::class);
         getItemByTypeName(Question::class, 'My hidden question');
-    }
-
-    private function enableHiddenQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN => 1,
-        ]);
-        InitManager::getInstance()->init();
     }
 }

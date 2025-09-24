@@ -40,7 +40,6 @@ use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHiddenTypeMapper;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 
 final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
@@ -113,9 +112,9 @@ TWIG;
     }
 
     #[Override]
-    public function getConfigKey(): string
+    public static function getConfigKey(): string
     {
-        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN;
+        return "enable_question_type_hidden";
     }
 
     #[Override]

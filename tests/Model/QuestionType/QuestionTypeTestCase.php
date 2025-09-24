@@ -33,7 +33,6 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\QuestionType;
 
-use Config;
 use Glpi\Controller\Form\RendererController;
 use Glpi\Form\Form;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -41,7 +40,6 @@ use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Service\InitManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
@@ -84,10 +82,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         $item = $this->getTestedQuestionType();
 
         // Arrange: enable question type and create a form
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
-        InitManager::getInstance()->init();
+        $this->enableConfigurableItem($item);
 
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", QuestionTypeShortText::class);
@@ -133,10 +128,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         $item = $this->getTestedQuestionType();
 
         // Arrange: enable the question type and create a form using it
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
-        InitManager::getInstance()->init();
+        $this->enableConfigurableItem($item);
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", $item::class);
         $form = $this->createForm($builder);
@@ -176,10 +168,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         $item = $this->getTestedQuestionType();
 
         // Arrange: enable the question type and create a form using it
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
-        InitManager::getInstance()->init();
+        $this->enableConfigurableItem($item);
         $builder = new FormBuilder("My form");
         $builder->addQuestion(
             "My question",

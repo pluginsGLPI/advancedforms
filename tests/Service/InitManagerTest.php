@@ -33,15 +33,15 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
-use Config;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHiddenTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -52,10 +52,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
-        InitManager::getInstance()->init();
+        $this->enableConfigurableItem($item);
 
         // Act: get enabled types
         $manager = QuestionTypesManager::getInstance();
@@ -74,10 +71,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 0,
-        ]);
-        InitManager::getInstance()->init();
+        $this->disableConfigurableItem($item);
 
         // Act: get enabled types
         $manager = QuestionTypesManager::getInstance();
@@ -94,7 +88,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
     public function testQuestionTypeIpIsMappedInConverterWhenEnabled(): void
     {
         // Arrange: enable question type
-        $this->enableIpQuestionType();
+        $this->enableConfigurableItem(IpAddressQuestion::class);
 
         // Act: get enabled types
         $mapper = TypesConversionMapper::getInstance();
@@ -117,7 +111,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
     public function testQuestionTypeHostnameIsMappedInConverterWhenEnabled(): void
     {
         // Arrange: enable question type
-        $this->enableHostnameQuestionType();
+        $this->enableConfigurableItem(HostnameQuestion::class);
 
         // Act: get enabled types
         $mapper = TypesConversionMapper::getInstance();
@@ -140,7 +134,7 @@ final class InitManagerTest extends AdvancedFormsTestCase
     public function testQuestionTypeHiddenIsMappedInConverterWhenEnabled(): void
     {
         // Arrange: enable question type
-        $this->enableHiddenQuestionType();
+        $this->enableConfigurableItem(HiddenQuestion::class);
 
         // Act: get enabled types
         $mapper = TypesConversionMapper::getInstance();
@@ -158,29 +152,5 @@ final class InitManagerTest extends AdvancedFormsTestCase
 
         // Assert: the ip address question type should only be found after enabling
         $this->assertNull($mapped_types['hidden']);
-    }
-
-    private function enableIpQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-        ]);
-        InitManager::getInstance()->init();
-    }
-
-    private function enableHostnameQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
-        ]);
-        InitManager::getInstance()->init();
-    }
-
-    private function enableHiddenQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HIDDEN => 1,
-        ]);
-        InitManager::getInstance()->init();
     }
 }

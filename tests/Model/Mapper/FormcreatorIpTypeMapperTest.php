@@ -33,13 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
-use Config;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
 use RuntimeException;
 
 final class FormcreatorIpTypeMapperTest extends MapperTestCase
@@ -50,7 +47,7 @@ final class FormcreatorIpTypeMapperTest extends MapperTestCase
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
-        $this->enableIpQuestionType();
+        $this->enableConfigurableItem(IpAddressQuestion::class);
         $this->createSimpleFormcreatorForm(
             name: "My form",
             questions: [['name' => 'My IP question', 'fieldtype' => 'ip']],
@@ -94,13 +91,5 @@ final class FormcreatorIpTypeMapperTest extends MapperTestCase
         $this->assertTrue($result->isFullyProcessed());
         $this->expectException(RuntimeException::class);
         getItemByTypeName(Question::class, 'My IP question');
-    }
-
-    private function enableIpQuestionType(): void
-    {
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-        ]);
-        InitManager::getInstance()->init();
     }
 }

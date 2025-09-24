@@ -33,12 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
-use Config;
 use DOMElement;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
-use GlpiPlugin\Advancedforms\Tests\Provider\QuestionTypesProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\DomCrawler\Crawler;
 use Toolbox;
@@ -50,9 +48,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
+        $this->enableConfigurableItem($item);
 
         // Act: render configuration
         $html_disabled = $this->getConfigManager()->renderConfigForm();
@@ -74,9 +70,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 0,
-        ]);
+        $this->disableConfigurableItem($item);
 
         // Act: render configuration
         $html_disabled = $this->getConfigManager()->renderConfigForm();
@@ -97,9 +91,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
+        $this->enableConfigurableItem($item);
 
         // Act: get configuration
         $manager = $this->getConfigManager();
@@ -114,9 +106,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable question type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 0,
-        ]);
+        $this->disableConfigurableItem($item);
 
         // Act: get configuration
         $manager = $this->getConfigManager();

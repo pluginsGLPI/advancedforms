@@ -46,10 +46,6 @@ final class ConfigManager
 {
     use SingletonTrait;
 
-    public const CONFIG_ENABLE_QUESTION_TYPE_IP = 'enable_question_type_ip_address';
-    public const CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME = 'enable_question_type_hostname';
-    public const CONFIG_ENABLE_QUESTION_TYPE_HIDDEN = 'enable_question_type_hidden';
-
     public function renderConfigForm(): string
     {
         $twig = TemplateRenderer::getInstance();

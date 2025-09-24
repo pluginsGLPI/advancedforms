@@ -35,7 +35,7 @@ namespace GlpiPlugin\Advancedforms\Model\Config;
 
 interface ConfigurableItemInterface
 {
-    public function getConfigKey(): string;
+    public static function getConfigKey(): string;
 
     public function getConfigTitle(): string;
 

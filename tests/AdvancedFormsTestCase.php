@@ -33,12 +33,15 @@
 
 namespace GlpiPlugin\Advancedforms\Tests;
 
+use Config;
 use DbTestCase;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
+use GlpiPlugin\Advancedforms\Service\InitManager;
+use InvalidArgumentException;
 use ReflectionClass;
 
 abstract class AdvancedFormsTestCase extends DbTestCase
@@ -64,6 +67,56 @@ abstract class AdvancedFormsTestCase extends DbTestCase
     public function tearDown(): void
     {
         parent::tearDown();
+    }
+
+    protected function enableConfigurableItem(
+        ConfigurableItemInterface|string $item,
+    ): void {
+        $this->setConfigurableItemConfig($item, true);
+        InitManager::getInstance()->init();
+    }
+
+    /** @var array<ConfigurableItemInterface|string> $items */
+    protected function enableConfigurableItems(
+        array $items,
+    ): void {
+        foreach ($items as $item) {
+            $this->setConfigurableItemConfig($item, true);
+        }
+        InitManager::getInstance()->init();
+    }
+
+    protected function disableConfigurableItem(
+        ConfigurableItemInterface|string $item,
+    ): void {
+        $this->setConfigurableItemConfig($item, false);
+        InitManager::getInstance()->init();
+    }
+
+    /** @var array<ConfigurableItemInterface|string> $items */
+    protected function disableConfigurableItems(
+        array $items,
+    ): void {
+        foreach ($items as $item) {
+            $this->setConfigurableItemConfig($item, false);
+        }
+        InitManager::getInstance()->init();
+    }
+
+    private function setConfigurableItemConfig(
+        ConfigurableItemInterface|string $item,
+        bool $enabled,
+    ): void {
+        if (
+            is_string($item)
+            && !is_a($item, ConfigurableItemInterface::class, true)
+        ) {
+            throw new InvalidArgumentException();
+        }
+
+        Config::setConfigurationValues('advancedforms', [
+            $item::getConfigKey() => (int) $enabled,
+        ]);
     }
 
     private function deleteSingletonInstance(array $classes)

@@ -40,7 +40,6 @@ use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 use Toolbox;
 
@@ -116,9 +115,9 @@ TWIG;
     }
 
     #[Override]
-    public function getConfigKey(): string
+    public static function getConfigKey(): string
     {
-        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP;
+        return "enable_question_type_ip_address";
     }
 
     #[Override]

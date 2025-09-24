@@ -116,9 +116,9 @@ TWIG;
     }
 
     #[Override]
-    public function getConfigKey(): string
+    public static function getConfigKey(): string
     {
-        return ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME;
+        return "enable_question_type_hostname";
     }
 
     #[Override]

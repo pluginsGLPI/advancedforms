@@ -88,9 +88,7 @@ final class ConfigFormTest extends FrontTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable config
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
+        $this->enableConfigurableItem($item);
 
         // Act: submit config form
         $this->login();
@@ -108,9 +106,7 @@ final class ConfigFormTest extends FrontTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable config
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 0,
-        ]);
+        $this->disableConfigurableItem($item);
 
         // Act: submit config form
         $this->login();
@@ -128,9 +124,7 @@ final class ConfigFormTest extends FrontTestCase
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable config
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
+        $this->enableConfigurableItem($item);
 
         // Act: get enabled types
         $types = $this->getConfigManager()->getEnabledQuestionsTypes();

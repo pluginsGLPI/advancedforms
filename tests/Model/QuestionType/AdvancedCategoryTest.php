@@ -33,12 +33,11 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
-use Config;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
+use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -49,10 +48,7 @@ final class AdvancedCategoryTest extends AdvancedFormsTestCase
         ConfigurableItemInterface&QuestionTypeInterface $item,
     ): void {
         // Arrange: enable one type
-        Config::setConfigurationValues('advancedforms', [
-            $item->getConfigKey() => 1,
-        ]);
-        InitManager::getInstance()->init();
+        $this->enableConfigurableItem($item);
 
         // Act: render name and icon
         $name = (new AdvancedCategory())->getLabel();
@@ -66,11 +62,10 @@ final class AdvancedCategoryTest extends AdvancedFormsTestCase
     public function testNameWithMultipleTypesEnabled(): void
     {
         // Arrange: enabled more than one type
-        Config::setConfigurationValues('advancedforms', [
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_IP => 1,
-            ConfigManager::CONFIG_ENABLE_QUESTION_TYPE_HOSTNAME => 1,
+        $this->enableConfigurableItems([
+            IpAddressQuestion::class,
+            HostnameQuestion::class,
         ]);
-        InitManager::getInstance()->init();
 
         // Act: render name
         $name = (new AdvancedCategory())->getLabel();
