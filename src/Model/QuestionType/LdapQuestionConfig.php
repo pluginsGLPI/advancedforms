@@ -83,7 +83,7 @@ final class LdapQuestionConfig implements JsonFieldInterface
         ];
     }
 
-    public function getAuthLdapIp(): int
+    public function getAuthLdapId(): int
     {
         return $this->authldap_id;
     }
@@ -93,7 +93,7 @@ final class LdapQuestionConfig implements JsonFieldInterface
         return $this->ldap_filter;
     }
 
-    public function getLdapAttributeIp(): int
+    public function getLdapAttributeId(): int
     {
         return $this->ldap_attribute_id;
     }

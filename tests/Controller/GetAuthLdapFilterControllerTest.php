@@ -31,7 +31,7 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Front;
+namespace GlpiPlugin\Advancedforms\Tests\Controller;
 
 use AuthLDAP;
 use Glpi\Exception\Http\BadRequestHttpException;

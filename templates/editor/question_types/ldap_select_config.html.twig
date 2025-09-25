@@ -59,7 +59,7 @@
     {{ fields.dropdownField(
         'AuthLDAP',
         'extra_data[' ~ AUTHLDAP_ID ~ ']',
-        extra_data.getAuthLdapIp(),
+        extra_data.getAuthLdapId(),
         'AuthLDAP'|itemtype_name,
         {
             'display_emptychoice': true,
@@ -85,7 +85,7 @@
     {{ fields.dropdownField(
         'RuleRightParameter',
         'extra_data[' ~ LDAP_ATTRIBUTE_ID ~ ']',
-        extra_data.getLdapAttributeIp(),
+        extra_data.getLdapAttributeId(),
         __('Attribute'), {
             'full_width'   : true,
             'is_horizontal': false,

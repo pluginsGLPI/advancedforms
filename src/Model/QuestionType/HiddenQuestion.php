@@ -42,6 +42,10 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHiddenTypeMapper;
 use Override;
 
+/**
+ * Legacy question type from the formcreator plugin
+ * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/hiddenfield.class.php
+ */
 final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]

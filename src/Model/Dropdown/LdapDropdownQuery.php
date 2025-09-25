@@ -1,3 +1,5 @@
+<?php
+
 /**
  * -------------------------------------------------------------------------
  * advancedforms plugin for GLPI
@@ -29,32 +31,36 @@
  * -------------------------------------------------------------------------
  */
 
-/**
- * Legacy function from the formcreator plugin
- * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/js/scripts.js#L1827
- */
-async function plugin_advancedforms_on_ldap_change(select)
+namespace GlpiPlugin\Advancedforms\Model\Dropdown;
+
+use Glpi\Form\Question;
+
+final class LdapDropdownQuery
 {
-    const value = select.value;
-    const parent = select.closest("[data-glpi-form-editor-question]");
-    const filter_input = parent.querySelector("[data-ldap-question-filter_input]");
-    if (value == 0) {
-        filter_input.value = "";
-        return;
+    public function __construct(
+        private Question $question,
+        private string $search_text = '',
+        private int $page = 1,
+        private int $page_limit = 1,
+    ) {}
+
+    public function getQuestion(): Question
+    {
+        return $this->question;
     }
 
-    const url = CFG_GLPI['root_doc'] + '/plugins/advancedforms/GetAuthLdapFilter';
-    try {
-        const response = await fetch(`${url}?id=${value}`);
-        if (!response.ok) {
-            throw new Error(response.status);
-        }
+    public function getSearchText(): string
+    {
+        return $this->search_text;
+    }
 
-        const payload = await response.json();
-        filter_input.value = payload.filter;
-    } catch (e) {
-        console.error(e);
-        glpi_toast_error(__("An unexpected error occurred"));
-        filter_input.value = "";
+    public function getPage(): int
+    {
+        return $this->page;
+    }
+
+    public function getPageLimit(): int
+    {
+        return $this->page_limit;
     }
 }

@@ -39,11 +39,16 @@ use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
 use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
 use Override;
 
 use function Safe\json_decode;
 
+/**
+ * Legacy question type from the formcreator plugin
+ * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/ldapselectfield.class.php
+ */
 final class LdapQuestion extends AbstractQuestionType implements ConfigurableItemInterface
 {
     #[Override]
@@ -131,18 +136,15 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     #[Override]
     public function renderEndUserTemplate(Question|null $question): string
     {
-        // TODO
-        $template = <<<TWIG
-            <input
-                type="hidden"
-                name="{{ question.getEndUserInputName() }}"
-                value="{{ "todo" }}"
-            >
-TWIG;
-
-        $twig = TemplateRenderer::getInstance();
-        return $twig->renderFromStringTemplate($template, [
-            'question' => $question,
+        return LdapDropdown::dropdown([
+            'name'     => $question->getEndUserInputName(),
+            'value'    => '',
+            'multiple' => false,
+            'display'  => false,
+            'width'    => "100%",
+            'condition' => [
+                Question::getForeignKeyField() => $question->getID()
+            ]
         ]);
     }
 

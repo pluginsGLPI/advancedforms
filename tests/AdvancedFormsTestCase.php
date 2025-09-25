@@ -33,12 +33,18 @@
 
 namespace GlpiPlugin\Advancedforms\Tests;
 
+use AuthLDAP;
 use Config;
 use DbTestCase;
+use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use Glpi\Tests\FormBuilder;
+use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 use InvalidArgumentException;
@@ -46,6 +52,8 @@ use ReflectionClass;
 
 abstract class AdvancedFormsTestCase extends DbTestCase
 {
+    use FormTesterTrait;
+
     /** @return array<array{ConfigurableItemInterface&QuestionTypeInterface}> */
     final public static function provideQuestionTypes(): array
     {
@@ -101,6 +109,40 @@ abstract class AdvancedFormsTestCase extends DbTestCase
             $this->setConfigurableItemConfig($item, false);
         }
         InitManager::getInstance()->init();
+    }
+
+    protected function setupAuthLdap(): AuthLDAP
+    {
+        return $this->createItem(AuthLDAP::class, [
+            'name'          => 'openldap',
+            'host'          => 'openldap',
+            'basedn'        => 'dc=example,dc=org',
+            'rootdn'        => 'cn=admin,dc=example,dc=org',
+            'port'          => '1389',
+            'condition'     => '(objectClass=inetOrgPerson)',
+            'login_field'   => 'uid',
+            'sync_field'    => 'entryuuid',
+            'use_tls'       => 0,
+            'use_dn'        => 1,
+            'is_active'     => 1,
+            'rootdn_passwd' => 'adminpassword',
+            'use_bind'      => 1,
+        ], ['rootdn_passwd']);
+    }
+
+    protected function createFormWithLdapQuestion(AuthLdap $ldap): Form
+    {
+        $builder = new FormBuilder("My form");
+        $builder->addQuestion(
+            name: "LDAP select",
+            type: LdapQuestion::class,
+            extra_data: json_encode(new LdapQuestionConfig(
+                authldap_id: $ldap->getId(),
+                ldap_filter: "(& (uid=*) (objectClass=inetOrgPerson))",
+                ldap_attribute_id: 6, // User ID,
+            )),
+        );
+        return $this->createForm($builder);
     }
 
     private function setConfigurableItemConfig(

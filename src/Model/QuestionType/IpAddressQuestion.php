@@ -43,6 +43,10 @@ use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorIpTypeMapper;
 use Override;
 use Toolbox;
 
+/**
+ * Legacy question type from the formcreator plugin
+ * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/ipfield.class.php
+ */
 final class IpAddressQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]

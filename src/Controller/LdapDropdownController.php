@@ -33,10 +33,12 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
-use AuthLDAP;
 use Glpi\Controller\AbstractController;
+use Glpi\Controller\Form\Utils\CanCheckAccessPolicies;
 use Glpi\Exception\Http\BadRequestHttpException;
-use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
+use Glpi\Form\Question;
+use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
+use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdownQuery;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,33 +46,56 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Legacy AJAX endpoint from the formcreator plugin
- * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/ajax/ldap_filter.php
+ * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/ajax/getldapvalues.php
  */
-final class GetAuthLdapFilterController extends AbstractController
+final class LdapDropdownController extends AbstractController
 {
+    use CanCheckAccessPolicies;
+
     #[Route(
-        path: 'GetAuthLdapFilter',
-        name: "get_auth_ldap_filter",
-        methods: "GET",
+        path: 'LdapDropdown',
+        name: "ldap_dropdown",
+        // methods: "POST", TODO: not sure why but this make POST request fail?
     )]
     public function __invoke(Request $request): Response
     {
-        if (!AuthLDAP::canView()) {
+        // Read submitted condition
+        $condition_uuid = $request->request->getString('condition');
+        if ($condition_uuid === "") {
+            throw new BadRequestHttpException();
+        }
+        $condition = $_SESSION['glpicondition'][$condition_uuid] ?? null;
+        if ($condition === null) {
             throw new BadRequestHttpException();
         }
 
-        $ldap = AuthLDAP::getById($request->query->getInt('id'));
-        if (!$ldap) {
+        // Get question id from condition
+        $question_id = $condition[Question::getForeignKeyField()];
+        $question = Question::getById($question_id);
+        if (!$question) {
             throw new BadRequestHttpException();
         }
 
-        $filter = "(" . SafeCommonDBTM::getStringField($ldap, "login_field") . "=*)";
-        $ldap_condition = $ldap->fields['condition'] !== null
-            ? SafeCommonDBTM::getStringField($ldap, "condition")
-            : ''
-        ;
-        return new JsonResponse([
-            'filter' => "(& $filter $ldap_condition)",
-        ]);
+        // Validate that the form is readable for the current user
+        $this->checkFormAccessPolicies($question->getForm(), $request);
+
+        // Read others parameters
+        $search_text = $request->request->getString('');
+        $page        = $request->request->getInt('page', 0);
+        $page_limit  = $request->request->getInt('page_limit', 0);
+
+        // Make sure mandatory parameters are set
+        if ($page == 0 || $page_limit == 0) {
+            throw new BadRequestHttpException();
+        }
+
+        $dropdown = new LdapDropdown();
+        $ldap_query = new LdapDropdownQuery(
+            question   : $question,
+            search_text: $search_text,
+            page       : $page,
+            page_limit : $page_limit,
+        );
+        return new JsonResponse($dropdown->getDropdownValues($ldap_query));
     }
 }

@@ -40,10 +40,13 @@ use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
-use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use Override;
 use Toolbox;
 
+/**
+ * Legacy question type from the formcreator plugin
+ * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/hostnamefield.class.php
+ */
 final class HostnameQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]
