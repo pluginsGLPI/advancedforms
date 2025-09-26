@@ -39,10 +39,16 @@ use Dropdown;
 use ErrorException;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
 use Html;
+use LDAP\Connection;
+use LDAP\Result;
 use LogicException;
 use RuleRightParameter;
 use RuntimeException;
 use Throwable;
+
+use function Safe\ldap_get_entries;
+use function Safe\ldap_parse_result;
+use function Safe\ldap_set_option;
 
 /**
  * Legacy custom dropdown from the formcreator plugin
@@ -52,35 +58,37 @@ final class LdapDropdown extends CommonGLPI
 {
     // Required despite being a method of CommonDBTM, not CommonGLPI.
     // TODO: fix in core
-    public static function getTable()
+    public static function getTable(): string
     {
         return '';
     }
 
     // Required despite being a method of CommonDBTM, not CommonGLPI.
     // TODO: fix in core
-    public function getForeignKeyField()
+    public function getForeignKeyField(): string
     {
         return '';
     }
 
     // Required despite being a method of CommonDBTM, not CommonGLPI.
     // TODO: fix in core
-    public function isField()
+    public function isField(): false
     {
         return false;
     }
 
-    public static function dropdown($options = [])
+    /** @param array<string, mixed> $options */
+    public static function dropdown($options = []): string
     {
-        $options['display'] = $options['display'] ?? false;
+        $options['display'] = false;
         $options['url'] = Html::getPrefixedUrl('plugins/advancedforms/LdapDropdown');
 
-        $out = Dropdown::show(self::class, $options);
-        if (!$options['display']) {
-            return $out;
+        $html = Dropdown::show(self::class, $options);
+        if (!is_string($html)) {
+            throw new LogicException();
         }
-        echo $out;
+
+        return $html;
     }
 
     public static function ldapErrorHandler(
@@ -96,28 +104,9 @@ final class LdapDropdown extends CommonGLPI
         throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
     }
 
+    /** @return array{results: list<array{id: string, text: string}>, count: int} */
     public function getDropdownValues(LdapDropdownQuery $query): array
     {
-        // Count real items returned
-
-        // Retreive conditions from SESSION using its key
-        // $condition_uuid = $query->getConditionUuid();
-        // $condition = $_SESSION['glpicondition'][$condition_uuid] ?? null;
-        // if ($condition === null) {
-        //     throw new InvalidArgumentException(); // Should never happen
-        // }
-
-        // $question_id = $condition[Question::getForeignKeyField()];
-        // if ($question === false) {
-        //     return []; // TODO: error instead in the controller
-        // }
-
-        // TODO: check rights in the CONTROLLER, the target form should be readable by the user
-        // $form = $question->getForm();
-        // if (!$form->canViewForRequest()) {
-        //     return [];
-        // }
-
         // Read query parameters
         $question    = $query->getQuestion();
         $search_text = $query->getSearchText();
@@ -136,14 +125,15 @@ final class LdapDropdown extends CommonGLPI
             throw new RuntimeException();
         }
         $attribute = $attribute->fields['value'];
+        if (!is_string($attribute)) {
+            throw new LogicException();
+        }
 
         // Load target AuthLDAP
         $auth_ldap = AuthLDAP::getById($config->getAuthLdapId());
         if (!$auth_ldap) {
             throw new RuntimeException();
         }
-
-        // Transform LDAP warnings into errors
 
         // Insert search text into filter if specified
         if ($search_text != '') {
@@ -157,7 +147,10 @@ final class LdapDropdown extends CommonGLPI
         }
 
         try {
+            // Transform LDAP warnings into errors
             set_error_handler([self::class, 'ldapErrorHandler'], E_WARNING);
+
+            // Execute search
             $ldap_values = $this->executeLdapSearch(
                 $auth_ldap,
                 $attribute,
@@ -183,6 +176,7 @@ final class LdapDropdown extends CommonGLPI
         ];
     }
 
+    /** @return list<array{id: string, text: string}> */
     private function executeLdapSearch(
         AuthLDAP $auth_ldap,
         string $attribute,
@@ -197,6 +191,17 @@ final class LdapDropdown extends CommonGLPI
 
         $cookie = '';
         $ds = $auth_ldap->connect();
+        if (!$ds instanceof Connection) {
+            throw new RuntimeException();
+        }
+
+        $base_dn = $auth_ldap->fields['basedn'];
+        if (!is_string($base_dn)) {
+            throw new RuntimeException();
+        }
+
+        // For some reason Safe\ldap_set_option expect resource instead of Connection
+        // @phpstan-ignore argument.type
         ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
         $found_count = 0;
         do {
@@ -211,11 +216,20 @@ final class LdapDropdown extends CommonGLPI
                         ],
                     ],
                 ];
-                $result = ldap_search($ds, $auth_ldap->fields['basedn'], $ldap_filter, $attributes, 0, -1, -1, LDAP_DEREF_NEVER, $controls);
+                $result = ldap_search($ds, $base_dn, $ldap_filter, $attributes, 0, -1, -1, LDAP_DEREF_NEVER, $controls);
+                if (!$result instanceof Result) {
+                    throw new RuntimeException();
+                }
                 ldap_parse_result($ds, $result, $errcode, $matcheddn, $errmsg, $referrals, $controls);
+
+                // PHPstan doens't know that this is safe
+                // @phpstan-ignore offsetAccess.nonOffsetAccessible,offsetAccess.nonOffsetAccessible
                 $cookie = $controls[LDAP_CONTROL_PAGEDRESULTS]['value']['cookie'] ?? '';
             } else {
-                $result = ldap_search($ds, $auth_ldap->fields['basedn'], $ldap_filter, $attributes);
+                $result = ldap_search($ds, $base_dn, $ldap_filter, $attributes);
+                if (!$result instanceof Result) {
+                    throw new RuntimeException();
+                }
             }
 
             $entries = ldap_get_entries($ds, $result);
@@ -231,7 +245,9 @@ final class LdapDropdown extends CommonGLPI
 
             foreach ($entries as $attr) {
                 if (
+                    // @phpstan-ignore offsetAccess.nonOffsetAccessible
                     !isset($attr[$attribute])
+                    // @phpstan-ignore offsetAccess.nonOffsetAccessible
                     || in_array($attr[$attribute][0], $ldap_values)
                 ) {
                     continue;
@@ -248,14 +264,17 @@ final class LdapDropdown extends CommonGLPI
                 }
 
                 $ldap_values[] = [
-                    'id'   => $attr[$attribute][0],
-                    'text' => $attr[$attribute][0],
+                    // @phpstan-ignore cast.string,offsetAccess.nonOffsetAccessible
+                    'id'   => (string) $attr[$attribute][0],
+                    // @phpstan-ignore cast.string,offsetAccess.nonOffsetAccessible
+                    'text' => (string) $attr[$attribute][0],
                 ];
                 $count++;
                 if ($count >= $page_size) {
                     break;
                 }
             }
+            // @phpstan-ignore notIdentical.alwaysTrue
         } while ($cookie !== null && $cookie != '' && $count < $page_size);
 
         return $ldap_values;

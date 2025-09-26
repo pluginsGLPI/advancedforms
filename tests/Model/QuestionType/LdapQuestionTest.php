@@ -67,13 +67,15 @@ final class LdapQuestionTest extends QuestionTypeTestCase
     protected function validateHelpdeskRenderingWhenEnabled(
         Crawler $html,
     ): void {
-        // not implemented
+        $dropdown = $html->filter('[data-glpi-form-renderer-id] select');
+        $this->assertNotEmpty($dropdown);
     }
 
     #[Override]
     protected function validateHelpdeskRenderingWhenDisabled(
         Crawler $html,
     ): void {
-        // not implemented
+        $dropdown = $html->filter('[data-glpi-form-renderer-id] select');
+        $this->assertEmpty($dropdown);
     }
 }

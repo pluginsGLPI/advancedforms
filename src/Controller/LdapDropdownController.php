@@ -64,13 +64,16 @@ final class LdapDropdownController extends AbstractController
         if ($condition_uuid === "") {
             throw new BadRequestHttpException();
         }
+        // We don't control this array
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible
         $condition = $_SESSION['glpicondition'][$condition_uuid] ?? null;
         if ($condition === null) {
             throw new BadRequestHttpException();
         }
 
         // Get question id from condition
-        $question_id = $condition[Question::getForeignKeyField()];
+        /** @var array{condition?: int} $condition */
+        $question_id = $condition[Question::getForeignKeyField()] ?? null;
         $question = Question::getById($question_id);
         if (!$question) {
             throw new BadRequestHttpException();

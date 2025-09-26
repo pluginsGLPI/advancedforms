@@ -39,9 +39,6 @@ use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdownQuery;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Ramsey\Uuid\Uuid;
-
-use function Safe\json_decode;
 
 final class LdapDropdownTest extends AdvancedFormsTestCase
 {

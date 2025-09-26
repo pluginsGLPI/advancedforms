@@ -41,6 +41,7 @@ use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
 use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
+use LogicException;
 use Override;
 
 use function Safe\json_decode;
@@ -136,15 +137,16 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     #[Override]
     public function renderEndUserTemplate(Question|null $question): string
     {
+        if ($question === null) {
+            throw new LogicException();
+        }
+
         return LdapDropdown::dropdown([
-            'name'     => $question->getEndUserInputName(),
-            'value'    => '',
-            'multiple' => false,
-            'display'  => false,
-            'width'    => "100%",
-            'condition' => [
-                Question::getForeignKeyField() => $question->getID()
-            ]
+            'name'                => $question->getEndUserInputName(),
+            'width'               => "100%",
+            'condition'           => [
+                Question::getForeignKeyField() => $question->getID(),
+            ],
         ]);
     }
 
