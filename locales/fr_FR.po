@@ -1,0 +1,82 @@
+# French translations for PACKAGE package.
+# Copyright (C) 2025 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-26 10:12+0000\n"
+"PO-Revision-Date: 2025-09-26 10:12+0000\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: templates/editor/question_types/ldap_select_config.html.twig
+msgid "Data from LDAP directory"
+msgstr "Données provenant du répertoire LDAP"
+
+#: templates/config_form.html.twig
+msgid "Advanced forms plugin configuration"
+msgstr "Configuration avancée des formulaires"
+
+#: src/Model/QuestionType/LdapQuestion.php:64
+msgid "LDAP select"
+msgstr "Liste déroulante LDAP"
+
+#: src/Model/QuestionType/LdapQuestion.php:162
+msgid "LDAP select question type"
+msgstr "Type de question liste déroulante LDAP"
+
+#: src/Model/QuestionType/LdapQuestion.php:168
+msgid "Select some data from a LDAP directory."
+msgstr "Selectionner des données depuis un répertoire LDAP."
+
+#: src/Model/QuestionType/HostnameQuestion.php:61
+msgid "Hostname"
+msgstr "Nom d'hôte"
+
+#: src/Model/QuestionType/HostnameQuestion.php:130
+msgid "Hostname question type"
+msgstr "Type de question nom d'hôte"
+
+#: src/Model/QuestionType/HostnameQuestion.php:136
+msgid "This question type will automatically register the user's hostname."
+msgstr "Ce type de question enregistrera automatiquement le nom d'hôte de l'utilisateur."
+
+#: src/Model/QuestionType/AdvancedCategory.php:50
+msgid "Advanced"
+msgstr "Avancé"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:61
+msgid "Ip address"
+msgstr "Adresse IP"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:130
+msgid "IP address question type"
+msgstr "Type de question adresse IP"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:136
+msgid "This question type will automatically register the user's ip address."
+msgstr "Ce type de question enregistrera automatiquement l'adresse IP de l'utilisateur."
+
+#: src/Model/QuestionType/HiddenQuestion.php:60
+msgid "Hidden"
+msgstr "Caché"
+
+#: src/Model/QuestionType/HiddenQuestion.php:127
+msgid "Hidden address question type"
+msgstr "Type de question caché"
+
+#: src/Model/QuestionType/HiddenQuestion.php:133
+msgid "This question type will insert some hidden data into the form."
+msgstr "Ce type de question insérera des données cachées dans le formulaire."
+
+#: src/Model/Config/ConfigTab.php:48
+msgid "Advanced forms"
+msgstr "Formulaires avancés"

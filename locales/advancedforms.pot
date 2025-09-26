@@ -1,0 +1,82 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-26 10:12+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: templates/editor/question_types/ldap_select_config.html.twig
+msgid "Data from LDAP directory"
+msgstr ""
+
+#: templates/config_form.html.twig
+msgid "Advanced forms plugin configuration"
+msgstr ""
+
+#: src/Model/QuestionType/LdapQuestion.php:64
+msgid "LDAP select"
+msgstr ""
+
+#: src/Model/QuestionType/LdapQuestion.php:162
+msgid "LDAP select question type"
+msgstr ""
+
+#: src/Model/QuestionType/LdapQuestion.php:168
+msgid "Select some data from a LDAP directory."
+msgstr ""
+
+#: src/Model/QuestionType/HostnameQuestion.php:61
+msgid "Hostname"
+msgstr ""
+
+#: src/Model/QuestionType/HostnameQuestion.php:130
+msgid "Hostname question type"
+msgstr ""
+
+#: src/Model/QuestionType/HostnameQuestion.php:136
+msgid "This question type will automatically register the user's hostname."
+msgstr ""
+
+#: src/Model/QuestionType/AdvancedCategory.php:50
+msgid "Advanced"
+msgstr ""
+
+#: src/Model/QuestionType/IpAddressQuestion.php:61
+msgid "Ip address"
+msgstr ""
+
+#: src/Model/QuestionType/IpAddressQuestion.php:130
+msgid "IP address question type"
+msgstr ""
+
+#: src/Model/QuestionType/IpAddressQuestion.php:136
+msgid "This question type will automatically register the user's ip address."
+msgstr ""
+
+#: src/Model/QuestionType/HiddenQuestion.php:60
+msgid "Hidden"
+msgstr ""
+
+#: src/Model/QuestionType/HiddenQuestion.php:127
+msgid "Hidden address question type"
+msgstr ""
+
+#: src/Model/QuestionType/HiddenQuestion.php:133
+msgid "This question type will insert some hidden data into the form."
+msgstr ""
+
+#: src/Model/Config/ConfigTab.php:48
+msgid "Advanced forms"
+msgstr ""
