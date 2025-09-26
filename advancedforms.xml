@@ -2,8 +2,8 @@
    <name>Advanced Forms</name>
    <key>advancedforms</key>
    <!-- stable, beta, development, alpha, ... -->
-   <state>development</state>
-   <logo>https://raw.githubusercontent.com/pluginsGLPI/advancedforms/main/advancedforms.png</logo>
+   <state>beta</state>
+   <logo>https://raw.githubusercontent.com/pluginsGLPI/advancedforms/main/logo.png</logo>
    <description>
       <short>
          <!-- Add as many lang tag you want -->
@@ -12,8 +12,8 @@
       </short>
       <long>
          <!-- Add as many lang tag you want -->
-         <en>Work in progress.</en>
-         <fr>Travaux en cours.</fr>
+         <en>This plugin enable additional features for forms.</en>
+         <fr>Ce plugin propose des fonctionnalités supplémentaires pour les formulaires.</fr>
       </long>
    </description>
    <homepage>https://github.com/pluginsGLPI/advancedforms</homepage>
@@ -27,7 +27,7 @@
    <versions>
       <!-- Add as many version tag you want -->
       <version>
-         <num>0.0.1</num>
+         <num>1.0.0-rc1</num>
          <!-- Add as many compatibility tag you want -->
          <compatibility>~11.0.0</compatibility>
       </version>
