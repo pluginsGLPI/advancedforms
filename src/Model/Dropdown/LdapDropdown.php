@@ -104,7 +104,13 @@ final class LdapDropdown extends CommonGLPI
         throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
     }
 
-    /** @return array{results: list<array{id: string, text: string}>, count: int} */
+    /**
+     * Disclaimer: there are a lot of ignored phpstan errors in this method.
+     * I didn't want to change too much the original code from formcreator to
+     * avoid breaking things so I prefered ignoring most errors
+     *
+     *  @return array{results: list<array{id: string, text: string}>, count: int}
+     */
     public function getDropdownValues(LdapDropdownQuery $query): array
     {
         // Read query parameters
