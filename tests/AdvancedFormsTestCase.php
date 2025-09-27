@@ -145,6 +145,20 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         return $this->createForm($builder);
     }
 
+    protected function skipIfOpenldapIsNotSetup(): void
+    {
+        // Temporary code until openldap can be enabled on the ci container.
+        $host = 'openldap';
+        $port = 1389;
+
+        $connection = @fsockopen($host, $port, $errno, $errstr);
+        if (!$connection) {
+            $this->markTestSkipped('Docker container "openldap" is not reachable.');
+        } else {
+            fclose($connection);
+        }
+    }
+
     private function setConfigurableItemConfig(
         ConfigurableItemInterface|string $item,
         bool $enabled,

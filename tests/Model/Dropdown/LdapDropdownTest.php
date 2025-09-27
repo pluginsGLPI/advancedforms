@@ -109,18 +109,14 @@ final class LdapDropdownTest extends AdvancedFormsTestCase
         int $page_limit,
         array $expected,
     ): void {
+        $this->skipIfOpenldapIsNotSetup();
+
         // Arrange: create a form with an LDAP question
         $this->enableConfigurableItem(LdapQuestion::class);
         $ldap = $this->setupAuthLdap();
         $form = $this->createFormWithLdapQuestion($ldap);
 
         // Act: fetch ldap values for the ldap select question
-        // $uuid = Uuid::uuid4()->toString();
-        // $fkey = Question::getForeignKeyField();
-        // $_SESSION['glpicondition'][$uuid][$fkey] = $this->getQuestionId(
-        //     $form,
-        //     'LDAP select'
-        // );
         $query = new LdapDropdownQuery(
             question: Question::getById($this->getQuestionId($form, 'LDAP select')),
             search_text: $search_text,
