@@ -35,11 +35,13 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use AuthLDAP;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
+use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorLdapSelectTypeMapper;
 use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
 use LogicException;
 use Override;
@@ -50,7 +52,7 @@ use function Safe\json_decode;
  * Legacy question type from the formcreator plugin
  * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/ldapselectfield.class.php
  */
-final class LdapQuestion extends AbstractQuestionType implements ConfigurableItemInterface
+final class LdapQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -172,5 +174,17 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     public function getConfigIcon(): string
     {
         return $this->getIcon();
+    }
+
+    #[Override]
+    public function getLegacyFormcreatorKey(): string
+    {
+        return 'ldapselect';
+    }
+
+    #[Override]
+    public function getMapperClass(): FormQuestionDataConverterInterface
+    {
+        return new FormcreatorLdapSelectTypeMapper();
     }
 }
