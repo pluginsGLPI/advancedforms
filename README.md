@@ -1,6 +1,36 @@
 # Advanced Forms GLPI plugin
 
-Work in progress, description will be added later.
+This plugin add extra features for forms.
+
+## Configuration page
+
+Each features are configurable from the main config page.
+
+![config](screenshots/config.png)
+
+## Features
+
+### IP address question
+
+This question won't be displayed to the users.
+
+![ip question](screenshots/ip.png)
+
+### Hostname question
+
+This question won't be displayed to the users.
+ 
+![hostname question](screenshots/hostname.png) 
+
+### Hidden question
+
+This question won't be displayed to the users.
+
+![hidden question](screenshots/hidden.png)
+
+### LDAP select question type
+
+![ldap select question](screenshots/ldap-select.png)
 
 ## Contributing
 
