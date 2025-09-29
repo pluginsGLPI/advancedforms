@@ -58,7 +58,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
                     'values'    => '{"ldap_auth":"123","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
-                ]
+                ],
             ],
         );
 
@@ -84,7 +84,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
         $this->assertEquals(456, $config->getLdapAttributeId());
         $this->assertEquals(
             "(& (uid=*) (objectClass=inetOrgPerson))",
-            $config->getLdapFilter()
+            $config->getLdapFilter(),
         );
     }
 
@@ -101,7 +101,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
                     'values'    => '{"ldap_auth":"123","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
-                ]
+                ],
             ],
         );
 

@@ -36,7 +36,9 @@ namespace GlpiPlugin\Advancedforms\Model\Mapper;
 use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
+use LogicException;
 use Override;
+
 use function Safe\json_decode;
 
 final class FormcreatorLdapSelectTypeMapper implements FormQuestionDataConverterInterface
@@ -48,10 +50,18 @@ final class FormcreatorLdapSelectTypeMapper implements FormQuestionDataConverter
         return null;
     }
 
-    /** @param array<mixed> $rawData */
+    /**
+     * @param array<string, mixed> $rawData
+     * @return array<mixed>
+     */
     #[Override]
     public function convertExtraData(array $rawData): array
     {
+        if (!isset($rawData['values']) || !is_string($rawData['values'])) {
+            throw new LogicException();
+        }
+
+        /** @var array{ldap_auth: int, ldap_filter: string, ldap_attribute: int} $data */
         $data = json_decode($rawData['values'], associative: true);
         return [
             LdapQuestionConfig::AUTHLDAP_ID       => $data['ldap_auth'],
