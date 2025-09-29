@@ -30,7 +30,7 @@
          <num>1.0.0-rc1</num>
          <!-- Add as many compatibility tag you want -->
          <compatibility>~11.0.0</compatibility>
-         <download_url>https://github.com/pluginsGLPI/advancedforms/releases/download/1.0.0-rc1/glpi-fields-1.0.0-rc1.tar.bz2</download_url>
+         <download_url>https://github.com/pluginsGLPI/advancedforms/releases/download/1.0.0-rc1/glpi-advancedforms-1.0.0-rc1.tar.bz2</download_url>
       </version>
    </versions>
    <langs>
