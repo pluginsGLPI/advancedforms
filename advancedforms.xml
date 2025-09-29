@@ -39,6 +39,14 @@
       <lang>fr_FR</lang>
    </langs>
    <license>MIT</license>
+   <tags>
+      <en>
+         <tag>form</tag>
+      </en>
+      <fr>
+         <tag>formulaire</tag>
+      </fr>
+   </tags>
    <screenshots>
       <screenshot>https://raw.githubusercontent.com/pluginsGLPI/advancedforms/main/screenshots/config.png</screenshot>
    </screenshots>
