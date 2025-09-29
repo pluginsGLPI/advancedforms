@@ -39,4 +39,7 @@
       <lang>fr_FR</lang>
    </langs>
    <license>MIT</license>
+   <screenshots>
+      <screenshot>https://raw.githubusercontent.com/pluginsGLPI/advancedforms/main/screenshots/config.png</screenshot>
+   </screenshots>
 </root>
