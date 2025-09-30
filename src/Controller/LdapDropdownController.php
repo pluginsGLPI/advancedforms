@@ -39,6 +39,7 @@ use Glpi\Exception\Http\BadRequestHttpException;
 use Glpi\Form\Question;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdownQuery;
+use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -73,7 +74,11 @@ final class LdapDropdownController extends AbstractController
 
         // Get question id from condition
         /** @var array{condition?: int} $condition */
-        $question_id = $condition[Question::getForeignKeyField()] ?? null;
+        $fkey = SafeCommonDBTM::getForeignKeyField(Question::class);
+        if (!isset($condition[$fkey])) {
+            throw new BadRequestHttpException();
+        }
+        $question_id = $condition[$fkey];
         $question = Question::getById($question_id);
         if (!$question) {
             throw new BadRequestHttpException();

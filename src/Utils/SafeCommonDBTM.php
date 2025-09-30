@@ -62,4 +62,14 @@ final class SafeCommonDBTM
 
         return $field;
     }
+
+    /** @param class-string<CommonDBTM> $class */
+    public static function getForeignKeyField(string $class): string
+    {
+        $field = $class::getForeignKeyField();
+        if (!is_string($field)) {
+            throw new RuntimeException();
+        }
+        return $field;
+    }
 }
