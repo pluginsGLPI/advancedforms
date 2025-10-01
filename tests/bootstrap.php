@@ -32,7 +32,7 @@
  */
 
 chdir(__DIR__ . '/../../..'); // Needed because of some exec() call in the core's boostrap file
-require __DIR__ . '/../../../phpunit/bootstrap.php';
+require __DIR__ . '/../../../tests/bootstrap.php';
 chdir(__DIR__); // Return to normal directory
 
 if (!Plugin::isPluginActive("advancedforms")) {
