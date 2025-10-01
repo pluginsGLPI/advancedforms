@@ -116,16 +116,16 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         return $this->createItem(AuthLDAP::class, [
             'name'          => 'openldap',
             'host'          => 'openldap',
-            'basedn'        => 'dc=example,dc=org',
-            'rootdn'        => 'cn=admin,dc=example,dc=org',
-            'port'          => '1389',
+            'basedn'        => 'dc=glpi,dc=org',
+            'rootdn'        => 'cn=admin,dc=glpi,dc=org',
+            'port'          => '389',
             'condition'     => '(objectClass=inetOrgPerson)',
             'login_field'   => 'uid',
             'sync_field'    => 'entryuuid',
             'use_tls'       => 0,
             'use_dn'        => 1,
             'is_active'     => 1,
-            'rootdn_passwd' => 'adminpassword',
+            'rootdn_passwd' => 'admin',
             'use_bind'      => 1,
         ], ['rootdn_passwd']);
     }
@@ -149,7 +149,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
     {
         // Temporary code until openldap can be enabled on the ci container.
         $host = 'openldap';
-        $port = 1389;
+        $port = 389;
 
         $connection = @fsockopen($host, $port, $errno, $errstr);
         if (!$connection) {

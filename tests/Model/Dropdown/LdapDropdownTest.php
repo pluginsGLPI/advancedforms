@@ -44,24 +44,24 @@ final class LdapDropdownTest extends AdvancedFormsTestCase
 {
     public static function provideLdapFilters(): iterable
     {
-        yield 'search for user01' => [
-            'search_text' => '01',
+        yield 'search for brazil159' => [
+            'search_text' => 'brazil159',
             'page'        => 1,
             'page_limit'  => 20,
             'expected'    => [
                 'results' => [
-                    ['id' => 'user01', 'text' => 'user01'],
+                    ['id' => 'brazil159', 'text' => 'brazil159'],
                 ],
                 'count' => 1,
             ],
         ];
-        yield 'search for user02' => [
-            'search_text' => '02',
+        yield 'search for ecuador248' => [
+            'search_text' => 'ecuador248',
             'page'        => 1,
             'page_limit'  => 20,
             'expected'    => [
                 'results' => [
-                    ['id' => 'user02', 'text' => 'user02'],
+                    ['id' => 'ecuador248', 'text' => 'ecuador248'],
                 ],
                 'count' => 1,
             ],
@@ -69,33 +69,36 @@ final class LdapDropdownTest extends AdvancedFormsTestCase
         yield 'search for all users' => [
             'search_text' => '',
             'page'        => 1,
-            'page_limit'  => 20,
+            'page_limit'  => 5,
             'expected'    => [
                 'results' => [
-                    ['id' => 'user01', 'text' => 'user01'],
-                    ['id' => 'user02', 'text' => 'user02'],
+                    ['id' => 'michel', 'text' => 'michel'],
+                    ['id' => 'pierre', 'text' => 'pierre'],
+                    ['id' => 'remi', 'text' => 'remi'],
+                    ['id' => 'specialchar1', 'text' => 'specialchar1'],
+                    ['id' => 'specialchar2', 'text' => 'specialchar2'],
                 ],
-                'count' => 2,
+                'count' => 5,
             ],
         ];
-        yield 'search for all users, with pagination (page 1)' => [
-            'search_text' => '',
+        yield 'search with pagination (page 1)' => [
+            'search_text' => 'brazil',
             'page'        => 1,
             'page_limit'  => 1,
             'expected'    => [
                 'results' => [
-                    ['id' => 'user01', 'text' => 'user01'],
+                    ['id' => 'brazil0', 'text' => 'brazil0'],
                 ],
                 'count' => 1,
             ],
         ];
-        yield 'search for all users, with pagination (page 2)' => [
-            'search_text' => '',
+        yield 'search with pagination (page 2)' => [
+            'search_text' => 'brazil',
             'page'        => 2,
             'page_limit'  => 1,
             'expected'    => [
                 'results' => [
-                    ['id' => 'user02', 'text' => 'user02'],
+                    ['id' => 'brazil1', 'text' => 'brazil1'],
                 ],
                 'count' => 1,
             ],
