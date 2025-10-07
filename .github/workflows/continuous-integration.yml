@@ -34,4 +34,3 @@ jobs:
       php-version: "${{ matrix.php-version }}"
       db-image: "${{ matrix.db-image }}"
       extra-services: "openldap"
-
