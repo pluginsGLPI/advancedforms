@@ -38,6 +38,7 @@ use Glpi\Exception\Http\AccessDeniedHttpException;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class ConfigFormTest extends FrontTestCase
 {
@@ -48,7 +49,10 @@ final class ConfigFormTest extends FrontTestCase
         $crawler = $this->get("/front/config.form.php");
 
         // Assert: a link to the plugin config tab should exist
-        $tab = $crawler->filter('a[data-bs-toggle="tab"][title="Advanced forms"]');
+        $tab = $crawler
+            ->filter('a[data-bs-toggle="tab"]')
+            ->reduce(fn(Crawler $c) => $c->text() === "Advanced forms")
+        ;
         $this->assertCount(1, $tab);
     }
 
