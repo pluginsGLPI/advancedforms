@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-ci-matrix.outputs.matrix) }}
-    uses: "AdrienClairembault/plugin-ci-workflows/.github/workflows/continuous-integration.yml@openldap"
+    uses: "glpi-project/plugin-ci-workflows/.github/workflows/continuous-integration.yml@v1"
     with:
       plugin-key: "advancedforms"
       glpi-version: "${{ matrix.glpi-version }}"
