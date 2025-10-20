@@ -112,8 +112,6 @@ final class LdapDropdownTest extends AdvancedFormsTestCase
         int $page_limit,
         array $expected,
     ): void {
-        $this->skipIfOpenldapIsNotSetup();
-
         // Arrange: create a form with an LDAP question
         $this->enableConfigurableItem(LdapQuestion::class);
         $ldap = $this->setupAuthLdap();

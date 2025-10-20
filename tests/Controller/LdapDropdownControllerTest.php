@@ -48,8 +48,6 @@ final class LdapDropdownControllerTest extends AdvancedFormsTestCase
 {
     public function testValidParameters(): void
     {
-        $this->skipIfOpenldapIsNotSetup();
-
         // Arrange: create a valid form
         $this->enableConfigurableItem(LdapQuestion::class);
         $ldap = $this->setupAuthLdap();
