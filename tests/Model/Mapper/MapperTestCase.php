@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
+use DBmysql;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
 abstract class MapperTestCase extends AdvancedFormsTestCase
@@ -40,8 +41,6 @@ abstract class MapperTestCase extends AdvancedFormsTestCase
     public static function setUpBeforeClass(): void
     {
         global $DB;
-
-        parent::setUpBeforeClass();
 
         $tables = $DB->listTables('glpi\_plugin\_formcreator\_%');
         foreach ($tables as $table) {
@@ -65,15 +64,13 @@ abstract class MapperTestCase extends AdvancedFormsTestCase
         foreach ($tables as $table) {
             $DB->dropTable($table['TABLE_NAME']);
         }
-
-        parent::tearDownAfterClass();
     }
 
     protected function createSimpleFormcreatorForm(
         string $name,
         array $questions,
     ): void {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Add form

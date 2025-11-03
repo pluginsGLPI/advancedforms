@@ -93,6 +93,6 @@ final class ConfigManager
 
     public function hasAtLeastOneQuestionTypeEnabled(): bool
     {
-        return count($this->getEnabledQuestionsTypes()) > 0;
+        return $this->getEnabledQuestionsTypes() !== [];
     }
 }

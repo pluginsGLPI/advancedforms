@@ -86,6 +86,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
 
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", QuestionTypeShortText::class);
+
         $form = $this->createForm($builder);
 
         // Act: render form editor
@@ -108,6 +109,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         // Arrange: create a form
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", QuestionTypeShortText::class);
+
         $form = $this->createForm($builder);
 
         // Act: render form editor

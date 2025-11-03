@@ -70,6 +70,7 @@ final class SafeCommonDBTM
         if (!is_string($field)) {
             throw new RuntimeException();
         }
+
         return $field;
     }
 }

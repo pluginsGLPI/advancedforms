@@ -70,7 +70,7 @@ final class GetAuthLdapFilterController extends AbstractController
             : ''
         ;
         return new JsonResponse([
-            'filter' => "(& $filter $ldap_condition)",
+            'filter' => sprintf('(& %s %s)', $filter, $ldap_condition),
         ]);
     }
 }

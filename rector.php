@@ -31,31 +31,29 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Service;
+require_once __DIR__ . '/../../src/Plugin.php';
 
-use Config;
-use GlpiPlugin\Advancedforms\Service\InstallManager;
-use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Rector\Caching\ValueObject\Storage\FileCacheStorage;
+use Rector\Config\RectorConfig;
+use Rector\ValueObject\PhpVersion;
 
-final class InstallManagerTest extends AdvancedFormsTestCase
-{
-    public function testUninstallRemoveConfig(): void
-    {
-        // Arrange: set multiples config values
-        $config_values = [];
-        foreach (self::provideQuestionTypes() as $type) {
-            $config_values[$type[0]->getConfigKey()] = 1;
-        }
-
-        Config::setConfigurationValues('advancedforms', $config_values);
-
-        // Act: uninstall plugin
-        $config_before = Config::getConfigurationValues('advancedforms');
-        InstallManager::getInstance()->uninstall();
-        $config_after = Config::getConfigurationValues('advancedforms');
-
-        // Assert: config should be empty after uninstallation
-        $this->assertNotEmpty($config_before);
-        $this->assertEmpty($config_after);
-    }
-}
+return RectorConfig::configure()
+    ->withPaths([
+        __DIR__ . '/src',
+        __DIR__ . '/tests',
+    ])
+    ->withPhpVersion(PhpVersion::PHP_82)
+    ->withCache(
+        cacheDirectory: __DIR__ . '/var/rector',
+        cacheClass: FileCacheStorage::class,
+    )
+    ->withRootFiles()
+    ->withParallel(timeoutSeconds: 300)
+    ->withImportNames(removeUnusedImports: true)
+    ->withPreparedSets(
+        deadCode: true,
+        codeQuality: true,
+        codingStyle: true,
+    )
+    ->withPhpSets(php82: true) // apply PHP sets up to PHP 8.2
+;
