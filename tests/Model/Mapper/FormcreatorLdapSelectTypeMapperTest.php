@@ -33,10 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
-use DBmysql;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
+use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
 use LogicException;
@@ -46,7 +46,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 {
     public function testIpTypeMigrationWhenEnabled(): void
     {
-        /** @var DBmysql $DB */
+        /** @var \DBmysql $DB */
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
@@ -80,7 +80,6 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
         if (!$config instanceof LdapQuestionConfig) {
             throw new LogicException();
         }
-
         $this->assertEquals(123, $config->getAuthLdapId());
         $this->assertEquals(456, $config->getLdapAttributeId());
         $this->assertEquals(
@@ -91,7 +90,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 
     public function testIpTypeMigrationWhenDisabled(): void
     {
-        /** @var DBmysql $DB */
+        /** @var \DBmysql $DB */
         global $DB;
 
         // Arrange: add some fomrcreator data

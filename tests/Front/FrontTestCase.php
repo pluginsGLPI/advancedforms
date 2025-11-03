@@ -55,10 +55,10 @@ abstract class FrontTestCase extends AdvancedFormsTestCase
             $_SERVER['REQUEST_URI'] = GLPI_ROOT . $url;
             require(GLPI_ROOT . $url);
             $html = ob_get_clean();
-        } catch (Throwable $throwable) {
+        } catch (Throwable $e) {
             $_GET = $old_GET;
             ob_get_clean();
-            throw $throwable;
+            throw $e;
         } finally {
             $_GET = $old_GET;
         }
@@ -129,20 +129,17 @@ abstract class FrontTestCase extends AdvancedFormsTestCase
         if (count($submits) > 1) {
             throw new RuntimeException("Only forms with a single submit are supported");
         }
-
         $submit = $submits->getNode(0);
         if (!$submit instanceof DOMElement) {
             throw new LogicException(); // Impossible
         }
-
         $payload[$submit->getAttribute('name')] = $submit->getAttribute('value');
 
         // Insert specified payload values
         foreach ($form_values as $key => $value) {
             if (!isset($payload[$key])) {
-                throw new RuntimeException(sprintf("Input '%s' does not exist", $key));
+                throw new RuntimeException("Input '$key' does not exist");
             }
-
             $payload[$key] = $value;
         }
 

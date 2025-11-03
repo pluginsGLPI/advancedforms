@@ -40,7 +40,6 @@ use Rector\ValueObject\PhpVersion;
 return RectorConfig::configure()
     ->withPaths([
         __DIR__ . '/src',
-        __DIR__ . '/tests',
     ])
     ->withPhpVersion(PhpVersion::PHP_82)
     ->withCache(

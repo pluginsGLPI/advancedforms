@@ -33,7 +33,6 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
-use DBmysql;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
@@ -44,7 +43,7 @@ final class FormcreatorIpTypeMapperTest extends MapperTestCase
 {
     public function testIpTypeMigrationWhenEnabled(): void
     {
-        /** @var DBmysql $DB */
+        /** @var \DBmysql $DB */
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
@@ -72,7 +71,7 @@ final class FormcreatorIpTypeMapperTest extends MapperTestCase
 
     public function testIpTypeMigrationWhenDisabled(): void
     {
-        /** @var DBmysql $DB */
+        /** @var \DBmysql $DB */
         global $DB;
 
         // Arrange: add some fomrcreator data
