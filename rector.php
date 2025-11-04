@@ -31,46 +31,28 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Utils;
+require_once __DIR__ . '/../../src/Plugin.php';
 
-use CommonDBTM;
-use RuntimeException;
+use Rector\Caching\ValueObject\Storage\FileCacheStorage;
+use Rector\Config\RectorConfig;
+use Rector\ValueObject\PhpVersion;
 
-/**
- * Temporary class to bypass simple static analysis issues until stronger
- * types will be implemented in GLPI's core.
- */
-final class SafeCommonDBTM
-{
-    /** @param class-string<CommonDBTM> $class */
-    public static function getIcon(string $class): string
-    {
-        $icon = $class::getIcon();
-        if (!is_string($icon)) {
-            throw new RuntimeException();
-        }
-
-        return $icon;
-    }
-
-    public static function getStringField(CommonDBTM $item, string $field): string
-    {
-        $field = $item->getField($field);
-        if (!is_string($field)) {
-            throw new RuntimeException();
-        }
-
-        return $field;
-    }
-
-    /** @param class-string<CommonDBTM> $class */
-    public static function getForeignKeyField(string $class): string
-    {
-        $field = $class::getForeignKeyField();
-        if (!is_string($field)) {
-            throw new RuntimeException();
-        }
-
-        return $field;
-    }
-}
+return RectorConfig::configure()
+    ->withPaths([
+        __DIR__ . '/src',
+    ])
+    ->withPhpVersion(PhpVersion::PHP_82)
+    ->withCache(
+        cacheDirectory: __DIR__ . '/var/rector',
+        cacheClass: FileCacheStorage::class,
+    )
+    ->withRootFiles()
+    ->withParallel(timeoutSeconds: 300)
+    ->withImportNames(removeUnusedImports: true)
+    ->withPreparedSets(
+        deadCode: true,
+        codeQuality: true,
+        codingStyle: true,
+    )
+    ->withPhpSets(php82: true) // apply PHP sets up to PHP 8.2
+;

@@ -35,6 +35,7 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use AuthLDAP;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
@@ -83,7 +84,7 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     {
         // Read extra config specific to this question type
         $decoded_extra_data = [];
-        if ($question !== null && is_string($question->fields['extra_data'])) {
+        if ($question instanceof Question && is_string($question->fields['extra_data'])) {
             $decoded_extra_data = json_decode(
                 $question->fields['extra_data'],
                 associative: true,
@@ -94,8 +95,9 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
                 $decoded_extra_data = [];
             }
         }
+
         $config = $this->getExtraDataConfig($decoded_extra_data);
-        if ($config === null) {
+        if (!$config instanceof JsonFieldInterface) {
             $config = new LdapQuestionConfig();
         }
 
@@ -119,15 +121,7 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     public function validateExtraDataInput(array $input): bool
     {
         // Check if the itemtype is set
-        if (
-            !isset($input[LdapQuestionConfig::AUTHLDAP_ID])
-            && !isset($input[LdapQuestionConfig::LDAP_FILTER])
-            && !isset($input[LdapQuestionConfig::LDAP_ATTRIBUTE_ID])
-        ) {
-            return false;
-        }
-
-        return true;
+        return !(!isset($input[LdapQuestionConfig::AUTHLDAP_ID]) && !isset($input[LdapQuestionConfig::LDAP_FILTER]) && !isset($input[LdapQuestionConfig::LDAP_ATTRIBUTE_ID]));
     }
 
     #[Override]
@@ -139,7 +133,7 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     #[Override]
     public function renderEndUserTemplate(Question|null $question): string
     {
-        if ($question === null) {
+        if (!$question instanceof Question) {
             throw new LogicException();
         }
 

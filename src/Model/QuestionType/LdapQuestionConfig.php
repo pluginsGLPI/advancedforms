@@ -36,11 +36,13 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 use Glpi\DBAL\JsonFieldInterface;
 use Override;
 
-final class LdapQuestionConfig implements JsonFieldInterface
+final readonly class LdapQuestionConfig implements JsonFieldInterface
 {
     // Unique reference to hardcoded name used for serialization
     public const AUTHLDAP_ID = "authldap_id";
+
     public const LDAP_FILTER = "ldap_filter";
+
     public const LDAP_ATTRIBUTE_ID = "ldap_attribute_id";
 
     public function __construct(

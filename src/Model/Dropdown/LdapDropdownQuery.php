@@ -35,7 +35,7 @@ namespace GlpiPlugin\Advancedforms\Model\Dropdown;
 
 use Glpi\Form\Question;
 
-final class LdapDropdownQuery
+final readonly class LdapDropdownQuery
 {
     public function __construct(
         private Question $question,

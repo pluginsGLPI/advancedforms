@@ -130,6 +130,7 @@ final class LdapDropdown extends CommonGLPI
         if (!$attribute) {
             throw new RuntimeException();
         }
+
         $attribute = $attribute->fields['value'];
         if (!is_string($attribute)) {
             throw new LogicException();
@@ -142,7 +143,7 @@ final class LdapDropdown extends CommonGLPI
         }
 
         // Insert search text into filter if specified
-        if ($search_text != '') {
+        if ($search_text !== '') {
             $ldap_filter = sprintf(
                 "(& %s (%s))",
                 $config->getLdapFilter(),
@@ -154,7 +155,7 @@ final class LdapDropdown extends CommonGLPI
 
         try {
             // Transform LDAP warnings into errors
-            set_error_handler([self::class, 'ldapErrorHandler'], E_WARNING);
+            set_error_handler(self::ldapErrorHandler(...), E_WARNING);
 
             // Execute search
             $ldap_values = $this->executeLdapSearch(
@@ -164,16 +165,14 @@ final class LdapDropdown extends CommonGLPI
                 $page_size,
                 $ldap_filter,
             );
-        } catch (Throwable $e) {
-            throw new RuntimeException("Failed LDAP query", previous: $e);
+        } catch (Throwable $throwable) {
+            throw new RuntimeException("Failed LDAP query", $throwable->getCode(), previous: $throwable);
         } finally {
             restore_error_handler();
         }
 
         // Sort results
-        usort($ldap_values, function ($a, $b) {
-            return strnatcmp($a['text'], $b['text']);
-        });
+        usort($ldap_values, fn($a, $b) => strnatcmp($a['text'], $b['text']));
 
         // Set expected select2 format
         return [
@@ -226,6 +225,7 @@ final class LdapDropdown extends CommonGLPI
                 if (!$result instanceof Result) {
                     throw new RuntimeException();
                 }
+
                 ldap_parse_result($ds, $result, $errcode, $matcheddn, $errmsg, $referrals, $controls);
 
                 // PHPstan doens't know that this is safe
@@ -260,11 +260,12 @@ final class LdapDropdown extends CommonGLPI
                 }
 
                 $found_count++;
-                if ($found_count < ((int) $page - 1) * (int) $page_size + 1) {
+                if ($found_count < ($page - 1) * $page_size + 1) {
                     // before the requested page
                     continue;
                 }
-                if ($found_count > ((int) $page) * (int) $page_size) {
+
+                if ($found_count > ($page) * $page_size) {
                     // after the requested page
                     break;
                 }
@@ -280,6 +281,7 @@ final class LdapDropdown extends CommonGLPI
                     break;
                 }
             }
+
             // @phpstan-ignore notIdentical.alwaysTrue
         } while ($cookie !== null && $cookie != '' && $count < $page_size);
 
