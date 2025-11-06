@@ -137,11 +137,12 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
             throw new LogicException();
         }
 
+        $fkey = SafeCommonDBTM::getForeignKeyField(Question::class);
         return LdapDropdown::dropdown([
             'name'                => $question->getEndUserInputName(),
             'width'               => "100%",
             'condition'           => [
-                Question::getForeignKeyField() => $question->getID(),
+                $fkey => $question->getID(),
             ],
         ]);
     }
