@@ -68,30 +68,4 @@ abstract class MapperTestCase extends AdvancedFormsTestCase
 
         parent::tearDownAfterClass();
     }
-
-    protected function createSimpleFormcreatorForm(
-        string $name,
-        array $questions,
-    ): void {
-        /** @var \DBmysql $DB */
-        global $DB;
-
-        // Add form
-        $DB->insert('glpi_plugin_formcreator_forms', [
-            'name' => $name,
-        ]);
-        $form_id = $DB->insertId();
-
-        // Add a section
-        $DB->insert('glpi_plugin_formcreator_sections', [
-            'plugin_formcreator_forms_id' => $form_id,
-        ]);
-        $section_id = $DB->insertId();
-
-        // Add questions
-        foreach ($questions as $data) {
-            $data['plugin_formcreator_sections_id'] = $section_id;
-            $DB->insert('glpi_plugin_formcreator_questions', $data);
-        }
-    }
 }

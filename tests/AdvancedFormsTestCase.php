@@ -35,11 +35,11 @@ namespace GlpiPlugin\Advancedforms\Tests;
 
 use AuthLDAP;
 use Config;
-use DbTestCase;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use Glpi\Tests\DbTestCase;
 use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
