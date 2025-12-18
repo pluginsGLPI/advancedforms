@@ -451,22 +451,47 @@ CREATE TABLE `glpi_plugin_formcreator_questionregexes` (
 ) ENGINE=InnoDB AUTO_INCREMENT=297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 CREATE TABLE `glpi_plugin_formcreator_entityconfigs` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `entities_id` int(10) unsigned NOT NULL DEFAULT 0,
-  `replace_helpdesk` int(11) NOT NULL DEFAULT -2,
-  `default_form_list_mode` int(11) NOT NULL DEFAULT -2,
-  `sort_order` int(11) NOT NULL DEFAULT -2,
-  `is_kb_separated` int(11) NOT NULL DEFAULT -2,
-  `is_search_visible` int(11) NOT NULL DEFAULT -2,
-  `is_dashboard_visible` int(11) NOT NULL DEFAULT -2,
-  `is_header_visible` int(11) NOT NULL DEFAULT -2,
-  `is_search_issue_visible` int(11) NOT NULL DEFAULT -2,
-  `tile_design` int(11) NOT NULL DEFAULT -2,
-  `home_page` int(11) NOT NULL DEFAULT -2,
-  `is_category_visible` int(11) NOT NULL DEFAULT -2,
-  `is_folded_menu` int(11) NOT NULL DEFAULT -2,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `entities_id` int unsigned NOT NULL DEFAULT 0,
+  `replace_helpdesk` int NOT NULL DEFAULT -2,
+  `default_form_list_mode` int NOT NULL DEFAULT -2,
+  `sort_order` int NOT NULL DEFAULT -2,
+  `is_kb_separated` int NOT NULL DEFAULT -2,
+  `is_search_visible` int NOT NULL DEFAULT -2,
+  `is_dashboard_visible` int NOT NULL DEFAULT -2,
+  `is_header_visible` int NOT NULL DEFAULT -2,
+  `is_search_issue_visible` int NOT NULL DEFAULT -2,
+  `tile_design` int NOT NULL DEFAULT -2,
+  `home_page` int NOT NULL DEFAULT -2,
+  `is_category_visible` int NOT NULL DEFAULT -2,
+  `is_folded_menu` int NOT NULL DEFAULT -2,
   `header` text DEFAULT NULL,
-  `service_catalog_home` int(11) NOT NULL DEFAULT -2,
+  `service_catalog_home` int NOT NULL DEFAULT -2,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unicity` (`entities_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+--
+-- Table structure for table `glpi_plugin_formcreator_formanswers`
+--
+
+DROP TABLE IF EXISTS `glpi_plugin_formcreator_formanswers`;
+CREATE TABLE `glpi_plugin_formcreator_formanswers` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `entities_id` int unsigned NOT NULL DEFAULT 0,
+  `is_recursive` tinyint NOT NULL DEFAULT 0,
+  `plugin_formcreator_forms_id` int unsigned NOT NULL DEFAULT 0,
+  `requester_id` int unsigned NOT NULL DEFAULT 0,
+  `users_id_validator` int unsigned NOT NULL DEFAULT 0 COMMENT 'User in charge of validation',
+  `groups_id_validator` int unsigned NOT NULL DEFAULT 0 COMMENT 'Group in charge of validation',
+  `request_date` timestamp NULL DEFAULT NULL,
+  `status` int NOT NULL DEFAULT 101,
+  `comment` mediumtext DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `plugin_formcreator_forms_id` (`plugin_formcreator_forms_id`),
+  KEY `entities_id_is_recursive` (`entities_id`,`is_recursive`),
+  KEY `requester_id` (`requester_id`),
+  KEY `users_id_validator` (`users_id_validator`),
+  KEY `groups_id_validator` (`groups_id_validator`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
