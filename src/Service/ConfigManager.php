@@ -35,9 +35,11 @@ namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Destination\Strategies\SpecificDateAnswerSLMStrategy;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
@@ -51,8 +53,9 @@ final class ConfigManager
     {
         $twig = TemplateRenderer::getInstance();
         return $twig->render('@advancedforms/config_form.html.twig', [
-            'config_manager' => $this,
-            'question_types' => $this->getConfigurableQuestionTypes(),
+            'config_manager'  => $this,
+            'question_types'  => $this->getConfigurableQuestionTypes(),
+            'slm_strategies'  => $this->getConfigurableSLMStrategies(),
         ]);
     }
 
@@ -64,6 +67,14 @@ final class ConfigManager
             new HostnameQuestion(),
             new HiddenQuestion(),
             new LdapQuestion(),
+        ];
+    }
+
+    /** @return array<ConfigurableItemInterface&SLMFieldStrategyInterface> */
+    public function getConfigurableSLMStrategies(): array
+    {
+        return [
+            new SpecificDateAnswerSLMStrategy(),
         ];
     }
 
@@ -88,6 +99,15 @@ final class ConfigManager
         return array_filter(
             $this->getConfigurableQuestionTypes(),
             fn(ConfigurableItemInterface $c): bool => $this->isConfigurableItemEnabled($c),
+        );
+    }
+
+    /** @return array<ConfigurableItemInterface&SLMFieldStrategyInterface> */
+    public function getEnabledSLMStrategies(): array
+    {
+        return array_filter(
+            $this->getConfigurableSLMStrategies(),
+            fn(ConfigurableItemInterface $s): bool => $this->isConfigurableItemEnabled($s),
         );
     }
 

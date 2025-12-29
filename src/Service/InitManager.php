@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
@@ -51,6 +52,7 @@ final class InitManager
     {
         $this->registerConfiguration();
         $this->registerPluginTypes();
+        $this->registerPluginDestinationStrategies();
     }
 
     private function registerConfiguration(): void
@@ -94,6 +96,16 @@ final class InitManager
                     $type->getMapperClass(),
                 );
             }
+        }
+    }
+
+    private function registerPluginDestinationStrategies(): void
+    {
+        $config_manager = ConfigManager::getInstance();
+        $destination_manager = FormDestinationManager::getInstance();
+
+        foreach ($config_manager->getEnabledSLMStrategies() as $strategy) {
+            $destination_manager->registerPluginSLMFieldStrategy($strategy);
         }
     }
 }
