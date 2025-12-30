@@ -130,13 +130,6 @@ final class LdapDropdownControllerTest extends AdvancedFormsTestCase
         ]);
     }
 
-    private function testWithInvalidForm(): void
-    {
-        $this->enableConfigurableItem(LdapQuestion::class);
-        $ldap = $this->setupAuthLdap();
-        $form = $this->createFormWithLdapQuestion($ldap);
-    }
-
     private function renderRoute(array $post): Response
     {
         $controller = new LdapDropdownController();
