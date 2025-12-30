@@ -37,6 +37,8 @@ use Glpi\Controller\AbstractController;
 use Glpi\Controller\Form\Utils\CanCheckAccessPolicies;
 use Glpi\Exception\Http\BadRequestHttpException;
 use Glpi\Form\Question;
+use Glpi\Http\Firewall;
+use Glpi\Security\Attribute\SecurityStrategy;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdown;
 use GlpiPlugin\Advancedforms\Model\Dropdown\LdapDropdownQuery;
 use GlpiPlugin\Advancedforms\Utils\SafeCommonDBTM;
@@ -53,6 +55,7 @@ final class LdapDropdownController extends AbstractController
 {
     use CanCheckAccessPolicies;
 
+    #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
     #[Route(
         path: 'LdapDropdown',
         name: "ldap_dropdown",
