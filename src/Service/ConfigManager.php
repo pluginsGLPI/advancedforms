@@ -39,6 +39,7 @@ use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Destination\Strategies\ComputedDateFromFormSubmitDateSLMStrategy;
 use GlpiPlugin\Advancedforms\Model\Destination\Strategies\SpecificDateAnswerSLMStrategy;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
@@ -75,6 +76,7 @@ final class ConfigManager
     {
         return [
             new SpecificDateAnswerSLMStrategy(),
+            new ComputedDateFromFormSubmitDateSLMStrategy(),
         ];
     }
 

@@ -58,7 +58,7 @@ function plugin_init_advancedforms(): void
     }
 
     $hook_manager = new HookManager('advancedforms');
-    $hook_manager->registerCSSFile('css/advancedforms.css');
+    $hook_manager->registerCSSFile('css/advancedforms.scss');
     $hook_manager->registerJavascriptFile('js/advancedforms.js');
 
     InitManager::getInstance()->init();

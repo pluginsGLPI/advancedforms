@@ -37,18 +37,18 @@ use Glpi\Form\Destination\CommonITILField\SLMField;
 use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\QuestionType\QuestionTypeDateTime;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Model\Destination\Strategies\SpecificDateAnswerSLMStrategy;
+use GlpiPlugin\Advancedforms\Model\Destination\Strategies\ComputedDateFromFormSubmitDateSLMStrategy;
 use PHPUnit\Framework\Attributes\DataProvider;
 
-final class SpecificDateAnswerSLMStrategyTest extends AbstractSLMStrategyTestCase
+final class ComputedDateFromFormSubmitDateSLMStrategyTest extends AbstractSLMStrategyTestCase
 {
     protected function getTestedSLMStrategy(): SLMFieldStrategyInterface&ConfigurableItemInterface
     {
-        return new SpecificDateAnswerSLMStrategy();
+        return new ComputedDateFromFormSubmitDateSLMStrategy();
     }
 
     #[DataProvider('provideSLMConfigFields')]
-    public function testSpecificDateAnswerStrategy(
+    public function testComputedDateFromFormSubmitDateSLMStrategy(
         SLMField $slm_field,
         string $slm_field_config_class,
     ): void {
@@ -65,10 +65,11 @@ final class SpecificDateAnswerSLMStrategyTest extends AbstractSLMStrategyTestCas
             config: new $slm_field_config_class(
                 strategy: $this->getTestedSLMStrategy()->getKey(),
                 extra_data: [
-                    SpecificDateAnswerSLMStrategy::EXTRA_KEY_QUESTION_ID => $question_id,
+                    ComputedDateFromFormSubmitDateSLMStrategy::EXTRA_KEY_TIME_OFFSET     => '2',
+                    ComputedDateFromFormSubmitDateSLMStrategy::EXTRA_KEY_TIME_DEFINITION => 'day',
                 ],
             ),
-            expected_time: '2025-12-31 15:30:00',
+            expected_time: '2025-12-31 10:00:00',
         );
     }
 }
