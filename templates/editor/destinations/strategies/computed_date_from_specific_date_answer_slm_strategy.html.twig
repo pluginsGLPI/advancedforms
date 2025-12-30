@@ -37,6 +37,20 @@
 {% set options = options|merge({rand: random()}) %}
 
 <div data-glpi-itildestination-field-config-display-condition="{{ strategy_key }}">
+    {{ fields.dropdownArrayField(
+        extra_question_id_field.input_name,
+        extra_question_id_field.value,
+        extra_question_id_field.possible_values,
+        "",
+        options|merge({
+            field_class: '',
+            mb: '',
+            no_label: true,
+            display_emptychoice: true,
+            emptylabel: extra_question_id_field.empty_label,
+            aria_label: extra_question_id_field.empty_label,
+        })
+    ) }}
     <div class="d-flex w-full" data-glpi-itildestination-field-slm-computed-strategy-config>
         {{ fields.dropdownNumberField(
             extra_time_offset_field.input_name,

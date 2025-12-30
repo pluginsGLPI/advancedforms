@@ -37,18 +37,18 @@ use Glpi\Form\Destination\CommonITILField\SLMField;
 use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\QuestionType\QuestionTypeDateTime;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
-use GlpiPlugin\Advancedforms\Model\Destination\Strategies\ComputedDateFromFormSubmitDateSLMStrategy;
+use GlpiPlugin\Advancedforms\Model\Destination\Strategies\ComputedFromSpecificDateAnswerSLMStrategy;
 use PHPUnit\Framework\Attributes\DataProvider;
 
-final class ComputedDateFromFormSubmitDateSLMStrategyTest extends AbstractSLMStrategyTestCase
+final class ComputedFromSpecificDateAnswerSLMStrategyTest extends AbstractSLMStrategyTestCase
 {
     protected function getTestedSLMStrategy(): SLMFieldStrategyInterface&ConfigurableItemInterface
     {
-        return new ComputedDateFromFormSubmitDateSLMStrategy();
+        return new ComputedFromSpecificDateAnswerSLMStrategy();
     }
 
     #[DataProvider('provideSLMConfigFields')]
-    public function testComputedDateFromFormSubmitDateSLMStrategy(
+    public function testComputedFromSpecificDateAnswerSLMStrategy(
         SLMField $slm_field,
         string $slm_field_config_class,
     ): void {
@@ -65,11 +65,12 @@ final class ComputedDateFromFormSubmitDateSLMStrategyTest extends AbstractSLMStr
             config: new $slm_field_config_class(
                 strategy: $this->getTestedSLMStrategy()->getKey(),
                 extra_data: [
-                    ComputedDateFromFormSubmitDateSLMStrategy::EXTRA_KEY_TIME_OFFSET     => '2',
-                    ComputedDateFromFormSubmitDateSLMStrategy::EXTRA_KEY_TIME_DEFINITION => 'day',
+                    ComputedFromSpecificDateAnswerSLMStrategy::EXTRA_KEY_QUESTION_ID     => $question_id,
+                    ComputedFromSpecificDateAnswerSLMStrategy::EXTRA_KEY_TIME_OFFSET     => '2',
+                    ComputedFromSpecificDateAnswerSLMStrategy::EXTRA_KEY_TIME_DEFINITION => 'day',
                 ],
             ),
-            expected_time: '2025-12-31 10:00:00',
+            expected_time: '2026-01-02 15:30:00',
         );
     }
 }

@@ -33,8 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Model\Destination\Strategies;
 
-use Glpi\Form\Answer;
+use DateMalformedStringException;
+use DateInterval;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Answer;
 use Glpi\Form\AnswersSet;
 use Glpi\Form\Destination\CommonITILField\SLMField;
 use Glpi\Form\Destination\CommonITILField\SLMFieldConfig;
@@ -42,15 +44,21 @@ use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\Form;
 use Glpi\Form\QuestionType\QuestionTypeDateTime;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use LevelAgreement;
 use Override;
+use Safe\DateTime;
 
-final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, SLMFieldStrategyInterface
+final class ComputedFromSpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, SLMFieldStrategyInterface
 {
-    public const KEY = 'advancedforms_specific_date_answer';
+    public const KEY                       = 'advancedforms_computed_from_specific_date_answer';
 
-    public const CONFIG_KEY = 'slm_strategy_specific_date_answer';
+    public const CONFIG_KEY                = 'slm_strategy_computed_from_specific_date_answer';
 
-    public const EXTRA_KEY_QUESTION_ID = 'question_id';
+    public const EXTRA_KEY_QUESTION_ID     = 'question_id';
+
+    public const EXTRA_KEY_TIME_OFFSET     = 'time_offset';
+
+    public const EXTRA_KEY_TIME_DEFINITION = 'time_definition';
 
     #[Override]
     public static function getConfigKey(): string
@@ -61,13 +69,13 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
     #[Override]
     public function getConfigTitle(): string
     {
-        return __('Specific date answer', 'advancedforms');
+        return __('Computed date from specific date question', 'advancedforms');
     }
 
     #[Override]
     public function getConfigDescription(): string
     {
-        return __('Set SLA/OLA based on a date answer from the form.', 'advancedforms');
+        return __('Set SLA/OLA based on a specific date answer from the form plus/minus a defined offset.', 'advancedforms');
     }
 
     #[Override]
@@ -85,7 +93,7 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
     #[Override]
     public function getLabel(SLMField $field): string
     {
-        return __('Answer from a specific date question', 'advancedforms');
+        return __('Computed date from specific date question', 'advancedforms');
     }
 
     #[Override]
@@ -95,9 +103,13 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
         array $input,
         AnswersSet $answers_set,
     ): array {
-        // Get the question ID from the configuration
-        $question_id = $config->getExtraDataValue(self::EXTRA_KEY_QUESTION_ID);
-        if (!is_numeric($question_id)) {
+        // Get the question ID, time offset and time definition from the configuration
+        $question_id     = $config->getExtraDataValue(self::EXTRA_KEY_QUESTION_ID);
+        $time_offset     = $config->getExtraDataValue(self::EXTRA_KEY_TIME_OFFSET);
+        $time_definition = $config->getExtraDataValue(self::EXTRA_KEY_TIME_DEFINITION);
+
+        // Validate configuration values
+        if (!is_numeric($question_id) || !is_numeric($time_offset) || !is_string($time_definition)) {
             return $input;
         }
 
@@ -108,16 +120,38 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
         }
 
         // Get and validate the raw value from the answer
-        $raw_value = $answer->getRawAnswer();
-        if (empty($raw_value) || !is_string($raw_value)) {
+        $string_date = $answer->getRawAnswer();
+        if (empty($string_date) || !is_string($string_date)) {
             return $input;
         }
 
-        // Apply the date to the input array
+        // Create DateTime object from the answer's raw value
+        try {
+            $date = new DateTime($string_date);
+        } catch (DateMalformedStringException) {
+            return $input;
+        }
+
+        // Apply the offset based on the time definition
+        $interval_spec = match ($time_definition) {
+            'minute' => 'PT' . abs((int) $time_offset) . 'M', // Minutes
+            'hour'   => 'PT' . abs((int) $time_offset) . 'H', // Hours
+            'day'    => 'P' . abs((int) $time_offset) . 'D', // Days
+            default  => 'P' . abs((int) $time_offset) . 'M', // Months
+        };
+
+        $interval = new DateInterval($interval_spec);
+        if ((int) $time_offset < 0) {
+            $date->sub($interval);
+        } else {
+            $date->add($interval);
+        }
+
+        // Apply the computed date to the input array
         $slm = $field->getSLM();
         $field_names = $slm::getFieldNames($field->getType());
         if (!empty($field_names) && is_string($field_names[0])) {
-            $input[$field_names[0]] = $raw_value;
+            $input[$field_names[0]] = $date->format('Y-m-d H:i:s');
         }
 
         return $input;
@@ -133,14 +167,27 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
     ): string {
         $twig = TemplateRenderer::getInstance();
 
-        return $twig->render('@advancedforms/editor/destinations/strategies/specific_date_answer_slm_strategy.html.twig', [
+        return $twig->render('@advancedforms/editor/destinations/strategies/computed_date_from_specific_date_answer_slm_strategy.html.twig', [
             'strategy_key'   => self::KEY,
             'options'        => $display_options,
-            'extra_field'    => [
+            'extra_question_id_field'    => [
                 'empty_label'     => __("Select a question..."),
                 'value'           => $config->getExtraDataValue(self::EXTRA_KEY_QUESTION_ID),
                 'input_name'      => $input_name . "[" . SLMFieldConfig::EXTRA_DATA . "][" . self::EXTRA_KEY_QUESTION_ID . "]",
                 'possible_values' => $this->getDateQuestionsForDropdown($form),
+            ],
+            'extra_time_offset_field'    => [
+                'aria_label'      => __('Enter time offset', 'advancedforms'),
+                'value'           => $config->getExtraDataValue(self::EXTRA_KEY_TIME_OFFSET),
+                'input_name'      => $input_name . "[" . SLMFieldConfig::EXTRA_DATA . "][" . self::EXTRA_KEY_TIME_OFFSET . "]",
+                'min'             => -30,
+                'max'             => 30,
+            ],
+            'extra_time_definition_field'    => [
+                'aria_label'      => __('Select time definition', 'advancedforms'),
+                'value'           => $config->getExtraDataValue(self::EXTRA_KEY_TIME_DEFINITION),
+                'input_name'      => $input_name . "[" . SLMFieldConfig::EXTRA_DATA . "][" . self::EXTRA_KEY_TIME_DEFINITION . "]",
+                'possible_values' => LevelAgreement::getDefinitionTimeValues(),
             ],
         ]);
     }
@@ -148,13 +195,13 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
     #[Override]
     public function getExtraConfigKeys(): array
     {
-        return [self::EXTRA_KEY_QUESTION_ID];
+        return [self::EXTRA_KEY_QUESTION_ID, self::EXTRA_KEY_TIME_OFFSET, self::EXTRA_KEY_TIME_DEFINITION];
     }
 
     #[Override]
     public function getWeight(): int
     {
-        return 50;
+        return 70;
     }
 
     /**
