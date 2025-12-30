@@ -168,6 +168,11 @@ final class SpecificDateAnswerSLMStrategy implements ConfigurableItemInterface, 
         $questions = $form->getQuestionsByType(QuestionTypeDateTime::class);
 
         foreach ($questions as $question) {
+            // Ensure the date part is enabled
+            if (!(new QuestionTypeDateTime())->isDateEnabled($question)) {
+                continue;
+            }
+
             $values[$question->getId()] = $question->getName();
         }
 

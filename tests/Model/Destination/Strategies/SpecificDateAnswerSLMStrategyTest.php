@@ -34,11 +34,15 @@
 namespace GlpiPlugin\Advancedforms\Tests\Model\Destination\Strategies;
 
 use Glpi\Form\Destination\CommonITILField\SLMField;
+use Glpi\Form\Destination\CommonITILField\SLMFieldConfig;
 use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
 use Glpi\Form\QuestionType\QuestionTypeDateTime;
+use Glpi\Form\QuestionType\QuestionTypeDateTimeExtraDataConfig;
+use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Destination\Strategies\SpecificDateAnswerSLMStrategy;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class SpecificDateAnswerSLMStrategyTest extends AbstractSLMStrategyTestCase
 {
@@ -70,5 +74,66 @@ final class SpecificDateAnswerSLMStrategyTest extends AbstractSLMStrategyTestCas
             ),
             expected_time: '2025-12-31 15:30:00',
         );
+    }
+
+    #[DataProvider('provideSLMConfigFields')]
+    public function testOnlyDateTimeQuestionWithAtLeastDateEnabledAreProposed(
+        SLMField $slm_field,
+        string $slm_field_config_class,
+    ): void {
+        // Arrange: enable the strategy
+        $this->enableConfigurableItem($this->getTestedSLMStrategy());
+
+        // Arrange: create a form with various DateTime questions
+        $builder = new FormBuilder();
+        $builder->addQuestion(
+            name: 'DateTime question with both date and time enabled',
+            type: QuestionTypeDateTime::class,
+            extra_data: json_encode(new QuestionTypeDateTimeExtraDataConfig(
+                is_date_enabled: true,
+                is_time_enabled: true,
+            )),
+        )->addQuestion(
+            name: 'DateTime question with only date enabled',
+            type: QuestionTypeDateTime::class,
+            extra_data: json_encode(new QuestionTypeDateTimeExtraDataConfig(
+                is_date_enabled: true,
+                is_time_enabled: false,
+            )),
+        )->addQuestion(
+            name: 'DateTime question with neither date nor time enabled',
+            type: QuestionTypeDateTime::class,
+            extra_data: json_encode(new QuestionTypeDateTimeExtraDataConfig(
+                is_date_enabled: false,
+                is_time_enabled: false,
+            )),
+        )->addQuestion(
+            name: 'DateTime question with only time enabled',
+            type: QuestionTypeDateTime::class,
+            extra_data: json_encode(new QuestionTypeDateTimeExtraDataConfig(
+                is_date_enabled: false,
+                is_time_enabled: true,
+            )),
+        );
+        $form = $this->createForm($builder);
+
+        // Act: render the form destination configuration
+        $html = $this->renderFormDestination($form);
+
+        $questions = $html
+            ->filter(sprintf(
+                'select[name="config[%s][%s][%s]"]',
+                $slm_field->getKey(),
+                SLMFieldConfig::EXTRA_DATA,
+                SpecificDateAnswerSLMStrategy::EXTRA_KEY_QUESTION_ID,
+            ))
+            ->eq(0)
+            ->filter('option')
+            ->each(fn(Crawler $node) => $node->text())
+        ;
+        $this->assertContains('DateTime question with both date and time enabled', $questions);
+        $this->assertContains('DateTime question with only date enabled', $questions);
+        $this->assertNotContains('DateTime question with neither date nor time enabled', $questions);
+        $this->assertNotContains('DateTime question with only time enabled', $questions);
     }
 }
