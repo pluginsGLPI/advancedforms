@@ -35,6 +35,8 @@ namespace GlpiPlugin\Advancedforms\Tests;
 
 use AuthLDAP;
 use Config;
+use Glpi\Form\Destination\CommonITILField\SLMFieldStrategyInterface;
+use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -61,6 +63,13 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         return array_map(fn($c): array => [$c], $types);
     }
 
+    /** @return array<array{ConfigurableItemInterface&SLMFieldStrategyInterface}> */
+    final public static function provideSLMDestinationStrategies(): array
+    {
+        $strategies = ConfigManager::getInstance()->getConfigurableSLMStrategies();
+        return array_map(fn($c): array => [$c], $strategies);
+    }
+
     public function setUp(): void
     {
         parent::setUp();
@@ -69,6 +78,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         $this->deleteSingletonInstance([
             QuestionTypesManager::class,
             TypesConversionMapper::class,
+            FormDestinationManager::class,
         ]);
     }
 
@@ -130,7 +140,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         ], ['rootdn_passwd']);
     }
 
-    protected function createFormWithLdapQuestion(AuthLdap $ldap): Form
+    protected function createFormWithLdapQuestion(AuthLDAP $ldap): Form
     {
         $builder = new FormBuilder("My form");
         $builder->addQuestion(

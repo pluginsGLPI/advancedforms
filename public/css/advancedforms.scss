@@ -31,5 +31,28 @@
 
 /* Hide ldap preview on active questions */
 [data-glpi-form-editor-active-question] [data-ldap-question-preview] {
-        display: none !important;
+    display: none !important;
+}
+
+[data-glpi-itildestination-field-slm-computed-strategy-config] {
+    >div {
+        &:first-child {
+            width: 30%;
+
+            .select2-selection {
+                border-top-right-radius: 0 !important;
+                border-bottom-right-radius: 0 !important;
+            }
+        }
+
+        &:last-child {
+            margin-left: calc(-1 * var(--tblr-border-width));
+            width: calc(70% + 1 * var(--tblr-border-width));
+
+            .select2-selection {
+                border-top-left-radius: 0 !important;
+                border-bottom-left-radius: 0 !important;
+            }
+        }
+    }
 }
