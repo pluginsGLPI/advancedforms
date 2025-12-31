@@ -44,7 +44,6 @@ use RuntimeException;
 
 final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 {
-
     public function testLdapSelectTypeMigrationWhenEnabledWithValidAuthLDAP(): void
     {
         /** @var \DBmysql $DB */
@@ -85,7 +84,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
                 [
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
-                    'values'    => '{"ldap_auth":"'.$authldap_id.'","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
+                    'values'    => '{"ldap_auth":"' . $authldap_id . '","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
                 ],
             ],
         );
@@ -132,7 +131,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
                 [
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
-                    'values'    => '{"ldap_auth":"'.$authldap->getId().'","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
+                    'values'    => '{"ldap_auth":"' . $authldap->getId() . '","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
                 ],
             ],
         );
