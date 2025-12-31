@@ -130,6 +130,64 @@ final class LdapDropdownControllerTest extends AdvancedFormsTestCase
         ]);
     }
 
+    public function testSearchTextParameter(): void
+    {
+        // Arrange: create a valid form
+        $this->enableConfigurableItem(LdapQuestion::class);
+        $ldap = $this->setupAuthLdap();
+        $form = $this->createFormWithLdapQuestion($ldap);
+
+        // Act: execute route with searchText
+        $this->login('post-only');
+        $response = $this->renderRoute([
+            'condition'  => $this->buildAndGetConditionUuid($form),
+            'page'       => 1,
+            'page_limit' => 10,
+            'searchText' => 'pierre',
+        ]);
+
+        // Assert: response should be successful
+        $this->assertEquals(200, $response->getStatusCode());
+
+        // Assert: response should be valid JSON
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $data = json_decode($content, true);
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('results', $data);
+        $this->assertArrayHasKey('count', $data);
+        $this->assertEquals([['id' => 'pierre', 'text' => 'pierre']], $data['results']);
+    }
+
+    public function testEmptySearchTextParameter(): void
+    {
+        // Arrange: create a valid form
+        $this->enableConfigurableItem(LdapQuestion::class);
+        $ldap = $this->setupAuthLdap();
+        $form = $this->createFormWithLdapQuestion($ldap);
+
+        // Act: execute route with empty searchText
+        $this->login('post-only');
+        $response = $this->renderRoute([
+            'condition'  => $this->buildAndGetConditionUuid($form),
+            'page'       => 1,
+            'page_limit' => 10,
+            'searchText' => '',
+        ]);
+
+        // Assert: response should be successful
+        $this->assertEquals(200, $response->getStatusCode());
+
+        // Assert: response should be valid JSON
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $data = json_decode($content, true);
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('results', $data);
+        $this->assertArrayHasKey('count', $data);
+        $this->assertCount(10, $data['results']);
+    }
+
     private function renderRoute(array $post): Response
     {
         $controller = new LdapDropdownController();

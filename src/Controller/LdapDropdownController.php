@@ -93,7 +93,7 @@ final class LdapDropdownController extends AbstractController
         $this->checkFormAccessPolicies($question->getForm(), $request);
 
         // Read others parameters
-        $search_text = $request->request->getString('');
+        $search_text = $request->request->getString('searchText', '');
         $page        = $request->request->getInt('page', 0);
         $page_limit  = $request->request->getInt('page_limit', 0);
 
