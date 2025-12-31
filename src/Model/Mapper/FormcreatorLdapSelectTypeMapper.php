@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Model\Mapper;
 
+use AuthLDAP;
 use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
@@ -63,8 +64,16 @@ final class FormcreatorLdapSelectTypeMapper implements FormQuestionDataConverter
 
         /** @var array{ldap_auth: int, ldap_filter: string, ldap_attribute: int} $data */
         $data = json_decode($rawData['values'], associative: true);
+
+        // Ensure LDAP auth exists and is active
+        $authLdap = new AuthLDAP();
+        $authLdapId = 0;
+        if ($authLdap->getFromDB($data['ldap_auth']) && $authLdap->fields['is_active']) {
+            $authLdapId = $authLdap->getId();
+        }
+
         return [
-            LdapQuestionConfig::AUTHLDAP_ID       => $data['ldap_auth'],
+            LdapQuestionConfig::AUTHLDAP_ID       => $authLdapId,
             LdapQuestionConfig::LDAP_FILTER       => $data['ldap_filter'],
             LdapQuestionConfig::LDAP_ATTRIBUTE_ID => $data['ldap_attribute'],
         ];
