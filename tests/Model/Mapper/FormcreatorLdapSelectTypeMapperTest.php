@@ -33,10 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
+use AuthLDAP;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
-use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
 use LogicException;
@@ -44,12 +44,39 @@ use RuntimeException;
 
 final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 {
-    public function testIpTypeMigrationWhenEnabled(): void
+    public function testLdapSelectTypeMigrationWhenEnabledWithValidAuthLDAP(): void
     {
         /** @var \DBmysql $DB */
         global $DB;
 
-        // Arrange: enable ip question type and add some fomrcreator data
+        // Arrange: create a valid AuthLDAP
+        $authldap = $this->createItem(AuthLDAP::class, [
+            'name'      => 'My LDAP server',
+            'is_active' => 1,
+        ]);
+
+        // Act & Assert: test migration with the valid AuthLDAP
+        $this->testLdapSelectTypeMigrationWhenEnabled(
+            authldap_id: $authldap->getId(),
+            expected_authldap_id: null,
+        );
+    }
+
+    public function testLdapSelectTypeMigrationWhenEnabledWithInvalidAuthLDAP(): void
+    {
+        // Act & Assert: test migration with an invalid AuthLDAP
+        $this->testLdapSelectTypeMigrationWhenEnabled(
+            authldap_id: 123,
+            expected_authldap_id: 0,
+        );
+    }
+
+    private function testLdapSelectTypeMigrationWhenEnabled(int $authldap_id, ?int $expected_authldap_id): void
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        // Arrange: enable ldap select question type and add some formcreator data
         $this->enableConfigurableItem(LdapQuestion::class);
         $this->createSimpleFormcreatorForm(
             name: "My form",
@@ -57,7 +84,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
                 [
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
-                    'values'    => '{"ldap_auth":"123","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
+                    'values'    => '{"ldap_auth":"' . $authldap_id . '","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
                 ],
             ],
         );
@@ -80,7 +107,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
         if (!$config instanceof LdapQuestionConfig) {
             throw new LogicException();
         }
-        $this->assertEquals(123, $config->getAuthLdapId());
+        $this->assertEquals($expected_authldap_id ?? $authldap_id, $config->getAuthLdapId());
         $this->assertEquals(456, $config->getLdapAttributeId());
         $this->assertEquals(
             "(& (uid=*) (objectClass=inetOrgPerson))",
@@ -88,19 +115,23 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
         );
     }
 
-    public function testIpTypeMigrationWhenDisabled(): void
+    public function testLdapSelectTypeMigrationWhenDisabled(): void
     {
         /** @var \DBmysql $DB */
         global $DB;
 
-        // Arrange: add some fomrcreator data
+        // Arrange: add some formcreator data
+        $authldap = $this->createItem(AuthLDAP::class, [
+            'name'      => 'My LDAP server',
+            'is_active' => 1,
+        ]);
         $this->createSimpleFormcreatorForm(
             name: "My form",
             questions: [
                 [
                     'name'      => 'My LDAP question',
                     'fieldtype' => 'ldapselect',
-                    'values'    => '{"ldap_auth":"123","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
+                    'values'    => '{"ldap_auth":"' . $authldap->getId() . '","ldap_attribute":"456","ldap_filter":"(& (uid=*) (objectClass=inetOrgPerson))"}',
                 ],
             ],
         );

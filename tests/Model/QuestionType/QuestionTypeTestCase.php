@@ -101,7 +101,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         $this->assertContains($item->getName(), $options);
     }
 
-    final public function testIpAddressIsNotAvailableInTypeDropdownWhenDisabled(): void
+    final public function testQuestionIsNotAvailableInTypeDropdownWhenDisabled(): void
     {
         $item = $this->getTestedQuestionType();
 
