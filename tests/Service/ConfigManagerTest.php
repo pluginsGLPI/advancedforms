@@ -44,6 +44,7 @@ use Toolbox;
 final class ConfigManagerTest extends AdvancedFormsTestCase
 {
     #[DataProvider('provideQuestionTypes')]
+    #[DataProvider('provideSLMDestinationStrategies')]
     public function testQuestionTypeConfigFormWhenEnabled(
         ConfigurableItemInterface $item,
     ): void {
@@ -66,6 +67,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
     }
 
     #[DataProvider('provideQuestionTypes')]
+    #[DataProvider('provideSLMDestinationStrategies')]
     public function testQuestionTypeConfigFormWhenDisabled(
         ConfigurableItemInterface $item,
     ): void {
@@ -87,6 +89,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
     }
 
     #[DataProvider('provideQuestionTypes')]
+    #[DataProvider('provideSLMDestinationStrategies')]
     public function testQuestionTypeConfigValueWhenEnabled(
         ConfigurableItemInterface $item,
     ): void {
@@ -102,6 +105,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
     }
 
     #[DataProvider('provideQuestionTypes')]
+    #[DataProvider('provideSLMDestinationStrategies')]
     public function testQuestionTypeConfigValueWhenDisabled(
         ConfigurableItemInterface $item,
     ): void {

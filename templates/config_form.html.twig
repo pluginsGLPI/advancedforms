@@ -43,11 +43,28 @@
         action="{{ 'Config'|itemtype_form_path }}"
         data-track-changes="true"
     >
+        <h3 class="mb-3">
+            <i class="ti ti-forms me-2"></i>
+            {{ __("Question types", "advancedforms") }}
+        </h3>
         <div class="row">
             {% for question_type in question_types %}
                 {{ include('@advancedforms/configurable_item.html.twig', {
                     config_manager: config_manager,
                     item: question_type,
+                }, with_context: false) }}
+            {% endfor %}
+        </div>
+
+        <h3 class="mb-3 mt-4">
+            <i class="ti ti-clock-play me-2"></i>
+            {{ __("SLA/OLA strategies", "advancedforms") }}
+        </h3>
+        <div class="row">
+            {% for slm_strategy in slm_strategies %}
+                {{ include('@advancedforms/configurable_item.html.twig', {
+                    config_manager: config_manager,
+                    item: slm_strategy,
                 }, with_context: false) }}
             {% endfor %}
         </div>

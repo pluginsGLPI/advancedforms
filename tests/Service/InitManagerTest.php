@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
+use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
@@ -152,5 +153,43 @@ final class InitManagerTest extends AdvancedFormsTestCase
 
         // Assert: the ip address question type should only be found after enabling
         $this->assertNull($mapped_types['hidden']);
+    }
+
+    #[DataProvider('provideSLMDestinationStrategies')]
+    public function testSLMDestinationStrategieIsAvailableWhenEnabled(
+        ConfigurableItemInterface $item,
+    ): void {
+        // Arrange: enable slm destination strategy
+        $this->enableConfigurableItem($item);
+
+        // Act: get available strategies
+        $manager = FormDestinationManager::getInstance();
+        $strategies = $manager->getSLMFieldStrategies();
+
+        // Assert: the strategy should only be found after enabling
+        $classes = array_map(
+            fn($strategy) => $strategy::class,
+            $strategies,
+        );
+        $this->assertContains($item::class, $classes);
+    }
+
+    #[DataProvider('provideSLMDestinationStrategies')]
+    public function testSLMDestinationStrategieIsNotAvailableWhenDisabled(
+        ConfigurableItemInterface $item,
+    ): void {
+        // Arrange: disable slm destination strategy
+        $this->disableConfigurableItem($item);
+
+        // Act: get available strategies
+        $manager = FormDestinationManager::getInstance();
+        $types = $manager->getSLMFieldStrategies();
+
+        // Assert: the strategy should only be found after enabling
+        $classes = array_map(
+            fn($strategy) => $strategy::class,
+            $types,
+        );
+        $this->assertNotContains($item::class, $classes);
     }
 }
