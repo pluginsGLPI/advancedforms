@@ -38,10 +38,10 @@ use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use GlpiPlugin\Advancedforms\Helpers\NetworkHelper;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\Mapper\FormcreatorHostnameTypeMapper;
 use Override;
-use Toolbox;
 
 /**
  * Legacy question type from the formcreator plugin
@@ -108,7 +108,7 @@ TWIG;
         $twig = TemplateRenderer::getInstance();
         return $twig->renderFromStringTemplate($template, [
             'question' => $question,
-            'hostname' => gethostbyaddr(Toolbox::getRemoteIpAddress()),
+            'hostname' => gethostbyaddr(NetworkHelper::getRemoteIpAddress()),
         ]);
     }
 
