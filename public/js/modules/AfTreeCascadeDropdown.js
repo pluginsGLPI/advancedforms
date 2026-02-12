@@ -29,7 +29,7 @@
  * -------------------------------------------------------------------------
  */
 
-window.AfTreeCascadeDropdown = class AfTreeCascadeDropdown {
+export class AfTreeCascadeDropdown {
     /**
      * @param {Object} options
      * @param {string} options.selector_id - The ID of the select element to bind

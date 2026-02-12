@@ -84,7 +84,8 @@
             </div>
         {% endif %}
 
-        <script>
+        <script type="module">
+        import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
         $(function() {
             new AfTreeCascadeDropdown({
                 selector_id: '{{ selector_id }}',
@@ -135,7 +136,8 @@
 
     <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
 
-    <script>
+    <script type="module">
+    import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
     $(function() {
         new AfTreeCascadeDropdown({
             selector_id: '{{ selector_id }}',
