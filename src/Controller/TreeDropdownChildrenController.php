@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
+use DBmysql;
 use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Controller\AbstractController;
@@ -66,7 +67,7 @@ final class TreeDropdownChildrenController extends AbstractController
             return new Response('', Response::HTTP_OK);
         }
 
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         $foreign_key = $itemtype::getForeignKeyField();
@@ -96,10 +97,17 @@ final class TreeDropdownChildrenController extends AbstractController
         ]);
 
         foreach ($iterator as $row) {
-            $children[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $children[] = [
+                'id' => $row['id'],
+                'name' => $row['name'],
+            ];
         }
 
-        if (empty($children)) {
+        if ($children === []) {
             return new Response('', Response::HTTP_OK);
         }
 
