@@ -61,6 +61,9 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         $this->items_id_aria_label = __('Select a dropdown item');
     }
 
+    /**
+     * @return array<string, array<int, class-string>>
+     */
     #[Override]
     public function getAllowedItemtypes(): array
     {
@@ -89,9 +92,13 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         return 30;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Override]
     public function getDropdownRestrictionParams(?Question $question): array
     {
+        /** @var array<string, mixed> */
         return parent::getDropdownRestrictionParams($question);
     }
 
@@ -101,11 +108,11 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         global $CFG_GLPI;
 
         $itemtype = $this->getDefaultValueItemtype($question);
-        if (!is_a($itemtype, CommonTreeDropdown::class, true)) {
+        if ($itemtype === null || !is_a($itemtype, CommonTreeDropdown::class, true)) {
             return parent::renderEndUserTemplate($question);
         }
 
-        $default_items_id = $this->getDefaultValueItemId($question);
+        $default_items_id = (int) $this->getDefaultValueItemId($question);
         $aria_label = $this->items_id_aria_label;
 
         $tree_table = $itemtype::getTable();
@@ -116,6 +123,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         $level2_container = 'level2_container_' . $rand_tree;
 
         $dropdown_restriction_params = $this->getDropdownRestrictionParams($question);
+        /** @var array<string, mixed> $restriction_where */
         $restriction_where = $dropdown_restriction_params['WHERE'] ?? [];
 
         $ancestor_chain = $this->buildAncestorChain($itemtype, $default_items_id, $restriction_where);
@@ -136,13 +144,15 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 'dropdown_restriction_params' => $restriction_where,
                 'root_doc'                    => $CFG_GLPI['root_doc'],
                 'ancestor_chain'              => $ancestor_chain,
-                'ajax_limit_count'            => (int) $CFG_GLPI['ajax_limit_count'],
+                'ajax_limit_count'            => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
             ]
         );
     }
 
     /**
      * @param class-string<CommonTreeDropdown> $itemtype
+     * @param array<string, mixed> $extra_conditions
+     * @return array<int, array{id: int, parent_id: int, level: int, siblings: array<int, array{id: int, name: string}>}>
      */
     private function buildAncestorChain(string $itemtype, int $items_id, array $extra_conditions = []): array
     {
@@ -150,8 +160,8 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             return [];
         }
 
-        $item = new $itemtype();
-        if (!$item->getFromDB($items_id)) {
+        $item = getItemForItemtype($itemtype);
+        if (!($item instanceof CommonTreeDropdown) || !$item->getFromDB($items_id)) {
             return [];
         }
 
@@ -163,20 +173,27 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         $chain = [];
         $current = $item;
 
-        while ($current !== null) {
+        while (true) {
+            /** @var array<string, mixed> $fields */
+            $fields = $current->fields;
+            $id = is_numeric($fields['id'] ?? 0) ? (int) ($fields['id'] ?? 0) : 0;
+            $parent_id_value = is_numeric($fields[$foreign_key] ?? 0) ? (int) ($fields[$foreign_key] ?? 0) : 0;
+            $level = is_numeric($fields['level'] ?? 0) ? (int) ($fields['level'] ?? 0) : 0;
+
             array_unshift($chain, [
-                'id'        => (int) $current->fields['id'],
-                'parent_id' => (int) $current->fields[$foreign_key],
-                'level'     => (int) $current->fields['level'],
+                'id'        => $id,
+                'parent_id' => $parent_id_value,
+                'level'     => $level,
+                'siblings'  => [],
             ]);
 
-            $parent_id = (int) $current->fields[$foreign_key];
+            $parent_id = is_numeric($fields[$foreign_key] ?? 0) ? (int) ($fields[$foreign_key] ?? 0) : 0;
             if ($parent_id <= 0) {
                 break;
             }
 
-            $parent = new $itemtype();
-            if (!$parent->getFromDB($parent_id)) {
+            $parent = getItemForItemtype($itemtype);
+            if (!($parent instanceof CommonTreeDropdown) || !$parent->getFromDB($parent_id)) {
                 break;
             }
             $current = $parent;
@@ -214,7 +231,10 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             ]);
 
             foreach ($iterator as $row) {
-                $siblings[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+                /** @var array{id: mixed, name: mixed} $row */
+                $row_id = is_numeric($row['id'] ?? 0) ? (int) ($row['id'] ?? 0) : 0;
+                $row_name = is_string($row['name'] ?? '') ? (string) ($row['name'] ?? '') : '';
+                $siblings[] = ['id' => $row_id, 'name' => $row_name];
             }
 
             $node['siblings'] = $siblings;
@@ -231,6 +251,9 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         return parent::prepareEndUserAnswer($question, $answer);
     }
 
+    /**
+     * @param array<string, mixed> $rawData
+     */
     #[Override]
     public function getTargetQuestionType(array $rawData): string
     {
