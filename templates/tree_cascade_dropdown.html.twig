@@ -39,11 +39,11 @@
     {% for i, node in ancestor_chain %}
         {% set is_last = loop.last %}
         {% set level_rand = rand_tree + i %}
-        {% set temp_name = 'temp_tree_level_' ~ level_rand %}
-        {% set next_container_id = 'next_level_' ~ level_rand %}
 
         {% if i == 0 %}
-            {# Level 1: root items #}
+            {# Level 1: root items - use standard dropdown #}
+            {% set temp_name = 'temp_tree_level_' ~ level_rand %}
+            {% set selector_id = 'dropdown_' ~ temp_name ~ level_rand %}
             <div class="af-tree-level-wrapper">
             {{ fields.dropdownField(
                 itemtype,
@@ -67,41 +67,41 @@
             ) }}
             </div>
         {% else %}
-            {# Child levels: show children of the previous node #}
+            {# Child levels: custom select showing only item name #}
+            {% set selector_id = 'tree_cascade_level_' ~ level_rand %}
             <div class="af-tree-level-wrapper mt-2">
-            {{ fields.dropdownField(
-                itemtype,
-                temp_name,
-                node.id,
-                '',
-                {
-                    'init'               : true,
-                    'no_label'           : true,
-                    'right'              : 'all',
-                    'width'              : '100%',
-                    'mb'                 : '',
-                    'comments'           : false,
-                    'addicon'            : false,
-                    'aria_label'         : aria_label,
-                    'nochecklimit'       : true,
-                    'display_emptychoice': true,
-                    'rand'               : level_rand,
-                    'condition'          : {(foreign_key): node.parent_id}|merge(dropdown_restriction_params),
-                }
-            ) }}
+                <select id="{{ selector_id }}" class="form-select" aria-label="{{ aria_label }}">
+                    <option value="0">---</option>
+                    {% for sibling in node.siblings %}
+                        <option value="{{ sibling.id }}" {{ sibling.id == node.id ? 'selected' : '' }}>{{ sibling.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
+            <script>
+            $(document).ready(function() {
+                setupAdaptDropdown({
+                    field_id: '{{ selector_id }}',
+                    width: '100%',
+                    dropdown_css_class: '',
+                    placeholder: '',
+                    ajax_limit_count: {{ ajax_limit_count }},
+                    templateresult: templateResult,
+                    templateselection: templateSelection,
+                });
+            });
+            </script>
         {% endif %}
 
         <script>
         $(document).ready(function() {
-            $('#dropdown_{{ temp_name }}{{ level_rand }}').on('change', function() {
+            $('#{{ selector_id }}').on('change', function() {
                 var value = $(this).val();
                 $('input[name="{{ final_items_id_name }}"]').val(value);
-                var $wrapper = $(this).closest('.af-tree-level-wrapper');
-                $wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
+                var wrapper = $(this).closest('.af-tree-level-wrapper');
+                wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
                 if (value && value > 0) {
                     var container = $('<div class="af-tree-next-container"></div>');
-                    $wrapper.after(container);
+                    wrapper.after(container);
                     $.ajax({
                         url: '{{ root_doc }}/plugins/advancedforms/ajax/tree_dropdown_children.php',
                         data: {
@@ -188,7 +188,7 @@
     });
     </script>
 
-    <div id="{{ level2_container }}" class="af-tree-next-container"></div>
+    <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
 
     {% do call('Ajax::updateItemOnSelectEvent', [
         'dropdown_' ~ temp_level1_name ~ rand_tree,

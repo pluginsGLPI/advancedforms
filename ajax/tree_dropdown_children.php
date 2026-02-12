@@ -58,54 +58,64 @@ global $DB;
 $foreign_key = $itemtype::getForeignKeyField();
 $table = $itemtype::getTable();
 
-$where_condition = [$foreign_key => $parent_id];
+$where = [$foreign_key => $parent_id];
 if (!empty($condition_param)) {
-    $where_condition = array_merge($where_condition, $condition_param);
+    $where = array_merge($where, $condition_param);
 }
 
-$count_result = $DB->request([
-    'COUNT' => 'cpt',
-    'FROM'  => $table,
-    'WHERE' => $where_condition,
-])->current();
+$entity_restrict = getEntitiesRestrictCriteria($table);
+if (!empty($entity_restrict)) {
+    $where = array_merge($where, $entity_restrict);
+}
 
-if (!$count_result || $count_result['cpt'] == 0) {
+$item_check = new $itemtype();
+if ($item_check->isField('is_deleted')) {
+    $where['is_deleted'] = 0;
+}
+
+$children = [];
+$iterator = $DB->request([
+    'SELECT' => ['id', 'name'],
+    'FROM'   => $table,
+    'WHERE'  => $where,
+    'ORDER'  => 'name ASC',
+]);
+
+foreach ($iterator as $row) {
+    $children[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+}
+
+if (empty($children)) {
     exit;
 }
 
 $rand_value = random_int(1000000, 9999999);
-$temp_field_name = 'temp_tree_child_' . $rand_value;
+$select_id = 'tree_cascade_child_' . $rand_value;
 
 $twig = TemplateRenderer::getInstance();
 echo $twig->renderFromStringTemplate(<<<TWIG
-{% import 'components/form/fields_macros.html.twig' as fields %}
-
 <div class="af-tree-level-wrapper mt-2">
-{{ fields.dropdownField(
-    itemtype,
-    temp_field_name,
-    '',
-    '',
-    {
-        'init'               : true,
-        'no_label'           : true,
-        'right'              : 'all',
-        'width'              : '100%',
-        'mb'                 : '',
-        'comments'           : false,
-        'addicon'            : false,
-        'aria_label'         : aria_label,
-        'nochecklimit'       : true,
-        'display_emptychoice': true,
-        'rand'               : rand_value,
-        'condition'          : {(foreign_key): parent_id}|merge(condition_param),
-    }
-) }}
+    <select id="{{ select_id }}" class="form-select" aria-label="{{ aria_label }}">
+        <option value="0">---</option>
+        {% for child in children %}
+            <option value="{{ child.id }}">{{ child.name }}</option>
+        {% endfor %}
+    </select>
 </div>
 
 <script>
 $(document).ready(function() {
-    $('#dropdown_{{ temp_field_name }}{{ rand_value }}').on('change', function() {
+    setupAdaptDropdown({
+        field_id: '{{ select_id }}',
+        width: '100%',
+        dropdown_css_class: '',
+        placeholder: '',
+        ajax_limit_count: {{ ajax_limit_count }},
+        templateresult: templateResult,
+        templateselection: templateSelection,
+    });
+
+    $('#{{ select_id }}').on('change', function() {
         var value = $(this).val();
         $('input[name="{{ final_field_name }}"]').val(value);
         var wrapper = $(this).closest('.af-tree-level-wrapper');
@@ -135,13 +145,12 @@ $(document).ready(function() {
 });
 </script>
 TWIG, [
-    'itemtype'         => $itemtype,
-    'temp_field_name'  => $temp_field_name,
+    'select_id'        => $select_id,
+    'children'         => $children,
     'final_field_name' => $final_field_name,
     'aria_label'       => $aria_label,
-    'rand_value'       => $rand_value,
-    'parent_id'        => $parent_id,
-    'foreign_key'      => $foreign_key,
-    'condition_param'  => $condition_param,
+    'itemtype'         => $itemtype,
     'root_doc'         => $CFG_GLPI['root_doc'],
+    'condition_param'  => $condition_param,
+    'ajax_limit_count' => (int) $CFG_GLPI['ajax_limit_count'],
 ]);

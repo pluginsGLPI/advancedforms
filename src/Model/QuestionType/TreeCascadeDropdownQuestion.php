@@ -117,8 +117,9 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         $level2_container = 'level2_container_' . $rand_tree;
 
         $dropdown_restriction_params = $this->getDropdownRestrictionParams($question);
+        $restriction_where = $dropdown_restriction_params['WHERE'] ?? [];
 
-        $ancestor_chain = $this->buildAncestorChain($itemtype, $default_items_id);
+        $ancestor_chain = $this->buildAncestorChain($itemtype, $default_items_id, $restriction_where);
 
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
@@ -133,9 +134,10 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 'rand_tree'                   => $rand_tree,
                 'final_items_id_name'         => $final_items_id_name,
                 'level2_container'            => $level2_container,
-                'dropdown_restriction_params' => $dropdown_restriction_params['WHERE'] ?? [],
+                'dropdown_restriction_params' => $restriction_where,
                 'root_doc'                    => $CFG_GLPI['root_doc'],
                 'ancestor_chain'              => $ancestor_chain,
+                'ajax_limit_count'            => (int) $CFG_GLPI['ajax_limit_count'],
             ]
         );
     }
@@ -143,7 +145,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
     /**
      * @param class-string<CommonTreeDropdown> $itemtype
      */
-    private function buildAncestorChain(string $itemtype, int $items_id): array
+    private function buildAncestorChain(string $itemtype, int $items_id, array $extra_conditions = []): array
     {
         if ($items_id <= 0) {
             return [];
@@ -154,7 +156,11 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             return [];
         }
 
+        /** @var \DBmysql $DB */
+        global $DB;
+
         $foreign_key = $itemtype::getForeignKeyField();
+        $table = $itemtype::getTable();
         $chain = [];
         $current = $item;
 
@@ -175,6 +181,44 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 break;
             }
             $current = $parent;
+        }
+
+        $entity_restrict = getEntitiesRestrictCriteria($table);
+        $has_is_deleted = $item->isField('is_deleted');
+
+        foreach ($chain as &$node) {
+            $where = [];
+            if ($node['level'] === 1) {
+                $where[$table . '.level'] = 1;
+            } else {
+                $where[$foreign_key] = $node['parent_id'];
+            }
+
+            if (!empty($entity_restrict)) {
+                $where = array_merge($where, $entity_restrict);
+            }
+
+            if (!empty($extra_conditions)) {
+                $where = array_merge($where, $extra_conditions);
+            }
+
+            if ($has_is_deleted) {
+                $where['is_deleted'] = 0;
+            }
+
+            $siblings = [];
+            $iterator = $DB->request([
+                'SELECT' => ['id', 'name'],
+                'FROM'   => $table,
+                'WHERE'  => $where,
+                'ORDER'  => 'name ASC',
+            ]);
+
+            foreach ($iterator as $row) {
+                $siblings[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+            }
+
+            $node['siblings'] = $siblings;
         }
 
         return $chain;
