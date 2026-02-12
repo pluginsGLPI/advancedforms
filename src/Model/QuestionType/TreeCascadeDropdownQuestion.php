@@ -145,7 +145,6 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 'final_items_id_name'         => $final_items_id_name,
                 'level2_container'            => $level2_container,
                 'dropdown_restriction_params' => $restriction_where,
-                'root_doc'                    => $CFG_GLPI['root_doc'],
                 'ancestor_chain'              => $ancestor_chain,
                 'ajax_limit_count'            => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
             ],

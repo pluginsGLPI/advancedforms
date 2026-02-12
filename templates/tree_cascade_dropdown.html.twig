@@ -35,13 +35,11 @@
 {{ fields.hiddenField(final_items_id_name, default_items_id) }}
 
 {% if ancestor_chain|length > 0 %}
-    {# Pre-filled mode: render each ancestor level with its value pre-selected #}
     {% for i, node in ancestor_chain %}
         {% set is_last = loop.last %}
         {% set level_rand = rand_tree + i %}
 
         {% if i == 0 %}
-            {# Level 1: root items - use standard dropdown #}
             {% set temp_name = 'temp_tree_level_' ~ level_rand %}
             {% set selector_id = 'dropdown_' ~ temp_name ~ level_rand %}
             <div class="af-tree-level-wrapper">
@@ -67,95 +65,51 @@
             ) }}
             </div>
         {% else %}
-            {# Child levels: custom select showing only item name #}
             {% set selector_id = 'tree_cascade_level_' ~ level_rand %}
             <div class="col-12 col-sm-6 af-tree-level-wrapper mt-2">
-                <select id="{{ selector_id }}" class="form-select" aria-label="{{ aria_label }}">
+                <select
+                    id="{{ selector_id }}"
+                    class="form-select af-tree-cascade-select"
+                    aria-label="{{ aria_label }}"
+                    data-af-tree-field-name="{{ final_items_id_name }}"
+                    data-af-tree-itemtype="{{ itemtype }}"
+                    data-af-tree-condition="{{ dropdown_restriction_params|json_encode() }}"
+                    data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+                >
                     <option value="0">---</option>
                     {% for sibling in node.siblings %}
                         <option value="{{ sibling.id }}" {{ sibling.id == node.id ? 'selected' : '' }}>{{ sibling.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <script>
-            $(document).ready(function() {
-                setupAdaptDropdown({
-                    field_id: '{{ selector_id }}',
-                    width: '100%',
-                    dropdown_css_class: '',
-                    placeholder: '',
-                    ajax_limit_count: {{ ajax_limit_count }},
-                    templateresult: templateResult,
-                    templateselection: templateSelection,
-                });
-            });
-            </script>
         {% endif %}
 
         <script>
-        $(document).ready(function() {
-            $('#{{ selector_id }}').on('change', function() {
-                var value = $(this).val();
-                $('input[name="{{ final_items_id_name }}"]').val(value);
-                var wrapper = $(this).closest('.af-tree-level-wrapper');
-                wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
-                if (value && value > 0) {
-                    var container = $('<div class="col-12 col-sm-6 af-tree-next-container"></div>');
-                    wrapper.after(container);
-                    $.ajax({
-                        url: '{{ root_doc }}/plugins/advancedforms/ajax/tree_dropdown_children.php',
-                        data: {
-                            itemtype: '{{ itemtype }}',
-                            parent_id: value,
-                            field_name: '{{ final_items_id_name }}',
-                            aria_label: '{{ aria_label }}',
-                            condition: {{ dropdown_restriction_params|json_encode()|raw }}
-                        },
-                        success: function(html) {
-                            if (html.trim().length > 0) {
-                                container.html(html);
-                            } else {
-                                container.remove();
-                            }
-                        }
-                    });
-                }
+        $(function() {
+            new AfTreeCascadeDropdown({
+                selector_id: '{{ selector_id }}',
+                field_name: '{{ final_items_id_name }}',
+                itemtype: '{{ itemtype }}',
+                aria_label: '{{ aria_label }}',
+                condition: {{ dropdown_restriction_params|json_encode()|raw }},
+                ajax_limit_count: {{ ajax_limit_count }},
+                level: {{ i + 1 }},
+                {% if is_last %}
+                next_container_id: '{{ level2_container }}',
+                auto_load_parent_id: {{ node.id }},
+                {% endif %}
             });
         });
         </script>
 
         {% if is_last %}
-            {# Last pre-filled level: auto-load children if they exist #}
-            <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
-
-            <script>
-            $(document).ready(function() {
-                var lastValue = {{ node.id }};
-                if (lastValue > 0) {
-                    $.ajax({
-                        url: '{{ root_doc }}/plugins/advancedforms/ajax/tree_dropdown_children.php',
-                        data: {
-                            itemtype: '{{ itemtype }}',
-                            parent_id: lastValue,
-                            field_name: '{{ final_items_id_name }}',
-                            aria_label: '{{ aria_label }}',
-                            condition: {{ dropdown_restriction_params|json_encode()|raw }}
-                        },
-                        success: function(html) {
-                            if (html.trim().length > 0) {
-                                $('#{{ level2_container }}').html(html);
-                            }
-                        }
-                    });
-                }
-            });
-            </script>
+            <div id="{{ level2_container }}" class="{{ i == 0 ? 'col-12 col-sm-6 ' : '' }}af-tree-next-container"></div>
         {% endif %}
     {% endfor %}
 
 {% else %}
-    {# No default value: single level 1 dropdown with AJAX cascade #}
     {% set temp_level1_name = 'temp_tree_level1_' ~ rand_tree %}
+    {% set selector_id = 'dropdown_' ~ temp_level1_name ~ rand_tree %}
     <div class="af-tree-level-wrapper">
     {{ fields.dropdownField(
         itemtype,
@@ -179,27 +133,19 @@
     ) }}
     </div>
 
+    <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
+
     <script>
-    $(document).ready(function() {
-        $('#dropdown_{{ temp_level1_name }}{{ rand_tree }}').on('change', function() {
-            var value = $(this).val();
-            $('input[name="{{ final_items_id_name }}"]').val(value);
+    $(function() {
+        new AfTreeCascadeDropdown({
+            selector_id: '{{ selector_id }}',
+            field_name: '{{ final_items_id_name }}',
+            itemtype: '{{ itemtype }}',
+            aria_label: '{{ aria_label }}',
+            condition: {{ dropdown_restriction_params|json_encode()|raw }},
+            ajax_limit_count: {{ ajax_limit_count }},
+            next_container_id: '{{ level2_container }}',
         });
     });
     </script>
-
-    <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
-
-    {% do call('Ajax::updateItemOnSelectEvent', [
-        'dropdown_' ~ temp_level1_name ~ rand_tree,
-        level2_container,
-        root_doc ~ '/plugins/advancedforms/ajax/tree_dropdown_children.php',
-        {
-            'itemtype': itemtype,
-            'parent_id': '__VALUE__',
-            'field_name': final_items_id_name,
-            'aria_label': aria_label,
-            'condition': dropdown_restriction_params,
-        }
-    ]) %}
 {% endif %}

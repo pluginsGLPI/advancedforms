@@ -60,6 +60,7 @@ function plugin_init_advancedforms(): void
     $hook_manager = new HookManager('advancedforms');
     $hook_manager->registerCSSFile('css/advancedforms.css');
     $hook_manager->registerJavascriptFile('js/advancedforms.js');
+    $hook_manager->registerJavascriptFile('js/tree_cascade_dropdown.js');
 
     InitManager::getInstance()->init();
 }
