@@ -89,7 +89,7 @@ final class ConfigManager
     {
         return array_filter(
             $this->getConfigurableQuestionTypes(),
-            fn(ConfigurableItemInterface $c): bool => $this->isConfigurableItemEnabled($c),
+            $this->isConfigurableItemEnabled(...),
         );
     }
 

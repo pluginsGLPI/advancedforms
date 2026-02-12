@@ -33,8 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
+use Location;
+use ITILCategory;
+use DBmysql;
 use CommonTreeDropdown;
-use Dropdown;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
@@ -69,11 +71,12 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
     {
         return [
             'Ticket' => [
-                \Location::class,
-                \ITILCategory::class,
-            ]
+                Location::class,
+                ITILCategory::class,
+            ],
         ];
     }
+
     #[Override]
     public function getName(): string
     {
@@ -112,7 +115,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             return parent::renderEndUserTemplate($question);
         }
 
-        $default_items_id = (int) $this->getDefaultValueItemId($question);
+        $default_items_id = $this->getDefaultValueItemId($question);
         $aria_label = $this->items_id_aria_label;
 
         $tree_table = $itemtype::getTable();
@@ -145,7 +148,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 'root_doc'                    => $CFG_GLPI['root_doc'],
                 'ancestor_chain'              => $ancestor_chain,
                 'ajax_limit_count'            => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
-            ]
+            ],
         );
     }
 
@@ -165,7 +168,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             return [];
         }
 
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         $foreign_key = $itemtype::getForeignKeyField();
@@ -196,6 +199,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             if (!($parent instanceof CommonTreeDropdown) || !$parent->getFromDB($parent_id)) {
                 break;
             }
+
             $current = $parent;
         }
 
@@ -214,7 +218,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 $where = array_merge($where, $entity_restrict);
             }
 
-            if (!empty($extra_conditions)) {
+            if ($extra_conditions !== []) {
                 $where = array_merge($where, $extra_conditions);
             }
 
@@ -257,7 +261,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
     #[Override]
     public function getTargetQuestionType(array $rawData): string
     {
-        return \Glpi\Form\QuestionType\QuestionTypeItemDropdown::class;
+        return QuestionTypeItemDropdown::class;
     }
 
     #[Override]

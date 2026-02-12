@@ -40,7 +40,7 @@ header("Content-Type: text/html; charset=UTF-8");
 Html::header_nocache();
 
 $itemtype = $_REQUEST['itemtype'] ?? '';
-$parent_id = (int)($_REQUEST['parent_id'] ?? 0);
+$parent_id = (int) ($_REQUEST['parent_id'] ?? 0);
 $final_field_name = $_REQUEST['field_name'] ?? '';
 $aria_label = $_REQUEST['aria_label'] ?? '';
 $condition_param = $_REQUEST['condition'] ?? [];
