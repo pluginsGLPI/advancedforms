@@ -184,9 +184,6 @@
         $('#dropdown_{{ temp_level1_name }}{{ rand_tree }}').on('change', function() {
             var value = $(this).val();
             $('input[name="{{ final_items_id_name }}"]').val(value);
-            var $wrapper = $(this).closest('.af-tree-level-wrapper');
-            $wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
-            $('#{{ level2_container }}').empty();
         });
     });
     </script>
