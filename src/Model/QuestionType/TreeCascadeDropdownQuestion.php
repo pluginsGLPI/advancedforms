@@ -64,13 +64,12 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
     #[Override]
     public function getAllowedItemtypes(): array
     {
-        $dropdown_itemtypes = Dropdown::getStandardDropdownItemTypes(check_rights: false);
-
-        array_walk_recursive($dropdown_itemtypes, function (&$value, $key) {
-            $value = $key;
-        });
-
-        return $dropdown_itemtypes;
+        return [
+            'Ticket' => [
+                \Location::class,
+                \ITILCategory::class,
+            ]
+        ];
     }
     #[Override]
     public function getName(): string

@@ -69,7 +69,7 @@
         {% else %}
             {# Child levels: custom select showing only item name #}
             {% set selector_id = 'tree_cascade_level_' ~ level_rand %}
-            <div class="af-tree-level-wrapper mt-2">
+            <div class="col-12 col-sm-6 af-tree-level-wrapper mt-2">
                 <select id="{{ selector_id }}" class="form-select" aria-label="{{ aria_label }}">
                     <option value="0">---</option>
                     {% for sibling in node.siblings %}
@@ -100,7 +100,7 @@
                 var wrapper = $(this).closest('.af-tree-level-wrapper');
                 wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
                 if (value && value > 0) {
-                    var container = $('<div class="af-tree-next-container"></div>');
+                    var container = $('<div class="col-12 col-sm-6 af-tree-next-container"></div>');
                     wrapper.after(container);
                     $.ajax({
                         url: '{{ root_doc }}/plugins/advancedforms/ajax/tree_dropdown_children.php',
@@ -126,7 +126,7 @@
 
         {% if is_last %}
             {# Last pre-filled level: auto-load children if they exist #}
-            <div id="{{ level2_container }}" class="af-tree-next-container"></div>
+            <div id="{{ level2_container }}" class="col-12 col-sm-6 af-tree-next-container"></div>
 
             <script>
             $(document).ready(function() {
