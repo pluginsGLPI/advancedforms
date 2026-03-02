@@ -40,7 +40,6 @@ use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
-use Glpi\Form\QuestionType\QuestionTypeItem;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
@@ -266,11 +265,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
                 $where = array_merge($where, $filtered_conditions);
             }
 
-            if ($index === 0) {
-                $where[$foreign_key] = $root_items_id > 0 ? $root_items_id : 0;
-            } else {
-                $where[$foreign_key] = $node['parent_id'];
-            }
+            $where[$foreign_key] = $index === 0 ? max($root_items_id, 0) : $node['parent_id'];
 
             if ($has_is_deleted) {
                 $where['is_deleted'] = 0;
@@ -329,7 +324,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $where = array_merge($where, $filtered_conditions);
         }
 
-        $where[$foreign_key] = $root_items_id > 0 ? $root_items_id : 0;
+        $where[$foreign_key] = max($root_items_id, 0);
 
         $item = getItemForItemtype($itemtype);
         if ($item instanceof CommonTreeDropdown && $item->isField('is_deleted')) {
