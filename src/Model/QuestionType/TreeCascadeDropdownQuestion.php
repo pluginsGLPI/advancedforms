@@ -46,7 +46,7 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use Override;
 
-final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements ConfigurableItemInterface
+final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown implements ConfigurableItemInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -129,7 +129,30 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         /** @var array<string, mixed> $restriction_where */
         $restriction_where = $dropdown_restriction_params['WHERE'] ?? [];
 
-        $ancestor_chain = $this->buildAncestorChain($itemtype, $default_items_id, $restriction_where);
+        $root_items_id = $this->getRootItemsId($question);
+        $selectable_tree_root = $this->isSelectableTreeRoot($question);
+
+        $root_item_name = '';
+        if ($selectable_tree_root && $root_items_id > 0) {
+            $root_item = getItemForItemtype($itemtype);
+            if ($root_item instanceof CommonTreeDropdown && $root_item->getFromDB($root_items_id)) {
+                $root_item_name = is_string($root_item->fields['name'] ?? '') ? (string) ($root_item->fields['name'] ?? '') : '';
+            }
+        }
+
+        $ancestor_chain = $this->buildAncestorChain(
+            $itemtype,
+            $default_items_id,
+            $restriction_where,
+            $root_items_id,
+            $selectable_tree_root,
+        );
+
+        $first_level_items = $this->getFirstLevelItems(
+            $itemtype,
+            $restriction_where,
+            $root_items_id,
+        );
 
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
@@ -147,6 +170,10 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
                 'dropdown_restriction_params' => $restriction_where,
                 'ancestor_chain'              => $ancestor_chain,
                 'ajax_limit_count'            => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
+                'root_items_id'               => $root_items_id,
+                'selectable_tree_root'        => $selectable_tree_root,
+                'root_item_name'              => $root_item_name,
+                'first_level_items'           => $first_level_items,
             ],
         );
     }
@@ -156,9 +183,18 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
      * @param array<string, mixed> $extra_conditions
      * @return array<int, array{id: int, parent_id: int, level: int, siblings: array<int, array{id: int, name: string}>}>
      */
-    private function buildAncestorChain(string $itemtype, int $items_id, array $extra_conditions = []): array
-    {
+    private function buildAncestorChain(
+        string $itemtype,
+        int $items_id,
+        array $extra_conditions = [],
+        int $root_items_id = 0,
+        bool $selectable_tree_root = false,
+    ): array {
         if ($items_id <= 0) {
+            return [];
+        }
+
+        if ($selectable_tree_root && $root_items_id > 0 && $items_id === $root_items_id) {
             return [];
         }
 
@@ -182,6 +218,10 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
             $parent_id_value = is_numeric($fields[$foreign_key] ?? 0) ? (int) ($fields[$foreign_key] ?? 0) : 0;
             $level = is_numeric($fields['level'] ?? 0) ? (int) ($fields['level'] ?? 0) : 0;
 
+            if ($root_items_id > 0 && $id === $root_items_id) {
+                break;
+            }
+
             array_unshift($chain, [
                 'id'        => $id,
                 'parent_id' => $parent_id_value,
@@ -191,6 +231,11 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
 
             $parent_id = is_numeric($fields[$foreign_key] ?? 0) ? (int) ($fields[$foreign_key] ?? 0) : 0;
             if ($parent_id <= 0) {
+                break;
+            }
+
+            if ($root_items_id > 0 && $parent_id === $root_items_id) {
+                $chain[0]['parent_id'] = $root_items_id;
                 break;
             }
 
@@ -205,20 +250,26 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         $entity_restrict = getEntitiesRestrictCriteria($table);
         $has_is_deleted = $item->isField('is_deleted');
 
-        foreach ($chain as &$node) {
+        $id_key = $table . '.id';
+        $level_key = $table . '.level';
+        $filtered_conditions = $extra_conditions;
+        unset($filtered_conditions[$id_key], $filtered_conditions[$level_key]);
+
+        foreach ($chain as $index => &$node) {
             $where = [];
-            if ($node['level'] === 1) {
-                $where[$table . '.level'] = 1;
-            } else {
-                $where[$foreign_key] = $node['parent_id'];
-            }
 
             if (!empty($entity_restrict)) {
                 $where = array_merge($where, $entity_restrict);
             }
 
-            if ($extra_conditions !== []) {
-                $where = array_merge($where, $extra_conditions);
+            if ($filtered_conditions !== []) {
+                $where = array_merge($where, $filtered_conditions);
+            }
+
+            if ($index === 0) {
+                $where[$foreign_key] = $root_items_id > 0 ? $root_items_id : 0;
+            } else {
+                $where[$foreign_key] = $node['parent_id'];
             }
 
             if ($has_is_deleted) {
@@ -244,6 +295,63 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItem implements Conf
         }
 
         return $chain;
+    }
+
+    /**
+     * @param class-string<CommonTreeDropdown> $itemtype
+     * @param array<string, mixed> $extra_conditions
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function getFirstLevelItems(
+        string $itemtype,
+        array $extra_conditions = [],
+        int $root_items_id = 0,
+    ): array {
+        /** @var DBmysql $DB */
+        global $DB;
+
+        $table = $itemtype::getTable();
+        $foreign_key = $itemtype::getForeignKeyField();
+
+        $id_key = $table . '.id';
+        $level_key = $table . '.level';
+        $filtered_conditions = $extra_conditions;
+        unset($filtered_conditions[$id_key], $filtered_conditions[$level_key]);
+
+        $where = [];
+
+        $entity_restrict = getEntitiesRestrictCriteria($table);
+        if (!empty($entity_restrict)) {
+            $where = array_merge($where, $entity_restrict);
+        }
+
+        if ($filtered_conditions !== []) {
+            $where = array_merge($where, $filtered_conditions);
+        }
+
+        $where[$foreign_key] = $root_items_id > 0 ? $root_items_id : 0;
+
+        $item = getItemForItemtype($itemtype);
+        if ($item instanceof CommonTreeDropdown && $item->isField('is_deleted')) {
+            $where['is_deleted'] = 0;
+        }
+
+        $items = [];
+        $iterator = $DB->request([
+            'SELECT' => ['id', 'name'],
+            'FROM'   => $table,
+            'WHERE'  => $where,
+            'ORDER'  => 'name ASC',
+        ]);
+
+        foreach ($iterator as $row) {
+            /** @var array{id: mixed, name: mixed} $row */
+            $row_id = is_numeric($row['id'] ?? 0) ? (int) ($row['id'] ?? 0) : 0;
+            $row_name = is_string($row['name'] ?? '') ? (string) ($row['name'] ?? '') : '';
+            $items[] = ['id' => $row_id, 'name' => $row_name];
+        }
+
+        return $items;
     }
 
     #[Override]

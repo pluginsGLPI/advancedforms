@@ -73,18 +73,24 @@ final class TreeDropdownChildrenController extends AbstractController
         $foreign_key = $itemtype::getForeignKeyField();
         $table = $itemtype::getTable();
 
-        $where = [$foreign_key => $parent_id];
-        if (!empty($condition_param) && is_array($condition_param)) {
-            $where = array_merge($where, $condition_param);
-        }
+        $level_key = $table . '.level';
+
+        $where = [];
 
         $entity_restrict = getEntitiesRestrictCriteria($table);
         if (!empty($entity_restrict)) {
             $where = array_merge($where, $entity_restrict);
         }
 
-        $item_check = new $itemtype();
-        if ($item_check->isField('is_deleted')) {
+        if (!empty($condition_param) && is_array($condition_param)) {
+            unset($condition_param[$level_key]);
+            $where = array_merge($where, $condition_param);
+        }
+
+        $where[$foreign_key] = $parent_id;
+
+        $item_check = getItemForItemtype($itemtype);
+        if ($item_check instanceof CommonTreeDropdown && $item_check->isField('is_deleted')) {
             $where['is_deleted'] = 0;
         }
 

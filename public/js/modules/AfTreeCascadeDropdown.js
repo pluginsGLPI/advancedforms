@@ -94,9 +94,11 @@ export class AfTreeCascadeDropdown {
             $wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
 
             if (value && value > 0) {
-                const container_classes = this.level === 1 ? 'col-12 col-sm-6 af-tree-next-container' : 'af-tree-next-container';
-                const $container = $(`<div class="${container_classes}"></div>`);
-                $wrapper.after($container);
+                const $parentRow = $wrapper.parent().closest('.row, .d-flex, form, [class*="col-"]').length
+                    ? $wrapper.parent()
+                    : $wrapper.parent();
+                const $container = $(`<div class="af-tree-next-container"></div>`);
+                $parentRow.append($container);
                 this.#loadChildren(value, $container);
             }
         });
@@ -113,7 +115,6 @@ export class AfTreeCascadeDropdown {
                 condition: this.condition,
             },
             success: (html) => {
-                console.log(this.endpoint_url)
                 if (html.trim().length > 0) {
                     $container.html(html);
                     this.#initDynamicChild($container);
