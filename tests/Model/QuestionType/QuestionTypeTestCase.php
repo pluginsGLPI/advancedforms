@@ -239,7 +239,7 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         return new Crawler($response->getContent());
     }
 
-    private function getDefaultExtraDataForQuestionType(
+    protected function getDefaultExtraDataForQuestionType(
         QuestionTypeInterface $type,
     ): ?string {
         $class = $type->getExtraDataConfigClass();

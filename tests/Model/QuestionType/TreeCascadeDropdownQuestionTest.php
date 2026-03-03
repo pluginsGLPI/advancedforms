@@ -42,6 +42,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
 use Location;
 use Override;
+use Session;
 use Symfony\Component\DomCrawler\Crawler;
 
 final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
@@ -76,6 +77,15 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
     ): void {
         $select = $html->filter('.af-tree-cascade-select');
         $this->assertEmpty($select);
+    }
+
+    #[Override]
+    protected function getDefaultExtraDataForQuestionType(
+        QuestionTypeInterface $type,
+    ): ?string {
+        return json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: Location::class,
+        ));
     }
 
     public function testGetName(): void
@@ -120,19 +130,24 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $root = $this->createItem(Location::class, [
             'name'         => 'Root Location',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $child = $this->createItem(Location::class, [
             'name'         => 'Child Location',
             'locations_id' => $root->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $grandchild = $this->createItem(Location::class, [
             'name'         => 'Grandchild Location',
             'locations_id' => $child->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
@@ -168,30 +183,29 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $root = $this->createItem(Location::class, [
             'name'         => 'Root A',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $child = $this->createItem(Location::class, [
             'name'         => 'Child A1',
             'locations_id' => $root->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
             itemtype: Location::class,
         ));
 
-        $default_value = json_encode([
-            'itemtype' => Location::class,
-            'items_id' => $child->getID(),
-        ]);
-
         $builder = new FormBuilder("Tree Cascade Preselected");
         $builder->addQuestion(
             "My location",
             TreeCascadeDropdownQuestion::class,
-            $default_value,
+            $child->getID(),
             $extra_data,
         );
         $form = $this->createForm($builder);
@@ -221,19 +235,24 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $root = $this->createItem(Location::class, [
             'name'         => 'Global Root',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $subtree_root = $this->createItem(Location::class, [
             'name'         => 'Subtree Root',
             'locations_id' => $root->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $subtree_child = $this->createItem(Location::class, [
             'name'         => 'Subtree Child',
             'locations_id' => $subtree_root->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
@@ -269,14 +288,18 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $subtree_root = $this->createItem(Location::class, [
             'name'         => 'Selectable Root',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $child = $this->createItem(Location::class, [
             'name'         => 'Root Child',
             'locations_id' => $subtree_root->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
@@ -312,19 +335,24 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $root_a = $this->createItem(Location::class, [
             'name'         => 'Location A',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $root_b = $this->createItem(Location::class, [
             'name'         => 'Location B',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $child_a1 = $this->createItem(Location::class, [
             'name'         => 'Location A1',
             'locations_id' => $root_a->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
@@ -357,30 +385,29 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $item = $this->getTestedQuestionType();
         $this->enableConfigurableItem($item);
 
+        $entity_id = Session::getActiveEntity();
+
         $parent = $this->createItem(Location::class, [
             'name'         => 'Parent Loc',
             'locations_id' => 0,
+            'entities_id'  => $entity_id,
         ]);
 
         $child = $this->createItem(Location::class, [
             'name'         => 'Child Loc',
             'locations_id' => $parent->getID(),
+            'entities_id'  => $entity_id,
         ]);
 
         $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
             itemtype: Location::class,
         ));
 
-        $default_value = json_encode([
-            'itemtype' => Location::class,
-            'items_id' => $child->getID(),
-        ]);
-
         $builder = new FormBuilder("Tree Cascade Name Only");
         $builder->addQuestion(
             "My location",
             TreeCascadeDropdownQuestion::class,
-            $default_value,
+            $child->getID(),
             $extra_data,
         );
         $form = $this->createForm($builder);
