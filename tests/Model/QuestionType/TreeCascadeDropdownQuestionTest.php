@@ -155,7 +155,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
 
         $first_select = $selects->eq(0);
         $options = $first_select->filter('option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         $this->assertContains('Root Location', $options);
         $this->assertNotContains('Child Location', $options);
@@ -205,7 +205,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThanOrEqual(2, $selects->count());
 
         $first_options = $selects->eq(0)->filter('option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         $this->assertContains('Root A', $first_options);
 
@@ -256,7 +256,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThanOrEqual(1, $selects->count());
 
         $first_options = $selects->eq(0)->filter('option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         $this->assertContains('Subtree Child', $first_options);
         $this->assertNotContains('Global Root', $first_options);
@@ -300,7 +300,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThanOrEqual(1, $selects->count());
 
         $first_options = $selects->eq(0)->filter('option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         $this->assertContains('Selectable Root', $first_options);
         $this->assertNotContains('Root Child', $first_options);
@@ -344,7 +344,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
 
         $first_select = $html->filter('.af-tree-cascade-select')->eq(0);
         $options = $first_select->filter('option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         $this->assertContains('Location A', $options);
         $this->assertContains('Location B', $options);
@@ -388,7 +388,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $html = $this->renderHelpdeskForm($form);
 
         $all_option_texts = $html->filter('.af-tree-cascade-select option')->each(
-            fn(Crawler $node) => $node->text()
+            fn(Crawler $node) => $node->text(),
         );
         foreach ($all_option_texts as $text) {
             $this->assertStringNotContainsString(' > ', $text);
