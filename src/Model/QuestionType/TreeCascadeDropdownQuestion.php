@@ -68,12 +68,21 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
     #[Override]
     public function getAllowedItemtypes(): array
     {
-        return [
-            'Ticket' => [
-                Location::class,
-                ITILCategory::class,
-            ],
-        ];
+        $allowed_itemtypes = parent::getAllowedItemtypes();
+
+        // Filter out itemtypes that are not subclasses of CommonTreeDropdown
+        $allowed_itemtypes = array_map(function ($itemtypes) {
+            return array_filter($itemtypes, function ($itemtype) {
+                return is_string($itemtype) && is_a($itemtype, CommonTreeDropdown::class, true);
+            });
+        }, $allowed_itemtypes);
+
+        // Remove any categories that have no valid itemtypes
+        $allowed_itemtypes = array_filter($allowed_itemtypes, function ($itemtypes) {
+            return !empty($itemtypes);
+        });
+
+        return $allowed_itemtypes;
     }
 
     #[Override]
