@@ -33,8 +33,6 @@
 
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
-use Location;
-use ITILCategory;
 use DBmysql;
 use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
@@ -63,7 +61,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
     }
 
     /**
-     * @return array<string, array<int, class-string>>
+     * @return array<array<class-string<CommonTreeDropdown>>>
      */
     #[Override]
     public function getAllowedItemtypes(): array
@@ -72,15 +70,15 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
 
         // Filter out itemtypes that are not subclasses of CommonTreeDropdown
         $allowed_itemtypes = array_map(function ($itemtypes) {
-            return array_filter($itemtypes, function ($itemtype) {
-                return is_string($itemtype) && is_a($itemtype, CommonTreeDropdown::class, true);
-            });
+            if (!is_array($itemtypes)) {
+                return [];
+            }
+
+            return array_filter($itemtypes, fn($itemtype) => is_string($itemtype) && is_a($itemtype, CommonTreeDropdown::class, true));
         }, $allowed_itemtypes);
 
         // Remove any categories that have no valid itemtypes
-        $allowed_itemtypes = array_filter($allowed_itemtypes, function ($itemtypes) {
-            return !empty($itemtypes);
-        });
+        $allowed_itemtypes = array_filter($allowed_itemtypes, fn($itemtypes) => !empty($itemtypes));
 
         return $allowed_itemtypes;
     }

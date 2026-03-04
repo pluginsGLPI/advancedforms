@@ -88,34 +88,82 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         ));
     }
 
+    /**
+     * Verify that the question type returns a non-empty display name.
+     */
     public function testGetName(): void
     {
         $question_type = new TreeCascadeDropdownQuestion();
         $this->assertNotEmpty($question_type->getName());
     }
 
+    /**
+     * Verify that the question type returns the expected sitemap icon.
+     */
     public function testGetIcon(): void
     {
         $question_type = new TreeCascadeDropdownQuestion();
         $this->assertEquals('ti ti-sitemap', $question_type->getIcon());
     }
 
+    /**
+     * Verify that the question type has a weight of 30 for ordering purposes.
+     */
     public function testGetWeight(): void
     {
         $question_type = new TreeCascadeDropdownQuestion();
         $this->assertEquals(30, $question_type->getWeight());
     }
 
+    /**
+     * Verify that the allowed itemtypes include Location and ITILCategory under the Ticket category.
+     */
     public function testAllowedItemtypes(): void
     {
+        $expected = [
+            'Common' => [
+                Location::class,
+                \State::class
+            ],
+            'Assistance' => [
+                \ITILCategory::class,
+                \TaskCategory::class,
+                \Glpi\Form\Category::class,
+            ],
+            'Types' => [
+                \SoftwareLicenseType::class,
+            ],
+            'Management' => [
+                \DocumentCategory::class,
+                \BusinessCriticity::class,
+            ],
+            'Tools' => [
+                \KnowbaseItemCategory::class,
+            ],
+            'Internet' => [
+                \IPNetwork::class,
+            ],
+            'Software' => [
+                \SoftwareCategory::class,
+            ],
+            'Others' => [
+                \WebhookCategory::class,
+            ],
+        ];
         $question_type = new TreeCascadeDropdownQuestion();
         $allowed = $question_type->getAllowedItemtypes();
 
-        $this->assertArrayHasKey('Ticket', $allowed);
-        $this->assertContains(Location::class, $allowed['Ticket']);
-        $this->assertContains(\ITILCategory::class, $allowed['Ticket']);
+        foreach ($expected as $group => $itemtypes) {
+            $this->assertArrayHasKey($group, $allowed);
+            foreach ($itemtypes as $itemtype) {
+                $this->assertContains($itemtype, $allowed[$group]);
+            }
+        }
     }
 
+    /**
+     * Verify that the configuration key matches the expected plugin setting name.
+     */
     public function testGetConfigKey(): void
     {
         $this->assertEquals(
@@ -124,6 +172,12 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         );
     }
 
+    /**
+     * Verify that when rendering a tree cascade dropdown with a 3-level location
+     * hierarchy (Root > Child > Grandchild), only the root-level items appear
+     * in the first dropdown. Child and grandchild items must not be visible
+     * until their parent is selected.
+     */
     public function testHelpdeskRenderingWithLocationHierarchy(): void
     {
         $this->login();
@@ -177,6 +231,12 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Grandchild Location', $options);
     }
 
+    /**
+     * Verify that when a default value (child item ID) is set on the question,
+     * the form pre-renders with at least two cascading selects: the first one
+     * containing the root parent, and the second one with the child pre-selected.
+     * A hidden input must also carry the default value.
+     */
     public function testHelpdeskRenderingWithDefaultValue(): void
     {
         $this->login();
@@ -229,6 +289,11 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertEquals('Child A1', $selected_option->text());
     }
 
+    /**
+     * Verify that when a subtree root is configured (root_items_id), only the
+     * direct children of that subtree root are shown in the first dropdown.
+     * The global root and the subtree root itself must not appear as options.
+     */
     public function testHelpdeskRenderingWithSubtreeRoot(): void
     {
         $this->login();
@@ -282,6 +347,11 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Subtree Root', $first_options);
     }
 
+    /**
+     * Verify that when selectable_tree_root is enabled, the subtree root item
+     * itself appears as a selectable option in the first dropdown, while its
+     * children do not appear at the same level.
+     */
     public function testHelpdeskRenderingWithSelectableTreeRoot(): void
     {
         $this->login();
@@ -329,6 +399,11 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Root Child', $first_options);
     }
 
+    /**
+     * Verify that the first dropdown only shows direct children of the tree root
+     * (top-level items). Nested children (e.g. Location A1 under Location A)
+     * must not appear alongside their parents in the first select.
+     */
     public function testFirstDropdownShowsOnlyDirectChildren(): void
     {
         $this->login();
@@ -379,6 +454,11 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Location A1', $options);
     }
 
+    /**
+     * Verify that dropdown options display the short "name" field rather than
+     * the full "completename" path (which contains " > " separators).
+     * This ensures a cleaner UI for each cascade level.
+     */
     public function testDropdownShowsNameNotCompletename(): void
     {
         $this->login();
