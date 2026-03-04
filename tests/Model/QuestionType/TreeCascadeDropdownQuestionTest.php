@@ -123,7 +123,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $expected = [
             'Common' => [
                 Location::class,
-                \State::class
+                \State::class,
             ],
             'Assistance' => [
                 \ITILCategory::class,
