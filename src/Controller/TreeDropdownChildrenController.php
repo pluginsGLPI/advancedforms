@@ -33,6 +33,8 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
+use Glpi\Form\Question;
+use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use DBmysql;
 use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
@@ -52,16 +54,28 @@ final class TreeDropdownChildrenController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        $itemtype = $request->query->getString('itemtype', '');
+        $questions_id = $request->query->getInt('questions_id', 0);
         $parent_id = $request->query->getInt('parent_id', 0);
-        $field_name = $request->query->getString('field_name', '');
-        $aria_label = $request->query->getString('aria_label', '');
-        /** @var array<string, mixed> $condition_param */
-        $condition_param = $request->query->all('condition');
 
-        if ($parent_id <= 0) {
+        if ($parent_id <= 0 || $questions_id <= 0) {
             return new Response('', Response::HTTP_OK);
         }
+
+        $question = new Question();
+        if (!$question->getFromDB($questions_id)) {
+            return new Response('', Response::HTTP_OK);
+        }
+
+        /** @var QuestionTypeItemDropdown $question_type */
+        $question_type = $question->getQuestionType();
+
+        $itemtype = $question_type->getDefaultValueItemtype($question) ?? '';
+        $field_name = $question->getEndUserInputName() . '[items_id]';
+        $aria_label = $question_type->items_id_aria_label ?? __('Select a dropdown item');
+
+        $dropdown_restriction_params = $question_type->getDropdownRestrictionParams($question);
+        /** @var array<string, mixed> $condition_param */
+        $condition_param = $dropdown_restriction_params['WHERE'] ?? [];
 
         if (!class_exists($itemtype) || !is_subclass_of($itemtype, CommonTreeDropdown::class)) {
             return new Response('', Response::HTTP_OK);
@@ -128,10 +142,9 @@ final class TreeDropdownChildrenController extends AbstractController
             [
                 'select_id'        => $select_id,
                 'children'         => $children,
+                'questions_id'     => $questions_id,
                 'final_field_name' => $field_name,
                 'aria_label'       => $aria_label,
-                'itemtype'         => $itemtype,
-                'condition_param'  => $condition_param,
                 'ajax_limit_count' => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
             ],
         );

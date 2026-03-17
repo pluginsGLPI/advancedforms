@@ -33,10 +33,7 @@ export class AfTreeCascadeDropdown {
     /**
      * @param {Object} options
      * @param {string} options.selector_id - The ID of the select element to bind
-     * @param {string} options.field_name - The hidden input name for final items_id
-     * @param {string} options.itemtype - The CommonTreeDropdown itemtype
-     * @param {string} options.aria_label - Aria label for accessibility
-     * @param {Object} options.condition - Additional SQL restriction params
+     * @param {number} options.questions_id - The ID of the question
      * @param {number} options.ajax_limit_count - Limit for Select2 adaptation
      * @param {string} [options.next_container_id] - Optional container ID for auto-loading children
      * @param {number} [options.auto_load_parent_id] - Optional parent ID to auto-load children on init
@@ -44,10 +41,7 @@ export class AfTreeCascadeDropdown {
      */
     constructor(options) {
         this.selector_id = options.selector_id;
-        this.field_name = options.field_name;
-        this.itemtype = options.itemtype;
-        this.aria_label = options.aria_label;
-        this.condition = options.condition || {};
+        this.questions_id = options.questions_id;
         this.ajax_limit_count = options.ajax_limit_count || 10;
         this.next_container_id = options.next_container_id || null;
         this.auto_load_parent_id = options.auto_load_parent_id || 0;
@@ -88,7 +82,10 @@ export class AfTreeCascadeDropdown {
     #bindChangeEvent($select) {
         $select.on('change', () => {
             const value = $select.val();
-            $(`input[name="${this.field_name}"]`).val(value);
+            const fieldName = $select.data('af-tree-field-name');
+            if (fieldName) {
+                 $(`input[name="${fieldName}"]`).val(value);
+            }
 
             const $wrapper = $select.closest('.af-tree-level-wrapper');
             $wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
@@ -108,11 +105,8 @@ export class AfTreeCascadeDropdown {
         $.ajax({
             url: this.endpoint_url,
             data: {
-                itemtype: this.itemtype,
+                questions_id: this.questions_id,
                 parent_id: parent_id,
-                field_name: this.field_name,
-                aria_label: this.aria_label,
-                condition: this.condition,
             },
             success: (html) => {
                 if (html.trim().length > 0) {
@@ -134,10 +128,7 @@ export class AfTreeCascadeDropdown {
         const child_id = $select.attr('id');
         const child_options = {
             selector_id: child_id,
-            field_name: $select.data('af-tree-field-name'),
-            itemtype: $select.data('af-tree-itemtype'),
-            aria_label: $select.data('af-tree-aria-label') || this.aria_label,
-            condition: $select.data('af-tree-condition') || this.condition,
+            questions_id: $select.data('af-tree-questions-id') || this.questions_id,
             ajax_limit_count: $select.data('af-tree-ajax-limit') || this.ajax_limit_count,
             level: this.level + 1,
         };
