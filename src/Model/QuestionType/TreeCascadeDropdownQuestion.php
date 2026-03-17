@@ -101,15 +101,6 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         return 30;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    #[Override]
-    public function getDropdownRestrictionParams(?Question $question): array
-    {
-        /** @var array<string, mixed> */
-        return parent::getDropdownRestrictionParams($question);
-    }
 
     #[Override]
     public function renderEndUserTemplate(Question $question): string
