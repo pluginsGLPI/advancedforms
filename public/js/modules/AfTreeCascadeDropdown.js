@@ -91,9 +91,7 @@ export class AfTreeCascadeDropdown {
             $wrapper.nextAll('.af-tree-level-wrapper, .af-tree-next-container').remove();
 
             if (value && value > 0) {
-                const $parentRow = $wrapper.parent().closest('.row, .d-flex, form, [class*="col-"]').length
-                    ? $wrapper.parent()
-                    : $wrapper.parent();
+                const $parentRow = $wrapper.parent();
                 const $container = $(`<div class="af-tree-next-container"></div>`);
                 $parentRow.append($container);
                 this.#loadChildren(value, $container);
