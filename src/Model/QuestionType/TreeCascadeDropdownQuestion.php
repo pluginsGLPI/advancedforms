@@ -244,47 +244,38 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $current = $parent;
         }
 
-        $entity_restrict = getEntitiesRestrictCriteria($table);
-        $has_is_deleted = $item->isField('is_deleted');
+        $item_check = getItemForItemtype($itemtype);
+        $is_recursive = $item_check->maybeRecursive();
+
+        $base_where = [];
+        $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
+        if (!empty($entity_restrict)) {
+            $base_where = array_merge($base_where, $entity_restrict);
+        }
 
         $id_key = $table . '.id';
         $level_key = $table . '.level';
         $filtered_conditions = $extra_conditions;
         unset($filtered_conditions[$id_key], $filtered_conditions[$level_key]);
 
+        if ($filtered_conditions !== []) {
+            $base_where = array_merge($base_where, $filtered_conditions);
+        }
+
+        $has_is_deleted = $item->isField('is_deleted');
+        if ($has_is_deleted) {
+            $base_where['is_deleted'] = 0;
+        }
+
         foreach ($chain as $index => &$node) {
-            $where = [];
-
-            if (!empty($entity_restrict)) {
-                $where = array_merge($where, $entity_restrict);
-            }
-
-            if ($filtered_conditions !== []) {
-                $where = array_merge($where, $filtered_conditions);
-            }
-
-            $where[$foreign_key] = $index === 0 ? max($root_items_id, 0) : $node['parent_id'];
-
+            $raw_where = [
+                $foreign_key => $index === 0 ? max($root_items_id, 0) : $node['parent_id']
+            ];
             if ($has_is_deleted) {
-                $where['is_deleted'] = 0;
+                $raw_where['is_deleted'] = 0;
             }
 
-            $siblings = [];
-            $iterator = $DB->request([
-                'SELECT' => ['id', 'name'],
-                'FROM'   => $table,
-                'WHERE'  => $where,
-                'ORDER'  => 'name ASC',
-            ]);
-
-            foreach ($iterator as $row) {
-                /** @var array{id: mixed, name: mixed} $row */
-                $row_id = is_numeric($row['id'] ?? 0) ? (int) ($row['id'] ?? 0) : 0;
-                $row_name = is_string($row['name'] ?? '') ? (string) ($row['name'] ?? '') : '';
-                $siblings[] = ['id' => $row_id, 'name' => $row_name];
-            }
-
-            $node['siblings'] = $siblings;
+            $node['siblings'] = $this->getValidItemsForLevel($table, $base_where, $raw_where);
         }
 
         return $chain;
@@ -300,9 +291,6 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         array $extra_conditions = [],
         int $root_items_id = 0,
     ): array {
-        /** @var DBmysql $DB */
-        global $DB;
-
         $table = $itemtype::getTable();
         $foreign_key = $itemtype::getForeignKeyField();
 
@@ -311,37 +299,92 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         $filtered_conditions = $extra_conditions;
         unset($filtered_conditions[$id_key], $filtered_conditions[$level_key]);
 
-        $where = [];
+        $base_where = [];
 
-        $entity_restrict = getEntitiesRestrictCriteria($table);
+        $item_check = getItemForItemtype($itemtype);
+        $is_recursive = $item_check->maybeRecursive();
+
+        $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
         if (!empty($entity_restrict)) {
-            $where = array_merge($where, $entity_restrict);
+            $base_where = array_merge($base_where, $entity_restrict);
         }
 
         if ($filtered_conditions !== []) {
-            $where = array_merge($where, $filtered_conditions);
+            $base_where = array_merge($base_where, $filtered_conditions);
         }
 
-        $where[$foreign_key] = max($root_items_id, 0);
+        $raw_where = [
+            $foreign_key => max($root_items_id, 0)
+        ];
 
         $item = getItemForItemtype($itemtype);
         if ($item instanceof CommonTreeDropdown && $item->isField('is_deleted')) {
-            $where['is_deleted'] = 0;
+            $base_where['is_deleted'] = 0;
+            $raw_where['is_deleted'] = 0;
         }
 
-        $items = [];
-        $iterator = $DB->request([
+        return $this->getValidItemsForLevel($table, $base_where, $raw_where);
+    }
+
+    /**
+     * @param string $table
+     * @param array<string, mixed> $base_where
+     * @param array<string, mixed> $raw_where
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function getValidItemsForLevel(string $table, array $base_where, array $raw_where): array
+    {
+        /** @var DBmysql $DB */
+        global $DB;
+
+        $raw_iterator = $DB->request([
             'SELECT' => ['id', 'name'],
             'FROM'   => $table,
-            'WHERE'  => $where,
+            'WHERE'  => $raw_where,
             'ORDER'  => 'name ASC',
         ]);
 
-        foreach ($iterator as $row) {
-            /** @var array{id: mixed, name: mixed} $row */
-            $row_id = is_numeric($row['id'] ?? 0) ? (int) ($row['id'] ?? 0) : 0;
-            $row_name = is_string($row['name'] ?? '') ? (string) ($row['name'] ?? '') : '';
-            $items[] = ['id' => $row_id, 'name' => $row_name];
+        $raw_items = [];
+        foreach ($raw_iterator as $row) {
+            $raw_items[(int)$row['id']] = $row;
+        }
+
+        $items = [];
+        if (!empty($raw_items)) {
+            $valid_where = $base_where;
+            $valid_where['id'] = array_keys($raw_items);
+
+            $valid_iterator = $DB->request([
+                'SELECT' => ['id'],
+                'FROM'   => $table,
+                'WHERE'  => $valid_where,
+            ]);
+
+            $valid_direct = [];
+            foreach ($valid_iterator as $row) {
+                $valid_direct[(int)$row['id']] = true;
+            }
+
+            foreach ($raw_items as $id => $row) {
+                if (isset($valid_direct[$id])) {
+                    $items[] = ['id' => $id, 'name' => (string)$row['name']];
+                    continue;
+                }
+
+                $descendant_where = $base_where;
+                $descendant_where[] = ['OR' => [['ancestors_cache' => ['LIKE', '%"' . $id . '"%']]]];
+
+                $has_descendant = $DB->request([
+                    'SELECT' => ['id'],
+                    'FROM'   => $table,
+                    'WHERE'  => $descendant_where,
+                    'LIMIT'  => 1
+                ])->count() > 0;
+
+                if ($has_descendant) {
+                    $items[] = ['id' => $id, 'name' => (string)$row['name']];
+                }
+            }
         }
 
         return $items;

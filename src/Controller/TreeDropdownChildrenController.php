@@ -91,7 +91,10 @@ final class TreeDropdownChildrenController extends AbstractController
 
         $where = [];
 
-        $entity_restrict = getEntitiesRestrictCriteria($table);
+        $item_check = getItemForItemtype($itemtype);
+        $is_recursive = $item_check->maybeRecursive();
+
+        $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
         if (!empty($entity_restrict)) {
             $where = array_merge($where, $entity_restrict);
         }
@@ -101,12 +104,19 @@ final class TreeDropdownChildrenController extends AbstractController
             $where = array_merge($where, $condition_param);
         }
 
-        $where[$foreign_key] = $parent_id;
-
-        $item_check = getItemForItemtype($itemtype);
         if ($item_check instanceof CommonTreeDropdown && $item_check->isField('is_deleted')) {
             $where['is_deleted'] = 0;
         }
+
+        $parent_where = $where;
+        $parent_where['id'] = $parent_id;
+
+        $parent_is_selectable = false;
+        if (count($DB->request(['SELECT' => ['id'], 'FROM' => $table, 'WHERE' => $parent_where, 'LIMIT' => 1])) > 0) {
+            $parent_is_selectable = true;
+        }
+
+        $where[$foreign_key] = $parent_id;
 
         $children = [];
         $iterator = $DB->request([
@@ -140,12 +150,13 @@ final class TreeDropdownChildrenController extends AbstractController
         $html = $twig->render(
             '@advancedforms/tree_cascade_dropdown_children.html.twig',
             [
-                'select_id'        => $select_id,
-                'children'         => $children,
-                'questions_id'     => $questions_id,
-                'final_field_name' => $field_name,
-                'aria_label'       => $aria_label,
-                'ajax_limit_count' => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
+                'select_id'            => $select_id,
+                'children'             => $children,
+                'questions_id'         => $questions_id,
+                'final_field_name'     => $field_name,
+                'aria_label'           => $aria_label,
+                'parent_is_selectable' => $parent_is_selectable,
+                'ajax_limit_count'     => is_numeric($CFG_GLPI['ajax_limit_count'] ?? 10) ? (int) ($CFG_GLPI['ajax_limit_count'] ?? 10) : 10,
             ],
         );
 

@@ -38,9 +38,22 @@
         data-af-tree-field-name="{{ final_field_name }}"
         data-af-tree-ajax-limit="{{ ajax_limit_count }}"
     >
-        <option value="0">---</option>
+        {% if parent_is_selectable %}
+            <option value="0">---</option>
+        {% endif %}
         {% for child in children %}
-            <option value="{{ child.id }}">{{ child.name }}</option>
+            <option value="{{ child.id }}" {% if not parent_is_selectable and loop.first %}selected{% endif %}>{{ child.name }}</option>
         {% endfor %}
     </select>
 </div>
+
+{% if not parent_is_selectable and children|length > 0 %}
+<script>
+    setTimeout(() => {
+        const select = document.getElementById('{{ select_id }}');
+        if (select) {
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }, 50);
+</script>
+{% endif %}
