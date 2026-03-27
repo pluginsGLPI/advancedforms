@@ -354,8 +354,8 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         foreach ($raw_iterator as $row) {
             if (is_array($row) && isset($row['id']) && is_int($row['id'])) {
                 $name = isset($row['name']) && is_scalar($row['name']) ? (string) $row['name'] : '';
-                $raw_items[(int) $row['id']] = [
-                    'id'   => (int) $row['id'],
+                $raw_items[$row['id']] = [
+                    'id'   => $row['id'],
                     'name' => $name,
                 ];
             }
@@ -375,7 +375,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $valid_direct = [];
             foreach ($valid_iterator as $row) {
                 if (is_array($row) && isset($row['id']) && is_int($row['id'])) {
-                    $valid_direct[(int) $row['id']] = true;
+                    $valid_direct[$row['id']] = true;
                 }
             }
 
