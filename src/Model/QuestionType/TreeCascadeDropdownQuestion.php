@@ -247,6 +247,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         $item_check = getItemForItemtype($itemtype);
         $is_recursive = $item_check->maybeRecursive();
 
+        /** @var array<string, mixed> $base_where */
         $base_where = [];
         $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
         if (!empty($entity_restrict)) {
@@ -269,13 +270,15 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
 
         foreach ($chain as $index => &$node) {
             $raw_where = [
-                $foreign_key => $index === 0 ? max($root_items_id, 0) : $node['parent_id']
+                $foreign_key => $index === 0 ? max($root_items_id, 0) : $node['parent_id'],
             ];
             if ($has_is_deleted) {
                 $raw_where['is_deleted'] = 0;
             }
 
-            $node['siblings'] = $this->getValidItemsForLevel($table, $base_where, $raw_where);
+            /** @var array<string, mixed> $typed_base_where */
+            $typed_base_where = $base_where;
+            $node['siblings'] = $this->getValidItemsForLevel($table, $typed_base_where, $raw_where);
         }
 
         return $chain;
@@ -299,6 +302,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         $filtered_conditions = $extra_conditions;
         unset($filtered_conditions[$id_key], $filtered_conditions[$level_key]);
 
+        /** @var array<string, mixed> $base_where */
         $base_where = [];
 
         $item_check = getItemForItemtype($itemtype);
@@ -314,7 +318,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         }
 
         $raw_where = [
-            $foreign_key => max($root_items_id, 0)
+            $foreign_key => max($root_items_id, 0),
         ];
 
         $item = getItemForItemtype($itemtype);
@@ -327,7 +331,6 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
     }
 
     /**
-     * @param string $table
      * @param array<string, mixed> $base_where
      * @param array<string, mixed> $raw_where
      * @return array<int, array{id: int, name: string}>
@@ -344,13 +347,20 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             'ORDER'  => 'name ASC',
         ]);
 
+        /** @var array<int, array{id: int, name: string}> $raw_items */
         $raw_items = [];
         foreach ($raw_iterator as $row) {
-            $raw_items[(int)$row['id']] = $row;
+            if (is_array($row) && isset($row['id']) && is_int($row['id'])) {
+                $name = isset($row['name']) && is_scalar($row['name']) ? (string) $row['name'] : '';
+                $raw_items[(int) $row['id']] = [
+                    'id'   => (int) $row['id'],
+                    'name' => $name,
+                ];
+            }
         }
 
         $items = [];
-        if (!empty($raw_items)) {
+        if ($raw_items !== []) {
             $valid_where = $base_where;
             $valid_where['id'] = array_keys($raw_items);
 
@@ -362,12 +372,14 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
 
             $valid_direct = [];
             foreach ($valid_iterator as $row) {
-                $valid_direct[(int)$row['id']] = true;
+                if (is_array($row) && isset($row['id']) && is_int($row['id'])) {
+                    $valid_direct[(int) $row['id']] = true;
+                }
             }
 
             foreach ($raw_items as $id => $row) {
                 if (isset($valid_direct[$id])) {
-                    $items[] = ['id' => $id, 'name' => (string)$row['name']];
+                    $items[] = ['id' => $id, 'name' => $row['name']];
                     continue;
                 }
 
@@ -378,11 +390,11 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
                     'SELECT' => ['id'],
                     'FROM'   => $table,
                     'WHERE'  => $descendant_where,
-                    'LIMIT'  => 1
+                    'LIMIT'  => 1,
                 ])->count() > 0;
 
                 if ($has_descendant) {
-                    $items[] = ['id' => $id, 'name' => (string)$row['name']];
+                    $items[] = ['id' => $id, 'name' => $row['name']];
                 }
             }
         }
