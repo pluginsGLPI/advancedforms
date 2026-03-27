@@ -327,7 +327,9 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $raw_where['is_deleted'] = 0;
         }
 
-        return $this->getValidItemsForLevel($table, $base_where, $raw_where);
+        /** @var array<string, mixed> $typed_base_where */
+        $typed_base_where = $base_where;
+        return $this->getValidItemsForLevel($table, $typed_base_where, $raw_where);
     }
 
     /**
