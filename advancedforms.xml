@@ -25,6 +25,11 @@
       <author>Teclib'</author>
    </authors>
    <versions>
+      <version>
+         <num>1.1.0</num>
+         <compatibility>~11.0.0</compatibility>
+         <download_url>https://github.com/pluginsGLPI/advancedforms/releases/download/1.1.0/glpi-advancedforms-1.1.0.tar.bz2</download_url>
+      </version>
       <!-- Add as many version tag you want -->
       <version>
          <num>1.0.1</num>
