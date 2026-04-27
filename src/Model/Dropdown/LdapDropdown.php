@@ -241,7 +241,7 @@ final class LdapDropdown extends CommonGLPI
             $entries = ldap_get_entries($ds, $result);
 
             // openldap return 4 for Size limit exceeded
-            $limitexceeded = in_array(ldap_errno($ds), [4, 11]);
+            $limitexceeded = in_array(ldap_errno($ds), [4, 11], true);
 
             if ($limitexceeded) {
                 trigger_error("LDAP size limit exceeded", E_USER_WARNING);
