@@ -31,6 +31,7 @@
  * -------------------------------------------------------------------------
  */
 
+use Glpi\Application\ImportMapGenerator;
 use Glpi\Plugin\HookManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 
@@ -60,6 +61,8 @@ function plugin_init_advancedforms(): void
     $hook_manager = new HookManager('advancedforms');
     $hook_manager->registerCSSFile('css/advancedforms.css');
     $hook_manager->registerJavascriptFile('js/advancedforms.js');
+
+    ImportMapGenerator::getInstance()->registerModulesPath('advancedforms', '/public/js/modules');
 
     InitManager::getInstance()->init();
 }

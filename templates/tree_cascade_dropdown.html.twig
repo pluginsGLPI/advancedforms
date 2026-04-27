@@ -1,0 +1,151 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% import 'components/form/fields_macros.html.twig' as fields %}
+
+{{ fields.hiddenField(question.getEndUserInputName() ~ '[itemtype]', itemtype) }}
+{{ fields.hiddenField(final_items_id_name, default_items_id) }}
+
+{% set has_selectable_root = selectable_tree_root and root_items_id > 0 and root_item_name is defined %}
+{% set root_is_preselected = has_selectable_root and (ancestor_chain|length > 0 or default_items_id == root_items_id) %}
+
+{% if has_selectable_root %}
+    {% set root_selector_id = 'tree_cascade_root_' ~ rand_tree %}
+    <div class="col-12 col-sm-6 af-tree-level-wrapper">
+        <select
+            id="{{ root_selector_id }}"
+            class="form-select af-tree-cascade-select"
+            aria-label="{{ aria_label }}"
+            data-af-tree-questions-id="{{ question.fields['id'] }}"
+            data-af-tree-field-name="{{ final_items_id_name }}"
+            data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+        >
+            <option value="0">---</option>
+            <option value="{{ root_items_id }}" {{ root_is_preselected ? 'selected' : '' }}>{{ root_item_name }}</option>
+        </select>
+    </div>
+
+    <script type="module">
+    import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
+    $(function() {
+        new AfTreeCascadeDropdown({
+            selector_id: '{{ root_selector_id }}',
+            questions_id: {{ question.fields['id'] }},
+            ajax_limit_count: {{ ajax_limit_count }},
+            level: 1,
+            {% if root_is_preselected and ancestor_chain|length == 0 %}
+            next_container_id: '{{ level2_container }}',
+            auto_load_parent_id: {{ root_items_id }},
+            {% endif %}
+        });
+    });
+    </script>
+
+    {% if root_is_preselected and ancestor_chain|length == 0 %}
+        <div id="{{ level2_container }}" class="af-tree-next-container"></div>
+    {% endif %}
+{% endif %}
+
+{% if ancestor_chain|length > 0 %}
+    {% for i, node in ancestor_chain %}
+        {% set is_last = loop.last %}
+        {% set level_rand = rand_tree + i %}
+        {% set selector_id = 'tree_cascade_level_' ~ level_rand %}
+        {% set level_num = has_selectable_root ? i + 2 : i + 1 %}
+
+        <div class="col-12 col-sm-6 af-tree-level-wrapper{{ (has_selectable_root or i > 0) ? ' mt-2' : '' }}">
+            <select
+                id="{{ selector_id }}"
+                class="form-select af-tree-cascade-select"
+                aria-label="{{ aria_label }}"
+                data-af-tree-questions-id="{{ question.fields['id'] }}"
+                data-af-tree-field-name="{{ final_items_id_name }}"
+                data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+            >
+                <option value="0">---</option>
+                {% for sibling in node.siblings %}
+                    <option value="{{ sibling.id }}" {{ sibling.id == node.id ? 'selected' : '' }}>{{ sibling.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <script type="module">
+        import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
+        $(function() {
+            new AfTreeCascadeDropdown({
+                selector_id: '{{ selector_id }}',
+                questions_id: {{ question.fields['id'] }},
+                ajax_limit_count: {{ ajax_limit_count }},
+                level: {{ level_num }},
+                {% if is_last %}
+                next_container_id: '{{ level2_container }}',
+                auto_load_parent_id: {{ node.id }},
+                {% endif %}
+            });
+        });
+        </script>
+
+        {% if is_last %}
+            <div id="{{ level2_container }}" class="af-tree-next-container"></div>
+        {% endif %}
+    {% endfor %}
+
+{% elseif not has_selectable_root %}
+    {% set selector_id = 'tree_cascade_level1_' ~ rand_tree %}
+    <div class="col-12 col-sm-6 af-tree-level-wrapper">
+        <select
+            id="{{ selector_id }}"
+            class="form-select af-tree-cascade-select"
+            aria-label="{{ aria_label }}"
+            data-af-tree-questions-id="{{ question.fields['id'] }}"
+            data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+        >
+            <option value="0">---</option>
+            {% for item in first_level_items %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="{{ level2_container }}" class="af-tree-next-container"></div>
+
+    <script type="module">
+    import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
+    $(function() {
+        new AfTreeCascadeDropdown({
+            selector_id: '{{ selector_id }}',
+            questions_id: {{ question.fields['id'] }},
+            ajax_limit_count: {{ ajax_limit_count }},
+            next_container_id: '{{ level2_container }}',
+        });
+    });
+    </script>
+{% endif %}
