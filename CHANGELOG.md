@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Add
+
+- Add configurable table question type
+
 ### Fixed
 
 - Fixed the `Tree cascade Dropdown` field so that the subtree depth limit is enforced when loading children via AJAX
