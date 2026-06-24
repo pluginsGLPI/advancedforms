@@ -75,6 +75,11 @@ final class TableQuestionIntegrationTest extends QuestionTypeTestCase
     #[Override]
     protected function validateEditorRenderingWhenEnabled(Crawler $html): void
     {
+        // The admin preview marker lets plugin CSS hide the question-level
+        // "Mandatory" toggle (required is handled per column instead).
+        $question = $html->filter('[data-glpi-form-editor-question]')->first();
+        $this->assertGreaterThan(0, $question->filter('[data-af-table-admin]')->count());
+
         // Preview table must show column headers — use combined text to handle required asterisk span
         $headerText = implode(' ', $html->filter('th')->each(fn(Crawler $n) => $n->text()));
         $this->assertStringContainsString('Source IP', $headerText);

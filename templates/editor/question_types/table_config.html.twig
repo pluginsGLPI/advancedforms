@@ -118,15 +118,21 @@
                                     </select>
                                 </div>
                             {% endfor %}
-                            <label class="d-flex align-items-center gap-1 mb-0 text-nowrap">
+                            <label
+                                class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ __('Required column', 'advancedforms') }}"
+                            >
                                 <input
                                     type="checkbox"
-                                    class="form-check-input"
+                                    class="visually-hidden"
                                     name="extra_data[columns][{{ index }}][{{ COL_REQUIRED }}]"
                                     value="1"
+                                    aria-label="{{ __('Required column', 'advancedforms') }}"
                                     {{ col[COL_REQUIRED] ? 'checked' : '' }}
                                 >
-                                {{ __('Req.', 'advancedforms') }}
+                                <i class="ti ti-asterisk" aria-hidden="true"></i>
                             </label>
                             <i
                                 role="button"
@@ -184,14 +190,20 @@
                                 </select>
                             </div>
                         {% endfor %}
-                        <label class="d-flex align-items-center gap-1 mb-0 text-nowrap">
+                        <label
+                            class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="{{ __('Required column', 'advancedforms') }}"
+                        >
                             <input
                                 type="checkbox"
-                                class="form-check-input"
+                                class="visually-hidden"
                                 name="extra_data[columns][__INDEX__][{{ COL_REQUIRED }}]"
                                 value="1"
+                                aria-label="{{ __('Required column', 'advancedforms') }}"
                             >
-                            {{ __('Req.', 'advancedforms') }}
+                            <i class="ti ti-asterisk" aria-hidden="true"></i>
                         </label>
                         <i
                             role="button"

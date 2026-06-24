@@ -34,6 +34,10 @@
         display: none !important;
 }
 
+[data-glpi-form-editor-question]:has([data-af-table-admin]) label.form-check:has([data-glpi-form-editor-original-name="is_mandatory"]) {
+    display: none !important;
+}
+
 [data-af-table-column] .select2-selection--single .select2-selection__rendered,
 [data-af-table-question] td .select2-selection--single .select2-selection__rendered {
     display: flex !important;
@@ -45,6 +49,23 @@
 [data-af-table-column] .select2-selection--single .select2-selection__rendered::before,
 [data-af-table-question] td .select2-selection--single .select2-selection__rendered::before {
     display: none !important;
+}Ptemp
+
+.af-required-toggle {
+    display: inline-flex;
+    align-items: center;
+    color: var(--tblr-secondary);
+}
+.af-required-toggle:hover {
+    color: var(--tblr-body-color);
+}
+.af-required-toggle:has(:checked) {
+    color: var(--tblr-danger);
+}
+.af-required-toggle:has(:focus-visible) {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
+    border-radius: var(--tblr-border-radius);
 }
 
 [data-af-table-question]:has(select.is-invalid) td:not(:has(select.is-invalid)) .select2-container--default .select2-selection {
