@@ -1,0 +1,186 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% set rand_eu    = random() %}
+{% set input_base = question.getEndUserInputName() %}
+{% set min_rows   = config.getMinRows() %}
+{% set max_rows   = config.getMaxRows() %}
+{% set columns    = config.getColumns() %}
+
+{% set required_cols = [] %}
+{% for col_index, col in columns %}
+    {% if col.required %}{% set required_cols = required_cols|merge([col_index]) %}{% endif %}
+{% endfor %}
+
+<div
+    data-af-table-question="{{ rand_eu }}"
+    data-af-min-rows="{{ min_rows }}"
+    data-af-max-rows="{{ max_rows }}"
+    data-af-s2-limit="{{ ajax_limit_count }}"
+    data-af-required-cols="{{ required_cols|join(',') }}"
+    data-af-required-msg="{{ __('Please fill in all required columns.', 'advancedforms') }}"
+>
+    <table class="table table-bordered table-sm mb-2">
+        <thead>
+            <tr>
+                {% for col in columns %}
+                    <th>
+                        {{ col.name }}
+                        {% if col.required %}<span class="text-danger" aria-hidden="true">*</span>{% endif %}
+                    </th>
+                {% endfor %}
+                <th style="width: 2.5rem"></th>
+            </tr>
+        </thead>
+        <tbody data-af-table-body>
+            {% for row_index in 0..(min_rows - 1) %}
+                <tr data-af-table-row>
+                    {% for col_index, col in columns %}
+                        {% set cell = column_cell_map[col_index] %}
+                        <td class="align-middle">
+                            {% if cell.mode == 'checkbox' %}
+                                <div class="d-flex justify-content-center">
+                                    <input
+                                        type="checkbox"
+                                        value="1"
+                                        class="form-check-input mt-0"
+                                        name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                                        {% if col.required %} required {% endif %}
+                                    >
+                                </div>
+                            {% elseif cell.mode == 'select' %}
+                                {% set sel_html %}
+                                    {% do call('Dropdown::showFromArray', [
+                                        input_base ~ '[' ~ row_index ~ '][col_' ~ col_index ~ ']',
+                                        cell.options,
+                                        {
+                                            'class'              : 'form-select form-select-sm',
+                                            'width'              : '100%',
+                                            'display_emptychoice': false,
+                                        }
+                                    ]) %}
+                                {% endset %}
+                                {{ sel_html|raw }}
+                            {% else %}
+                                <input
+                                    class="form-control form-control-sm"
+                                    type="{{ cell.input_type }}"
+                                    name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                                    placeholder="{{ col.name }}"
+                                    {% if col.required %} required {% endif %}
+                                >
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    <td class="text-center align-middle">
+                        <i
+                            role="button"
+                            class="ti ti-trash cursor-pointer text-danger{% if min_rows >= max_rows %} opacity-25 pe-none{% endif %}"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="{{ __('Remove row', 'advancedforms') }}"
+                            aria-label="{{ __('Remove row', 'advancedforms') }}"
+                            data-af-table-remove-row
+                        ></i>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# Template for cloning new rows #}
+    <template data-af-table-row-template>
+        <tr data-af-table-row>
+            {% for col_index, col in columns %}
+                {% set cell = column_cell_map[col_index] %}
+                <td class="align-middle">
+                    {% if cell.mode == 'checkbox' %}
+                        <div class="d-flex justify-content-center">
+                            <input
+                                type="checkbox"
+                                value="1"
+                                class="form-check-input mt-0"
+                                name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
+                                {% if col.required %} required {% endif %}
+                            >
+                        </div>
+                    {% elseif cell.mode == 'select' %}
+                        <select
+                            class="form-select form-select-sm"
+                            name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
+                            data-af-needs-s2
+                            {% if col.required %} required {% endif %}
+                        >
+                            {% for val, lbl in cell.options %}
+                                <option value="{{ val }}">{{ lbl }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <input
+                            class="form-control form-control-sm"
+                            type="{{ cell.input_type }}"
+                            name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
+                            placeholder="{{ col.name }}"
+                            {% if col.required %} required {% endif %}
+                        >
+                    {% endif %}
+                </td>
+            {% endfor %}
+            <td class="text-center align-middle">
+                <i
+                    role="button"
+                    class="ti ti-trash cursor-pointer text-danger"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    title="{{ __('Remove row', 'advancedforms') }}"
+                    aria-label="{{ __('Remove row', 'advancedforms') }}"
+                    data-af-table-remove-row
+                ></i>
+            </td>
+        </tr>
+    </template>
+
+    <i
+        role="button"
+        class="ti ti-plus cursor-pointer{% if min_rows >= max_rows %} opacity-25 pe-none{% endif %}"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        title="{{ __('Add a row', 'advancedforms') }}"
+        aria-label="{{ __('Add a row', 'advancedforms') }}"
+        data-af-table-add-row
+    ></i>
+</div>
+
+<script type="module">
+    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js';
+    const el = document.querySelector('[data-af-table-question="{{ rand_eu|e('js') }}"]');
+    if (el) { new AfTableQuestion(el); }
+</script>

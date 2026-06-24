@@ -33,3 +33,42 @@
 [data-glpi-form-editor-active-question] [data-ldap-question-preview] {
         display: none !important;
 }
+
+/*
+ * GLPI's .select2-selection__rendered has line-height: ~42px + a ::before pseudo-element,
+ * making the total height ~80px while the container is ~40px with overflow:hidden.
+ * When the selection content is a flex span, it gets pushed below the visible area.
+ * Fix applied for both the admin column config panel and the end-user table cells.
+ */
+[data-af-table-column] .select2-selection--single .select2-selection__rendered,
+[data-af-table-question] td .select2-selection--single .select2-selection__rendered {
+    display: flex !important;
+    align-items: center !important;
+    line-height: normal !important;
+    direction: ltr !important;
+    height: 100% !important;
+}
+[data-af-table-column] .select2-selection--single .select2-selection__rendered::before,
+[data-af-table-question] td .select2-selection--single .select2-selection__rendered::before {
+    display: none !important;
+}
+
+/*
+ * Per-cell invalid state for select2 cells.
+ *
+ * Core (_form-renderer.scss) reddens EVERY select2 of a question as soon as one of
+ * its selects is .is-invalid, via a question-level selector:
+ *   [data-glpi-form-renderer-question]:has(select.is-invalid) .select2-selection
+ * A table holds many selects inside a single question, so one invalid cell would turn
+ * every dropdown red. We re-scope the highlight to the offending cell: while the table
+ * has an invalid select, valid cells are reset to the default border, and only the cell
+ * that actually contains the invalid select keeps the red border.
+ *
+ * Plain inputs and checkboxes already get their red border from Bootstrap's .is-invalid.
+ */
+[data-af-table-question]:has(select.is-invalid) td:not(:has(select.is-invalid)) .select2-container--default .select2-selection {
+    border-color: var(--tblr-border-color) !important;
+}
+[data-af-table-question] td:has(select.is-invalid) .select2-container--default .select2-selection {
+    border-color: var(--tblr-form-invalid-border-color) !important;
+}
