@@ -88,7 +88,7 @@ export class AfTableQuestionConfig {
         if (!select || !rand || !window.setupAdaptDropdown) { return; }
         const templateConfig = window.select2_configs?.['af-table-type-template-' + rand];
         if (!templateConfig) { return; }
-        const newId = 'dropdown_af_table_type_' + rand + '_' + Date.now();
+        const newId = 'dropdown_af_table_type_' + rand + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
         select.id = newId;
         const config = { ...templateConfig, field_id: newId };
         window.select2_configs[newId] = config;
@@ -132,7 +132,7 @@ export class AfTableQuestionConfig {
     static #initItemtypeSelect(select, rand) {
         if (!select || !window.setupAdaptDropdown) { return; }
         if (!select.id) {
-            select.id = 'dropdown_af_itemtype_' + Date.now();
+            select.id = 'dropdown_af_itemtype_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
         }
         const templateConfig = window.select2_configs?.['af-table-type-template-' + rand];
         const config = {

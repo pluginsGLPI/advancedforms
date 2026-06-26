@@ -169,4 +169,34 @@ final class TableQuestionTest extends AdvancedFormsTestCase
     {
         $this->assertSame(TableQuestionConfig::class, $this->type->getExtraDataConfigClass());
     }
+
+    public function testValidateExtraDataInputAcceptsMaxRows50(): void
+    {
+        $result = $this->type->validateExtraDataInput([
+            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
+            'min_rows' => 1,
+            'max_rows' => 50,
+        ]);
+        $this->assertTrue($result);
+    }
+
+    public function testValidateExtraDataInputRejectsMaxRowsAbove50(): void
+    {
+        $result = $this->type->validateExtraDataInput([
+            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
+            'min_rows' => 1,
+            'max_rows' => 51,
+        ]);
+        $this->assertFalse($result);
+    }
+
+    public function testValidateExtraDataInputRejectsCraftedLargeMaxRows(): void
+    {
+        $result = $this->type->validateExtraDataInput([
+            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
+            'min_rows' => 1,
+            'max_rows' => 99999,
+        ]);
+        $this->assertFalse($result);
+    }
 }

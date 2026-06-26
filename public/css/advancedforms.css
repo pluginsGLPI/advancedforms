@@ -49,7 +49,7 @@
 [data-af-table-column] .select2-selection--single .select2-selection__rendered::before,
 [data-af-table-question] td .select2-selection--single .select2-selection__rendered::before {
     display: none !important;
-}Ptemp
+}
 
 .af-required-toggle {
     display: inline-flex;
