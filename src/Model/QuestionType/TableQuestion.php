@@ -156,7 +156,7 @@ final class TableQuestion extends AbstractQuestionType implements
         $min_raw = $input[TableQuestionConfig::MIN_ROWS] ?? 1;
         $max_raw = $input[TableQuestionConfig::MAX_ROWS] ?? 50;
         $min = max(1, is_numeric($min_raw) ? (int) $min_raw : 1);
-        $max = max($min, is_numeric($max_raw) ? (int) $max_raw : 50);
+        $max = min(50, max($min, is_numeric($max_raw) ? (int) $max_raw : 50));
 
         return [
             TableQuestionConfig::COLUMNS  => $columns,

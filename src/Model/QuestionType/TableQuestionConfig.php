@@ -82,10 +82,13 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
             array_filter($data[self::COLUMNS] ?? [], is_array(...)),
         ));
 
+        $min_rows = max(1, (int) ($data[self::MIN_ROWS] ?? 1));
+        $max_rows = min(50, max($min_rows, (int) ($data[self::MAX_ROWS] ?? 50)));
+
         return new self(
             columns: $columns,
-            min_rows: max(1, (int) ($data[self::MIN_ROWS] ?? 1)),
-            max_rows: max(1, (int) ($data[self::MAX_ROWS] ?? 50)),
+            min_rows: $min_rows,
+            max_rows: $max_rows,
         );
     }
 

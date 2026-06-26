@@ -199,4 +199,14 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         ]);
         $this->assertFalse($result);
     }
+
+    public function testPrepareExtraDataClampsMaxRowsTo50(): void
+    {
+        $result = $this->type->prepareExtraData([
+            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class, 'required' => false]],
+            'min_rows' => 1,
+            'max_rows' => 99999,
+        ]);
+        $this->assertSame(50, $result[TableQuestionConfig::MAX_ROWS]);
+    }
 }

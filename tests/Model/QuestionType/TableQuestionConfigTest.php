@@ -85,4 +85,10 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
         $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 1, 'max_rows' => 0]);
         $this->assertSame(1, $config->getMaxRows());
     }
+
+    public function testJsonDeserializeEnforcesMaxRowNotLessThanMin(): void
+    {
+        $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 10, 'max_rows' => 5]);
+        $this->assertSame(10, $config->getMaxRows());
+    }
 }
