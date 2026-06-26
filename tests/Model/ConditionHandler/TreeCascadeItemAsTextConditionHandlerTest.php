@@ -122,6 +122,63 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
     }
 
     /**
+     * Verify that CONTAINS evaluates to true when the parent item itself is
+     * selected (completename equals the searched text exactly, not via a child).
+     */
+    public function testContainsMatchesParentDirectly(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(TreeCascadeDropdownQuestion::class);
+
+        $entity_id = Session::getActiveEntity();
+
+        $parent = $this->createItem(Location::class, [
+            'name'         => 'Parent Location',
+            'locations_id' => 0,
+            'entities_id'  => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: Location::class,
+        ));
+
+        $form_builder = new FormBuilder("Test form parent selected");
+        $form_builder->addQuestion(
+            name: "My location",
+            type: TreeCascadeDropdownQuestion::class,
+            extra_data: $extra_data,
+        );
+        $form_builder->addQuestion("Dependent question", QuestionTypeShortText::class);
+        $form_builder->setQuestionVisibility("Dependent question", VisibilityStrategy::VISIBLE_IF, [
+            [
+                'logic_operator' => LogicOperator::AND,
+                'item_name'      => "My location",
+                'item_type'      => Type::QUESTION,
+                'value_operator' => ValueOperator::CONTAINS,
+                'value'          => 'Parent Location',
+            ],
+        ]);
+
+        $form = $this->createForm($form_builder);
+
+        $answers = [
+            $this->getQuestionId($form, "My location") => [
+                'itemtype' => Location::class,
+                'items_id' => $parent->getID(),
+            ],
+        ];
+
+        $engine = new Engine($form, new EngineInput($answers));
+        $output = $engine->computeVisibility();
+
+        $dependent_id = $this->getQuestionId($form, "Dependent question");
+        $this->assertTrue(
+            $output->isQuestionVisible($dependent_id),
+            "Condition 'contains Parent Location' should match when the parent item itself is selected",
+        );
+    }
+
+    /**
      * Verify that NOT_CONTAINS evaluates to false when the searched text appears
      * in the completename of the selected item (via an ancestor).
      */
@@ -182,6 +239,59 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
             $output->isQuestionVisible($dependent_id),
             "Condition 'not contains Parent Location' should NOT match a child item "
             . "whose completename is 'Parent Location > Child Location'",
+        );
+    }
+
+    /**
+     * Verify that both CONTAINS and NOT_CONTAINS evaluate to false when no item
+     * is selected (items_id = 0), so the dependent question is hidden in both cases.
+     *
+     * This is non-obvious: a NOT_CONTAINS condition does NOT show the question
+     * when no selection has been made — it also evaluates to false.
+     */
+    public function testNoSelectionHidesDependentQuestion(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(TreeCascadeDropdownQuestion::class);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: Location::class,
+        ));
+
+        $form_builder = new FormBuilder("Test form no selection");
+        $form_builder->addQuestion(
+            name: "My location",
+            type: TreeCascadeDropdownQuestion::class,
+            extra_data: $extra_data,
+        );
+        $form_builder->addQuestion("Dependent question", QuestionTypeShortText::class);
+        $form_builder->setQuestionVisibility("Dependent question", VisibilityStrategy::VISIBLE_IF, [
+            [
+                'logic_operator' => LogicOperator::AND,
+                'item_name'      => "My location",
+                'item_type'      => Type::QUESTION,
+                'value_operator' => ValueOperator::NOT_CONTAINS,
+                'value'          => 'some location',
+            ],
+        ]);
+
+        $form = $this->createForm($form_builder);
+
+        $answers = [
+            $this->getQuestionId($form, "My location") => [
+                'itemtype' => Location::class,
+                'items_id' => 0,
+            ],
+        ];
+
+        $engine = new Engine($form, new EngineInput($answers));
+        $output = $engine->computeVisibility();
+
+        $dependent_id = $this->getQuestionId($form, "Dependent question");
+        $this->assertFalse(
+            $output->isQuestionVisible($dependent_id),
+            "When no item is selected (items_id=0), NOT_CONTAINS evaluates to false "
+            . "and the dependent question should be hidden",
         );
     }
 }

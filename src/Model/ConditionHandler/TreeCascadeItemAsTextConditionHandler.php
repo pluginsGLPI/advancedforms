@@ -34,7 +34,6 @@
 namespace GlpiPlugin\Advancedforms\Model\ConditionHandler;
 
 use CommonDBTM;
-use CommonTreeDropdown;
 use Glpi\Form\Condition\ConditionData;
 use Glpi\Form\Condition\ConditionHandler\ConditionHandlerInterface;
 use Glpi\Form\Condition\ValueOperator;
@@ -98,12 +97,8 @@ final readonly class TreeCascadeItemAsTextConditionHandler implements ConditionH
         // ancestor nodes match correctly (e.g. "contains Parent" matches a child
         // whose completename is "Parent > Child").
         /** @var CommonDBTM $item */
-        if ($item instanceof CommonTreeDropdown) {
-            $completename = $item->fields['completename'];
-            $text = is_string($completename) ? $completename : '';
-        } else {
-            $text = $item->getName();
-        }
+        $completename = $item->fields['completename'] ?? '';
+        $text = is_string($completename) ? $completename : '';
 
         $a = strtolower($text);
 
