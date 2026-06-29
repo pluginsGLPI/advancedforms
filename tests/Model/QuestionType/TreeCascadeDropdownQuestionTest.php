@@ -607,6 +607,59 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertStringNotContainsString('L4', $response->getContent());
     }
 
+    /**
+     * Verify that when a question is configured with the "Test1" custom dropdown,
+     * only items from that dropdown appear in the rendered form. Items from another
+     * custom dropdown ("Test2"), which shares the same database table, must not appear.
+     */
+    public function testHelpdeskRenderingOnlyShowsItemsFromConfiguredCustomDropdown(): void
+    {
+        $this->login();
+        $item = $this->getTestedQuestionType();
+        $this->enableConfigurableItem($item);
+
+        $entity_id = Session::getActiveEntity();
+
+        $test1_definition = $this->initDropdownDefinition('Test1');
+        $test2_definition = $this->initDropdownDefinition('Test2');
+
+        $test1_class = $test1_definition->getDropdownClassName();
+        $test2_class = $test2_definition->getDropdownClassName();
+
+        \Dropdown::resetItemtypesStaticCache();
+
+        $this->createItem($test1_class, [
+            'name'        => 'Item from Test1',
+            'entities_id' => $entity_id,
+        ]);
+        $this->createItem($test2_class, [
+            'name'        => 'Item from Test2',
+            'entities_id' => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: $test1_class,
+        ));
+
+        $builder = new FormBuilder("Custom Dropdown Form");
+        $builder->addQuestion(
+            "TreeCascadeDropdown Question",
+            TreeCascadeDropdownQuestion::class,
+            '',
+            $extra_data,
+        );
+        $form = $this->createForm($builder);
+
+        $html = $this->renderHelpdeskForm($form);
+
+        $all_option_texts = $html->filter('.af-tree-cascade-select option')->each(
+            fn(Crawler $node) => $node->text(),
+        );
+
+        $this->assertContains('Item from Test1', $all_option_texts);
+        $this->assertNotContains('Item from Test2', $all_option_texts);
+    }
+
     private function renderHelpdeskForm(\Glpi\Form\Form $form): Crawler
     {
         $this->login();

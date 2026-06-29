@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Fixed the `Tree cascade Dropdown` field so that the subtree depth limit is enforced when loading children via AJAX
+- Fixed the `Tree cascade Dropdown` question to only show items from the configured custom dropdown instead of all custom dropdowns
 
 ## [1.1.1] - 2026-05-27
 

@@ -101,6 +101,12 @@ final class TreeDropdownChildrenController extends AbstractController
             $where = array_merge($where, $condition_param);
         }
 
+        /** @var array<string, mixed> $system_criteria */
+        $system_criteria = $itemtype::getSystemSQLCriteria();
+        if ($system_criteria !== []) {
+            $where = array_merge($where, $system_criteria);
+        }
+
         if ($item_check instanceof CommonTreeDropdown && $item_check->isField('is_deleted')) {
             $where['is_deleted'] = 0;
         }
