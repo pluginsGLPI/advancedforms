@@ -660,6 +660,145 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Item from Test2', $all_option_texts);
     }
 
+    /**
+     * Verify that when a default value is set on a TreeCascadeDropdown question
+     */
+    public function testHelpdeskRenderingWithCustomDropdownAndDefaultValue(): void
+    {
+        $this->login();
+        $item = $this->getTestedQuestionType();
+        $this->enableConfigurableItem($item);
+
+        $entity_id = Session::getActiveEntity();
+
+        $test1_definition = $this->initDropdownDefinition('Test1');
+        $test2_definition = $this->initDropdownDefinition('Test2');
+
+        $test1_class = $test1_definition->getDropdownClassName();
+        $test2_class = $test2_definition->getDropdownClassName();
+
+        \Dropdown::resetItemtypesStaticCache();
+
+        $foreign_key = $test1_class::getForeignKeyField();
+
+        $parent = $this->createItem($test1_class, [
+            'name'        => 'Parent Custom Item',
+            'entities_id' => $entity_id,
+        ]);
+        $child = $this->createItem($test1_class, [
+            'name'        => 'Child Custom Item',
+            $foreign_key  => $parent->getID(),
+            'entities_id' => $entity_id,
+        ]);
+        $this->createItem($test2_class, [
+            'name'        => 'Other Dropdown Item',
+            'entities_id' => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: $test1_class,
+        ));
+
+        $builder = new FormBuilder("Custom Dropdown Default Value Form");
+        $builder->addQuestion(
+            "My custom dropdown",
+            TreeCascadeDropdownQuestion::class,
+            $child->getID(),
+            $extra_data,
+        );
+        $form = $this->createForm($builder);
+
+        $html = $this->renderHelpdeskForm($form);
+
+        $hidden_input = $html->filter('input[type="hidden"][value="' . $child->getID() . '"]');
+        $this->assertNotEmpty($hidden_input);
+
+        $selects = $html->filter('.af-tree-cascade-select');
+
+        $options = $selects->eq(0)->filter('option')->each(
+            fn(Crawler $node) => $node->text(),
+        );
+        $this->assertContains('Parent Custom Item', $options);
+        $this->assertNotContains('Other Dropdown Item', $options);
+
+        $selected_option = $selects->eq(1)->filter('option[selected]');
+        $this->assertNotEmpty($selected_option);
+        $this->assertEquals('Child Custom Item', $selected_option->text());
+    }
+
+    /**
+     * Verify that when a subtree root is configured for a custom dropdown
+     */
+    public function testHelpdeskRenderingWithCustomDropdownAndSubtreeRoot(): void
+    {
+        $this->login();
+        $item = $this->getTestedQuestionType();
+        $this->enableConfigurableItem($item);
+
+        $entity_id = Session::getActiveEntity();
+
+        $test1_definition = $this->initDropdownDefinition('Test1');
+        $test2_definition = $this->initDropdownDefinition('Test2');
+
+        $test1_class = $test1_definition->getDropdownClassName();
+        $test2_class = $test2_definition->getDropdownClassName();
+
+        \Dropdown::resetItemtypesStaticCache();
+
+        $foreign_key = $test1_class::getForeignKeyField();
+
+        [$root, $root_2] = $this->createItems($test1_class, [
+            [
+                'name'        => 'Root',
+                'entities_id' => $entity_id,
+            ],
+            [
+                'name'        => 'Root 2',
+                'entities_id' => $entity_id,
+            ],
+        ]);
+        $this->createItem($test1_class, [
+            'name'        => 'Subtree Child',
+            $foreign_key  => $root->getID(),
+            'entities_id' => $entity_id,
+        ]);
+        $this->createItem($test1_class, [
+            'name'        => 'Subtree Child 2',
+            $foreign_key  => $root_2->getID(),
+            'entities_id' => $entity_id,
+        ]);
+        $this->createItem($test2_class, [
+            'name'        => 'Test 2 Option',
+            'entities_id' => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: $test1_class,
+            root_items_id: $root->getID(),
+        ));
+
+        $builder = new FormBuilder("Custom Dropdown Subtree Root Form");
+        $builder->addQuestion(
+            "My custom dropdown",
+            TreeCascadeDropdownQuestion::class,
+            '',
+            $extra_data,
+        );
+        $form = $this->createForm($builder);
+
+        $html = $this->renderHelpdeskForm($form);
+
+        $all_option_texts = $html->filter('.af-tree-cascade-select option')->each(
+            fn(Crawler $node) => $node->text(),
+        );
+
+        $this->assertContains('Subtree Child', $all_option_texts);
+        $this->assertNotContains('Subtree Child 2', $all_option_texts);
+        $this->assertNotContains('Root', $all_option_texts);
+        $this->assertNotContains('Root 2', $all_option_texts);
+        $this->assertNotContains('Test 2 Option', $all_option_texts);
+    }
+
     private function renderHelpdeskForm(\Glpi\Form\Form $form): Crawler
     {
         $this->login();
