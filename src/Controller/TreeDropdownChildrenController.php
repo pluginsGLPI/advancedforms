@@ -87,8 +87,6 @@ final class TreeDropdownChildrenController extends AbstractController
         $foreign_key = $itemtype::getForeignKeyField();
         $table = $itemtype::getTable();
 
-        $level_key = $table . '.level';
-
         $where = [];
 
         $item_check = getItemForItemtype($itemtype);
@@ -100,7 +98,6 @@ final class TreeDropdownChildrenController extends AbstractController
         }
 
         if (!empty($condition_param) && is_array($condition_param)) {
-            unset($condition_param[$level_key]);
             $where = array_merge($where, $condition_param);
         }
 
