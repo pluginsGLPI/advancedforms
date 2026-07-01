@@ -37,9 +37,11 @@ use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdownExtraDataConfig;
 use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
+use GlpiPlugin\Advancedforms\Controller\TreeDropdownChildrenController;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
+use Symfony\Component\HttpFoundation\Request;
 use Location;
 use Override;
 use Session;
@@ -500,6 +502,53 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         foreach ($all_option_texts as $text) {
             $this->assertStringNotContainsString(' > ', $text);
         }
+    }
+
+    public function testSubtreeDepthIsEnforcedInChildrenController(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(TreeCascadeDropdownQuestion::class);
+
+        $entity_id = Session::getActiveEntity();
+        $level1 = $this->createItem(Location::class, [
+            'name'         => 'Level1',
+            'locations_id' => 0,
+            'entities_id'  => $entity_id,
+        ]);
+        $level2 = $this->createItem(Location::class, [
+            'name'         => 'Level2',
+            'locations_id' => $level1->getID(),
+            'entities_id'  => $entity_id,
+        ]);
+        $level3 = $this->createItem(Location::class, [
+            'name'         => 'Level3',
+            'locations_id' => $level2->getID(),
+            'entities_id'  => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: Location::class,
+            subtree_depth: 2,
+        ));
+
+        $builder = new FormBuilder("Depth limit test");
+        $builder->addQuestion("Location", TreeCascadeDropdownQuestion::class, '', $extra_data);
+        $form = $this->createForm($builder);
+
+        $questions = $form->getQuestions();
+        $question = array_values($questions)[0];
+
+        $controller = new TreeDropdownChildrenController();
+
+        $response_level1_children = $controller->__invoke(
+            Request::create('', 'GET', ['questions_id' => $question->getID(), 'parent_id' => $level1->getID()]),
+        );
+        $this->assertStringContainsString('Level2', $response_level1_children->getContent());
+
+        $response_level2_children = $controller->__invoke(
+            Request::create('', 'GET', ['questions_id' => $question->getID(), 'parent_id' => $level2->getID()]),
+        );
+        $this->assertStringNotContainsString('Level3', $response_level2_children->getContent());
     }
 
     private function renderHelpdeskForm(\Glpi\Form\Form $form): Crawler
