@@ -504,6 +504,9 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         }
     }
 
+    /**
+     * Verify that the subtree depth limit prevents children beyond the configured depth from being returned by the children controller.
+     */
     public function testSubtreeDepthIsEnforcedInChildrenController(): void
     {
         $this->login();
@@ -549,6 +552,59 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             Request::create('', 'GET', ['questions_id' => $question->getID(), 'parent_id' => $level2->getID()]),
         );
         $this->assertStringNotContainsString('Level3', $response_level2_children->getContent());
+    }
+
+    /**
+     * Verify that when the parent itself exceeds the subtree depth limit, it is not selectable and no children are returned.
+     */
+    public function testParentExceedingDepthLimitIsNotSelectableAndHasNoChildren(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(TreeCascadeDropdownQuestion::class);
+
+        $entity_id = Session::getActiveEntity();
+        $level1 = $this->createItem(Location::class, [
+            'name'         => 'L1',
+            'locations_id' => 0,
+            'entities_id'  => $entity_id,
+        ]);
+        $level2 = $this->createItem(Location::class, [
+            'name'         => 'L2',
+            'locations_id' => $level1->getID(),
+            'entities_id'  => $entity_id,
+        ]);
+        $level3 = $this->createItem(Location::class, [
+            'name'         => 'L3',
+            'locations_id' => $level2->getID(),
+            'entities_id'  => $entity_id,
+        ]);
+        $this->createItem(Location::class, [
+            'name'         => 'L4',
+            'locations_id' => $level3->getID(),
+            'entities_id'  => $entity_id,
+        ]);
+
+        $extra_data = json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+            itemtype: Location::class,
+            subtree_depth: 2,
+        ));
+
+        $builder = new FormBuilder("Depth selectable test");
+        $builder->addQuestion("Location", TreeCascadeDropdownQuestion::class, '', $extra_data);
+        $form = $this->createForm($builder);
+
+        $questions = $form->getQuestions();
+        $question = array_values($questions)[0];
+
+        $controller = new TreeDropdownChildrenController();
+
+        // Level3 exceeds subtree_depth=2; its child L4 must not be returned and
+        // the parent_is_selectable placeholder (value="0") must not appear.
+        $response = $controller->__invoke(
+            Request::create('', 'GET', ['questions_id' => $question->getID(), 'parent_id' => $level3->getID()]),
+        );
+        $this->assertStringNotContainsString('value="0"', $response->getContent());
+        $this->assertStringNotContainsString('L4', $response->getContent());
     }
 
     private function renderHelpdeskForm(\Glpi\Form\Form $form): Crawler
