@@ -180,7 +180,7 @@
 </div>
 
 <script type="module">
-    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js';
+    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
     const el = document.querySelector('[data-af-table-question="{{ rand_eu|e('js') }}"]');
     if (el) { new AfTableQuestion(el); }
 </script>
