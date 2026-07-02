@@ -53,9 +53,11 @@ use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use Glpi\Form\QuestionType\QuestionTypeRequestType;
 use Glpi\Form\QuestionType\QuestionTypeUserDevice;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use Glpi\Form\Condition\ConditionValueTransformerInterface;
 use Glpi\Form\QuestionType\QuestionTypeValidationInterface;
 use Glpi\Form\QuestionType\RawAnswerIsHtmlInterface;
 use Glpi\Form\ValidationResult;
+use Glpi\DBAL\JsonFieldInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use Override;
@@ -67,6 +69,7 @@ use function Safe\json_encode;
 
 final class TableQuestion extends AbstractQuestionType implements
     ConfigurableItemInterface,
+    ConditionValueTransformerInterface,
     QuestionTypeValidationInterface,
     RawAnswerIsHtmlInterface
 {
@@ -243,6 +246,29 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         return false;
+    }
+
+    #[Override]
+    public function transformConditionValueForComparisons(mixed $value, ?JsonFieldInterface $question_config): string|array
+    {
+        if (!is_array($value)) {
+            return is_scalar($value) ? (string) $value : '';
+        }
+
+        $flat = [];
+        foreach ($value as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            foreach ($row as $cell) {
+                if (is_scalar($cell) && (string) $cell !== '') {
+                    $flat[] = (string) $cell;
+                }
+            }
+        }
+
+        return $flat;
     }
 
     #[Override]

@@ -209,4 +209,42 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         ]);
         $this->assertSame(50, $result[TableQuestionConfig::MAX_ROWS]);
     }
+
+    public function testTransformConditionValueFlattensRowsToScalars(): void
+    {
+        $answer = [
+            ['col_0' => '172.23.0.15', 'col_1' => '172.23.1.10'],
+            ['col_0' => '172.23.0.20', 'col_1' => '172.23.1.30'],
+        ];
+        $result = $this->type->transformConditionValueForComparisons($answer, null);
+        $this->assertSame(['172.23.0.15', '172.23.1.10', '172.23.0.20', '172.23.1.30'], $result);
+    }
+
+    public function testTransformConditionValueSkipsEmptyCells(): void
+    {
+        $answer = [
+            ['col_0' => '172.23.0.15', 'col_1' => ''],
+        ];
+        $result = $this->type->transformConditionValueForComparisons($answer, null);
+        $this->assertSame(['172.23.0.15'], $result);
+    }
+
+    public function testTransformConditionValueEmptyTableReturnsEmptyArray(): void
+    {
+        $result = $this->type->transformConditionValueForComparisons([], null);
+        $this->assertSame([], $result);
+    }
+
+    public function testTransformConditionValueNonArrayReturnsString(): void
+    {
+        $result = $this->type->transformConditionValueForComparisons('raw', null);
+        $this->assertSame('raw', $result);
+    }
+
+    public function testTransformConditionValueSkipsNonArrayRows(): void
+    {
+        $answer = ['not_a_row', ['col_0' => '10.0.0.1']];
+        $result = $this->type->transformConditionValueForComparisons($answer, null);
+        $this->assertSame(['10.0.0.1'], $result);
+    }
 }
