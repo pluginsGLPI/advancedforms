@@ -142,18 +142,23 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             }
         }
 
+        /** @var array<string, mixed> $system_criteria */
+        $system_criteria = $itemtype::getSystemSQLCriteria();
+
         $ancestor_chain = $this->buildAncestorChain(
             $itemtype,
             $default_items_id,
             $restriction_where,
             $root_items_id,
             $selectable_tree_root,
+            $system_criteria,
         );
 
         $first_level_items = $this->getFirstLevelItems(
             $itemtype,
             $restriction_where,
             $root_items_id,
+            $system_criteria,
         );
 
         $twig = TemplateRenderer::getInstance();
@@ -183,6 +188,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
     /**
      * @param class-string<CommonTreeDropdown> $itemtype
      * @param array<string, mixed> $extra_conditions
+     * @param array<string, mixed> $system_criteria
      * @return array<int, array{id: int, parent_id: int, level: int, siblings: array<int, array{id: int, name: string}>}>
      */
     private function buildAncestorChain(
@@ -191,6 +197,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         array $extra_conditions = [],
         int $root_items_id = 0,
         bool $selectable_tree_root = false,
+        array $system_criteria = [],
     ): array {
         if ($items_id <= 0) {
             return [];
@@ -273,12 +280,20 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $base_where['is_deleted'] = 0;
         }
 
+        if ($system_criteria !== []) {
+            $base_where = array_merge($base_where, $system_criteria);
+        }
+
         foreach ($chain as $index => &$node) {
             $raw_where = [
                 $foreign_key => $index === 0 ? max($root_items_id, 0) : $node['parent_id'],
             ];
             if ($has_is_deleted) {
                 $raw_where['is_deleted'] = 0;
+            }
+
+            if ($system_criteria !== []) {
+                $raw_where = array_merge($raw_where, $system_criteria);
             }
 
             /** @var array<string, mixed> $typed_base_where */
@@ -292,12 +307,14 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
     /**
      * @param class-string<CommonTreeDropdown> $itemtype
      * @param array<string, mixed> $extra_conditions
+     * @param array<string, mixed> $system_criteria
      * @return array<int, array{id: int, name: string}>
      */
     private function getFirstLevelItems(
         string $itemtype,
         array $extra_conditions = [],
         int $root_items_id = 0,
+        array $system_criteria = [],
     ): array {
         $table = $itemtype::getTable();
         $foreign_key = $itemtype::getForeignKeyField();
@@ -330,6 +347,11 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         if ($item instanceof CommonTreeDropdown && $item->isField('is_deleted')) {
             $base_where['is_deleted'] = 0;
             $raw_where['is_deleted'] = 0;
+        }
+
+        if ($system_criteria !== []) {
+            $base_where = array_merge($base_where, $system_criteria);
+            $raw_where = array_merge($raw_where, $system_criteria);
         }
 
         /** @var array<string, mixed> $typed_base_where */
