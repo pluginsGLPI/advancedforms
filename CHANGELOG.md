@@ -5,16 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## Unreleased
 
 ### Fixed
 
-<<<<<<< HEAD
+- Fix visibility conditions on tree cascade dropdown questions
 - Fixed the `Tree cascade Dropdown` field so that the subtree depth limit is enforced when loading children via AJAX
 - Fixed the `Tree cascade Dropdown` question to only show items from the configured custom dropdown instead of all custom dropdowns
-=======
 - Fixed `Tree cascade Dropdown` question showing items from all custom dropdowns instead of only items from the configured one
->>>>>>> 5e3a05c (Update CHANGELOG.md)
 
 ## [1.1.1] - 2026-05-27
 

@@ -84,7 +84,7 @@ export class AfTreeCascadeDropdown {
             const value = $select.val();
             const fieldName = $select.data('af-tree-field-name');
             if (fieldName) {
-                 $(`input[name="${fieldName}"]`).val(value);
+                $(`input[name="${fieldName}"]`).val(value).trigger('input');
             }
 
             const $wrapper = $select.closest('.af-tree-level-wrapper');

@@ -36,11 +36,16 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 use DBmysql;
 use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\DBAL\JsonFieldInterface;
+use Glpi\Form\Condition\ConditionHandler\ItemAsTextConditionHandler;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
+use Glpi\Form\QuestionType\QuestionTypeItemExtraDataConfig;
+use GlpiPlugin\Advancedforms\Model\ConditionHandler\TreeCascadeItemAsTextConditionHandler;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use InvalidArgumentException;
 use Override;
 
 final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown implements ConfigurableItemInterface
@@ -424,6 +429,29 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         }
 
         return $items;
+    }
+
+    #[Override]
+    public function getConditionHandlers(?JsonFieldInterface $question_config): array
+    {
+        if (!$question_config instanceof QuestionTypeItemExtraDataConfig) {
+            throw new InvalidArgumentException();
+        }
+
+        $handlers = parent::getConditionHandlers($question_config);
+
+        // Replace ItemAsTextConditionHandler with the tree-aware variant that
+        // uses completename so conditions on ancestor nodes match correctly.
+        $handlers = array_filter(
+            $handlers,
+            fn($handler) => !($handler instanceof ItemAsTextConditionHandler),
+        );
+
+        if ($question_config->getItemtype()) {
+            $handlers[] = new TreeCascadeItemAsTextConditionHandler($question_config->getItemtype());
+        }
+
+        return array_values($handlers);
     }
 
     #[Override]
