@@ -50,8 +50,8 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
     {
         $original = new TableQuestionConfig(
             columns: [
-                ['name' => 'Source IP', 'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeShortText', 'required' => true,  'itemtype' => ''],
-                ['name' => 'Port',      'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeNumber',    'required' => false, 'itemtype' => ''],
+                ['name' => 'Source IP', 'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeShortText', 'required' => true,  'itemtype' => '', 'pattern' => '/^172\\.23\\./'],
+                ['name' => 'Port',      'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeNumber',    'required' => false, 'itemtype' => '', 'pattern' => ''],
             ],
             min_rows: 2,
             max_rows: 20,
@@ -61,6 +61,17 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
         $this->assertSame($original->getColumns(), $deserialized->getColumns());
         $this->assertSame($original->getMinRows(), $deserialized->getMinRows());
         $this->assertSame($original->getMaxRows(), $deserialized->getMaxRows());
+    }
+
+    public function testColumnPatternDefaultsToEmptyStringWhenAbsent(): void
+    {
+        $config = TableQuestionConfig::jsonDeserialize([
+            'columns' => [
+                ['name' => 'Source IP', 'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeShortText', 'required' => true],
+            ],
+        ]);
+
+        $this->assertSame('', $config->getColumns()[0][TableQuestionConfig::COL_PATTERN]);
     }
 
     public function testJsonDeserializeFiltersNonArrayColumns(): void

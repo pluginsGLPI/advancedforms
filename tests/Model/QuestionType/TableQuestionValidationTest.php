@@ -35,11 +35,14 @@ namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
 use Glpi\Form\AnswersHandler\AnswersHandler;
 use Glpi\Form\Question;
+use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+
+use function Safe\json_encode;
 
 final class TableQuestionValidationTest extends AdvancedFormsTestCase
 {
@@ -172,10 +175,118 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         }
     }
 
+    public function testColumnPatternMismatchProducesError(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/^172\.23\./'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '10.0.0.1'],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertCount(1, $result->getErrors());
+    }
+
+    public function testColumnPatternMatchIsValid(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/^172\.23\./'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '172.23.0.1'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+        $this->assertCount(0, $result->getErrors());
+    }
+
+    public function testOptionalColumnWithPatternEmptyIsValid(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/^172\.23\./'),
+            $this->column('Comment', QuestionTypeShortText::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '', 'col_1' => 'a comment'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testPatternAppliesOnlyToItsOwnColumn(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/^172\.23\./'),
+            $this->column('Checkbox', QuestionTypeShortText::class, required: false),
+            $this->column('Port', QuestionTypeShortText::class, required: false, pattern: '/^\d+$/'),
+        ]);
+
+        // Source IP is invalid, Checkbox has no pattern, Port is valid.
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '10.0.0.1', 'col_1' => 'anything', 'col_2' => '8080'],
+        ]);
+
+        $errors = $result->getErrors();
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('Source IP', $errors[0]['message']);
+    }
+
+    public function testTwoIndependentColumnPatternsBothEnforced(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/^172\.23\./'),
+            $this->column('Port', QuestionTypeShortText::class, required: false, pattern: '/^\d+$/'),
+        ]);
+
+        // Both columns are invalid: two independent errors expected.
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '10.0.0.1', 'col_1' => 'not-a-port'],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertCount(2, $result->getErrors());
+    }
+
+    public function testInvalidRegexPatternIsRejected(): void
+    {
+        $this->assertFalse($this->type->validateExtraDataInput([
+            'columns' => [
+                $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '/[/'),
+            ],
+        ]));
+    }
+
+    public function testNonSlashDelimitedPatternIsRejected(): void
+    {
+        // Valid PCRE with a non-`/` delimiter, but only `/…/` is stripped for HTML/JS.
+        $this->assertFalse($this->type->validateExtraDataInput([
+            'columns' => [
+                $this->column('Source IP', QuestionTypeShortText::class, required: false, pattern: '#^172\.23\.#'),
+            ],
+        ]));
+    }
+
+    public function testPatternIsIgnoredOnNonShortAnswerColumn(): void
+    {
+        // Config UI never exposes pattern for non-short-answer columns; a hand-crafted one must be ignored.
+        $question = $this->makeTableQuestion([
+            $this->column('Flag', QuestionTypeCheckbox::class, required: false, pattern: '/^yes$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '1'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
     public function testAnswersHandlerReportsMissingRequiredColumn(): void
     {
-        // The condition engine only validates questions visible to the current
-        // user, and plugin question types require authentication to be visible.
+        // The condition engine only validates visible questions; plugin types require authentication.
         $this->login();
         $this->enableConfigurableItem($this->type);
 
@@ -220,15 +331,16 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
     }
 
     /**
-     * @return array{name: string, question_type: string, required: bool, itemtype: string}
+     * @return array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}
      */
-    private function column(string $name, string $fqcn, bool $required): array
+    private function column(string $name, string $fqcn, bool $required, string $pattern = ''): array
     {
         return [
             TableQuestionConfig::COL_NAME          => $name,
             TableQuestionConfig::COL_QUESTION_TYPE => $fqcn,
             TableQuestionConfig::COL_REQUIRED      => $required,
             TableQuestionConfig::COL_ITEMTYPE      => '',
+            TableQuestionConfig::COL_PATTERN       => $pattern,
         ];
     }
 }

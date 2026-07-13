@@ -74,7 +74,7 @@ export class AdvancedFormsTablePage extends GlpiPage {
      */
     public async addColumn(
         question: Locator,
-        column: { name: string; type: string; required?: boolean },
+        column: { name: string; type: string; required?: boolean; pattern?: string },
     ): Promise<void> {
         await question.locator('[data-af-table-column-add]').click();
 
@@ -88,6 +88,12 @@ export class AdvancedFormsTablePage extends GlpiPage {
 
         if (column.required) {
             await row.locator('.af-required-toggle').click();
+        }
+
+        if (column.pattern) {
+            const pattern_input = row.locator('[data-af-pattern-wrapper] input');
+            await pattern_input.waitFor({ state: 'visible' });
+            await pattern_input.fill(column.pattern);
         }
     }
 

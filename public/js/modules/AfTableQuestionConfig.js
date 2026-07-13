@@ -54,9 +54,10 @@ export class AfTableQuestionConfig {
 
             AfTableQuestionConfig.#bindRemoveButtons(container);
 
-            // Bind itemtype visibility for all existing columns
+            // Bind itemtype and pattern visibility for all existing columns
             container.querySelectorAll('[data-af-table-column]').forEach(row => {
                 AfTableQuestionConfig.#bindItemtypeVisibility(row);
+                AfTableQuestionConfig.#bindPatternVisibility(row);
             });
 
             if (addBtn && template) {
@@ -82,6 +83,7 @@ export class AfTableQuestionConfig {
         const newSelect = newRow.querySelector('[data-af-table-type-select]');
         AfTableQuestionConfig.#initNewColumnSelect(newSelect, container.dataset.afTableColumnsContainer);
         AfTableQuestionConfig.#bindItemtypeVisibility(newRow);
+        AfTableQuestionConfig.#bindPatternVisibility(newRow);
     }
 
     static #initNewColumnSelect(select, rand) {
@@ -123,6 +125,32 @@ export class AfTableQuestionConfig {
                     AfTableQuestionConfig.#initItemtypeSelect(sel, rand);
                 }
             });
+        };
+
+        typeSelect.addEventListener('change', update);
+        update();
+    }
+
+    static #bindPatternVisibility(columnRow) {
+        const typeSelect = columnRow.querySelector('select[name*="[question_type]"]');
+        const patternWrapper = columnRow.querySelector('[data-af-pattern-wrapper]');
+        if (!typeSelect || !patternWrapper) { return; }
+
+        const container = columnRow.closest('[data-af-table-columns-container]');
+        let shortAnswerFqcns = [];
+        try {
+            shortAnswerFqcns = JSON.parse(container?.dataset.afShortAnswerFqcns ?? '[]');
+        } catch {
+            shortAnswerFqcns = [];
+        }
+
+        const update = () => {
+            const show = shortAnswerFqcns.includes(typeSelect.value);
+            patternWrapper.style.display = show ? '' : 'none';
+            if (!show) {
+                const input = patternWrapper.querySelector('input');
+                if (input) { input.value = ''; }
+            }
         };
 
         typeSelect.addEventListener('change', update);

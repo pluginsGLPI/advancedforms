@@ -53,8 +53,10 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     public const COL_ITEMTYPE      = 'itemtype';
 
+    public const COL_PATTERN       = 'pattern';
+
     /**
-     * @param array<array{name: string, question_type: string, required: bool, itemtype: string}> $columns
+     * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
      */
     public function __construct(
         private array $columns  = [],
@@ -64,7 +66,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     /**
      * @param array{
-     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string}>,
+     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string}>,
      *   min_rows?: int,
      *   max_rows?: int
      * } $data
@@ -78,6 +80,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
                 self::COL_QUESTION_TYPE => (string) ($col[self::COL_QUESTION_TYPE] ?? ''),
                 self::COL_REQUIRED      => (bool) ($col[self::COL_REQUIRED] ?? false),
                 self::COL_ITEMTYPE      => (string) ($col[self::COL_ITEMTYPE] ?? ''),
+                self::COL_PATTERN       => (string) ($col[self::COL_PATTERN] ?? ''),
             ],
             array_filter($data[self::COLUMNS] ?? [], is_array(...)),
         ));
@@ -94,7 +97,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     /**
      * @return array{
-     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string}>,
+     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}>,
      *   min_rows: int,
      *   max_rows: int
      * }
@@ -109,7 +112,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
         ];
     }
 
-    /** @return array<array{name: string, question_type: string, required: bool, itemtype: string}> */
+    /** @return array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> */
     public function getColumns(): array
     {
         return $this->columns;

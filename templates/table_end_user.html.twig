@@ -40,6 +40,13 @@
     {% if col.required %}{% set required_cols = required_cols|merge([col_index]) %}{% endif %}
 {% endfor %}
 
+{% set pattern_cols = {} %}
+{% for col_index, col in columns %}
+    {% if col.pattern is defined and col.pattern != '' %}
+        {% set pattern_cols = pattern_cols|merge({(col_index): col.pattern}) %}
+    {% endif %}
+{% endfor %}
+
 <div
     data-af-table-question="{{ rand_eu }}"
     data-af-min-rows="{{ min_rows }}"
@@ -47,6 +54,8 @@
     data-af-s2-limit="{{ ajax_limit_count }}"
     data-af-required-cols="{{ required_cols|join(',') }}"
     data-af-required-msg="{{ __('Please fill in all required columns.', 'advancedforms') }}"
+    data-af-pattern-cols="{{ pattern_cols|json_encode|e('html_attr') }}"
+    data-af-pattern-msg="{{ __('This value does not match the expected format.', 'advancedforms') }}"
 >
     <table class="table table-bordered table-sm mb-2">
         <thead>
@@ -96,6 +105,7 @@
                                     name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
                                     placeholder="{{ col.name }}"
                                     {% if col.required %} required {% endif %}
+                                    {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
                                 >
                             {% endif %}
                         </td>
@@ -150,6 +160,7 @@
                             name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
                             placeholder="{{ col.name }}"
                             {% if col.required %} required {% endif %}
+                            {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
                         >
                     {% endif %}
                 </td>

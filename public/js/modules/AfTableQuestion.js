@@ -62,8 +62,7 @@ export class AfTableQuestion {
         const clear = e => AfTableQuestion.#clearCellError(e.target);
         this.#body.addEventListener('input', clear);
         if (window.$) {
-            // select2 fires its "change" through jQuery, which native
-            // addEventListener('change') handlers never receive.
+            // select2's "change" only fires through jQuery, not native addEventListener.
             window.$(this.#body).on('change', clear);
         } else {
             this.#body.addEventListener('change', clear);
@@ -108,7 +107,20 @@ export class AfTableQuestion {
         const requiredCols = (table.dataset.afRequiredCols ?? '')
             .split(',')
             .filter(value => value !== '');
-        if (requiredCols.length === 0) { return null; }
+
+        let patternCols = {};
+        try {
+            patternCols = JSON.parse(table.dataset.afPatternCols ?? '{}');
+        } catch {
+            patternCols = {};
+        }
+        const patternRegexes = {};
+        Object.entries(patternCols).forEach(([colIndex, pattern]) => {
+            const regex = AfTableQuestion.#toRegExp(pattern);
+            if (regex) { patternRegexes[colIndex] = regex; }
+        });
+
+        if (requiredCols.length === 0 && Object.keys(patternRegexes).length === 0) { return null; }
 
         let firstInvalid = null;
         table.querySelectorAll('[data-af-table-row]').forEach(row => {
@@ -117,16 +129,46 @@ export class AfTableQuestion {
 
             controls.forEach(control => {
                 const colIndex = AfTableQuestion.#columnIndex(control);
-                const invalid = rowHasValue
-                    && requiredCols.includes(colIndex)
-                    && !AfTableQuestion.#hasValue(control);
-                control.classList.toggle('is-invalid', invalid);
-                if (invalid && !firstInvalid) { firstInvalid = control; }
+                const hasValue = AfTableQuestion.#hasValue(control);
+
+                if (rowHasValue && requiredCols.includes(colIndex) && !hasValue) {
+                    AfTableQuestion.#setCellError(control, table.dataset.afRequiredMsg ?? '');
+                    if (!firstInvalid) { firstInvalid = control; }
+                    return;
+                }
+
+                const regex = patternRegexes[colIndex];
+                if (hasValue && regex && !regex.test(control.value)) {
+                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    if (!firstInvalid) { firstInvalid = control; }
+                    return;
+                }
+
+                AfTableQuestion.#clearCellError(control);
             });
         });
 
-        AfTableQuestion.#toggleTableError(table, firstInvalid !== null);
         return firstInvalid;
+    }
+
+    /**
+     * Parses a PHP-style `/regex/flags` string into a RegExp, or a bare pattern
+     * with no delimiters. Only JS-supported flags (gimsuy) are kept.
+     *
+     * @returns {RegExp|null} null if the pattern is empty or invalid.
+     */
+    static #toRegExp(pattern) {
+        if (typeof pattern !== 'string' || pattern === '') { return null; }
+
+        const match = /^\/(.*)\/([a-z]*)$/s.exec(pattern);
+        const body  = match ? match[1] : pattern;
+        const flags = (match ? match[2] : '').split('').filter(f => 'gimsuy'.includes(f)).join('');
+
+        try {
+            return new RegExp(body, flags);
+        } catch {
+            return null;
+        }
     }
 
     /** @returns {Element[]} */
@@ -149,29 +191,26 @@ export class AfTableQuestion {
         return match ? match[1] : '';
     }
 
+    static #setCellError(control, message) {
+        control.classList.add('is-invalid');
+
+        const td = control.closest('td') ?? control.parentElement;
+        if (!td) { return; }
+
+        let feedback = td.querySelector('[data-af-cell-error]');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.setAttribute('data-af-cell-error', '');
+            feedback.className = 'invalid-feedback d-block';
+            td.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+
     static #clearCellError(control) {
         if (!control?.classList?.contains('is-invalid')) { return; }
         control.classList.remove('is-invalid');
-
-        const table = control.closest('[data-af-table-question]');
-        if (table && !table.querySelector('.is-invalid')) {
-            AfTableQuestion.#toggleTableError(table, false);
-        }
-    }
-
-    static #toggleTableError(table, show) {
-        let message = table.querySelector('[data-af-table-error]');
-        if (!show) {
-            message?.remove();
-            return;
-        }
-        if (!message) {
-            message = document.createElement('div');
-            message.setAttribute('data-af-table-error', '');
-            message.className = 'invalid-feedback d-block';
-            message.textContent = table.dataset.afRequiredMsg ?? '';
-            table.appendChild(message);
-        }
+        control.closest('td')?.querySelector('[data-af-cell-error]')?.remove();
     }
 
     addRow() {

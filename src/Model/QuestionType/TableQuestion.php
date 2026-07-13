@@ -53,6 +53,8 @@ use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use Glpi\Form\QuestionType\QuestionTypeRequestType;
 use Glpi\Form\QuestionType\QuestionTypeUserDevice;
 use Glpi\Form\QuestionType\QuestionTypesManager;
+use Glpi\Form\Condition\ConditionHandler\EmptyConditionHandler;
+use Glpi\Form\Condition\ConditionHandler\VisibilityConditionHandler;
 use Glpi\Form\Condition\ConditionValueTransformerInterface;
 use Glpi\Form\QuestionType\QuestionTypeValidationInterface;
 use Glpi\Form\QuestionType\RawAnswerIsHtmlInterface;
@@ -61,11 +63,13 @@ use Glpi\DBAL\JsonFieldInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use Override;
+use Safe\Exceptions\PcreException;
 use Session;
 use User;
 
 use function Safe\json_decode;
 use function Safe\json_encode;
+use function Safe\preg_match;
 
 final class TableQuestion extends AbstractQuestionType implements
     ConfigurableItemInterface,
@@ -127,6 +131,24 @@ final class TableQuestion extends AbstractQuestionType implements
             if (!is_string($fqcn) || !$manager->isValidQuestionType($fqcn)) {
                 return false;
             }
+
+            $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
+            if (!is_string($pattern)) {
+                return false;
+            }
+
+            if ($pattern !== '') {
+                // Only `/…/flags`: matches the JS and HTML `pattern` attribute delimiter stripping.
+                if (preg_match('/^\/.*\/[a-zA-Z]*$/s', $pattern) !== 1) {
+                    return false;
+                }
+
+                try {
+                    @preg_match($pattern, ''); // malformed regex logs a PHP warning, silence it
+                } catch (PcreException) {
+                    return false;
+                }
+            }
         }
 
         $min_raw = $input[TableQuestionConfig::MIN_ROWS] ?? 1;
@@ -146,11 +168,13 @@ final class TableQuestion extends AbstractQuestionType implements
                 $name     = $col[TableQuestionConfig::COL_NAME] ?? '';
                 $type     = $col[TableQuestionConfig::COL_QUESTION_TYPE] ?? '';
                 $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
+                $pattern  = $col[TableQuestionConfig::COL_PATTERN] ?? '';
                 return [
                     TableQuestionConfig::COL_NAME          => is_scalar($name) ? (string) $name : '',
                     TableQuestionConfig::COL_QUESTION_TYPE => is_scalar($type) ? (string) $type : '',
                     TableQuestionConfig::COL_REQUIRED      => (bool) ($col[TableQuestionConfig::COL_REQUIRED] ?? false),
                     TableQuestionConfig::COL_ITEMTYPE      => is_scalar($itemtype) ? (string) $itemtype : '',
+                    TableQuestionConfig::COL_PATTERN       => is_scalar($pattern) ? (string) $pattern : '',
                 ];
             },
             array_filter((array) ($input[TableQuestionConfig::COLUMNS] ?? []), is_array(...)),
@@ -175,8 +199,7 @@ final class TableQuestion extends AbstractQuestionType implements
             return [];
         }
 
-        // Drop entirely empty rows so blank rows are not persisted.
-        // Mandatory columns are enforced by validateAnswer() before submission.
+        // Drop empty rows; required columns are enforced by validateAnswer().
         $result = [];
         foreach ($answer as $row) {
             if (is_array($row) && $this->rowHasValue($row)) {
@@ -196,13 +219,20 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         $required_columns = [];
+        $pattern_columns  = [];
         foreach ($this->loadConfig($question)->getColumns() as $index => $col) {
             if ($col[TableQuestionConfig::COL_REQUIRED]) {
                 $required_columns[$index] = $col[TableQuestionConfig::COL_NAME];
             }
+
+            $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
+            $fqcn    = $col[TableQuestionConfig::COL_QUESTION_TYPE];
+            if ($pattern !== '' && is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true)) {
+                $pattern_columns[$index] = [$col[TableQuestionConfig::COL_NAME], $pattern];
+            }
         }
 
-        if ($required_columns === []) {
+        if ($required_columns === [] && $pattern_columns === []) {
             return $result;
         }
 
@@ -229,9 +259,51 @@ final class TableQuestion extends AbstractQuestionType implements
                     ));
                 }
             }
+
+            foreach ($pattern_columns as $index => [$name, $pattern]) {
+                $value = $row['col_' . $index] ?? '';
+                if (!is_scalar($value) || (string) $value === '') {
+                    continue;
+                }
+
+                try {
+                    $matches_pattern = preg_match($pattern, (string) $value) === 1;
+                } catch (PcreException) {
+                    continue; // malformed stored pattern: don't block submission on it
+                }
+
+                if (!$matches_pattern) {
+                    $result->addError($question, sprintf(
+                        __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
+                        $row_number,
+                        $name,
+                    ));
+                }
+            }
         }
 
         return $result;
+    }
+
+    #[Override]
+    public function getConditionHandlers(?JsonFieldInterface $question_config): array
+    {
+        // No regex handler here: it targets the whole value, not a column. See validateAnswer().
+        return [
+            new VisibilityConditionHandler(),
+            new EmptyConditionHandler($this, $question_config),
+        ];
+    }
+
+    /**
+     * Strips `/regex/flags` down to `regex` for the HTML `pattern` attribute, which
+     * takes no delimiters or flags. JS and server-side validation apply the real check.
+     */
+    private function stripRegexDelimiters(string $pattern): string
+    {
+        preg_match('/^\/(.*)\/[a-z]*$/s', $pattern, $matches);
+
+        return $matches[1] ?? $pattern;
     }
 
     /**
@@ -354,8 +426,7 @@ final class TableQuestion extends AbstractQuestionType implements
      */
     private function collectColumnValues(array $rows, int $index): array
     {
-        // Collected into a list (not array keys) so numeric values such as "1"
-        // stay strings instead of being coerced to int array keys.
+        // List, not array keys: keeps numeric values like "1" as strings.
         $values = [];
         foreach ($rows as $row) {
             $raw   = $row['col_' . $index] ?? '';
@@ -592,22 +663,31 @@ final class TableQuestion extends AbstractQuestionType implements
             ),
         ];
 
+        // Only short-answer column types (Text, E-mail, Number, ...) accept a validation pattern.
+        $short_answer_fqcns = array_values(array_filter(
+            array_keys($compatible_types),
+            static fn(string $fqcn): bool => is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true),
+        ));
+
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
             '@advancedforms/editor/question_types/table_config.html.twig',
             [
-                'question'          => $question,
-                'config'            => $config,
-                'compatible_types'  => $compatible_types,
-                'icons_json'        => json_encode($icons),
-                'ajax_limit_count'  => $this->ajaxLimitCount(),
-                'COL_NAME'          => TableQuestionConfig::COL_NAME,
-                'COL_QUESTION_TYPE' => TableQuestionConfig::COL_QUESTION_TYPE,
-                'COL_REQUIRED'      => TableQuestionConfig::COL_REQUIRED,
-                'COL_ITEMTYPE'      => TableQuestionConfig::COL_ITEMTYPE,
-                'MIN_ROWS'          => TableQuestionConfig::MIN_ROWS,
-                'MAX_ROWS'          => TableQuestionConfig::MAX_ROWS,
-                'itemtype_options'  => $itemtype_options,
+                'question'                 => $question,
+                'config'                   => $config,
+                'compatible_types'         => $compatible_types,
+                'icons_json'               => json_encode($icons),
+                'ajax_limit_count'         => $this->ajaxLimitCount(),
+                'COL_NAME'                 => TableQuestionConfig::COL_NAME,
+                'COL_QUESTION_TYPE'        => TableQuestionConfig::COL_QUESTION_TYPE,
+                'COL_REQUIRED'             => TableQuestionConfig::COL_REQUIRED,
+                'COL_ITEMTYPE'             => TableQuestionConfig::COL_ITEMTYPE,
+                'COL_PATTERN'              => TableQuestionConfig::COL_PATTERN,
+                'MIN_ROWS'                 => TableQuestionConfig::MIN_ROWS,
+                'MAX_ROWS'                 => TableQuestionConfig::MAX_ROWS,
+                'itemtype_options'         => $itemtype_options,
+                'short_answer_fqcns'       => $short_answer_fqcns,
+                'short_answer_fqcns_json'  => json_encode($short_answer_fqcns),
             ],
         );
     }
@@ -648,6 +728,11 @@ final class TableQuestion extends AbstractQuestionType implements
             } else {
                 $cell_map[$index]  = $this->getCellInfo($fqcn, $type);
             }
+
+            $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
+            if ($pattern !== '' && ($cell_map[$index]['mode'] ?? '') === 'input') {
+                $cell_map[$index]['pattern'] = $this->stripRegexDelimiters($pattern);
+            }
         }
 
         $twig = TemplateRenderer::getInstance();
@@ -681,8 +766,7 @@ final class TableQuestion extends AbstractQuestionType implements
      */
     public function getCompatibleQuestionTypes(): array
     {
-        // is_a() is used (not in_array) so subclasses of an excluded type are rejected too,
-        // even when their parent type stays compatible (QuestionTypeItemDropdown is allowed).
+        // is_a(), not in_array: also rejects subclasses of an excluded type.
         $excluded = [
             QuestionTypeFile::class,
             QuestionTypeDateTime::class,

@@ -119,14 +119,50 @@ test.describe('Advanced forms - Table question', () => {
         await table.getEndUserCell(eu_table, 0, 1).fill('Has a comment but no name');
         await page.getByRole('button', { name: 'Submit' }).click();
 
-        // Submission is blocked: the error is shown and the empty required cell
-        // is highlighted, while the optional one is not.
+        // Blocked: error shown, empty required cell highlighted, optional one is not.
         await expect(eu_table.getByText('Please fill in all required columns.')).toBeVisible();
         await expect(table.getEndUserCell(eu_table, 0, 0)).toHaveClass(/is-invalid/);
         await expect(table.getEndUserCell(eu_table, 0, 1)).not.toHaveClass(/is-invalid/);
 
         // Filling the required cell clears the error.
         await table.getEndUserCell(eu_table, 0, 0).fill('PC-002');
+        await expect(table.getEndUserCell(eu_table, 0, 0)).not.toHaveClass(/is-invalid/);
+    });
+
+    test('column pattern blocks submission and highlights the specific cell', async ({ page, profile, api }) => {
+        await profile.set(Profiles.SuperAdmin);
+        const form = new FormPage(page);
+        const table = new AdvancedFormsTablePage(page);
+
+        await table.enableTableQuestionType();
+
+        const form_id = await api.createItem('Glpi\\Form\\Form', {
+            name: `E2E table pattern - ${randomUUID()}`,
+            entities_id: getWorkerEntityId(),
+        });
+        await form.goto(form_id);
+
+        const question = await form.addQuestion('Devices');
+        await form.doChangeQuestionType(question, 'Table');
+
+        await table.openColumnConfig(question);
+        await table.addColumn(question, { name: 'Source IP', type: 'Text', required: false, pattern: '/^172\\.23\\./' });
+
+        await form.doSaveFormEditor();
+        await form.doPreviewForm();
+
+        const eu_table = table.getEndUserTable();
+
+        // Fill the cell with a value that does not match the configured pattern.
+        await table.getEndUserCell(eu_table, 0, 0).fill('10.0.0.1');
+        await page.getByRole('button', { name: 'Submit' }).click();
+
+        // Submission is blocked: the specific cell is highlighted with the pattern error.
+        await expect(eu_table.getByText('This value does not match the expected format.')).toBeVisible();
+        await expect(table.getEndUserCell(eu_table, 0, 0)).toHaveClass(/is-invalid/);
+
+        // Filling the cell with a matching value clears the error.
+        await table.getEndUserCell(eu_table, 0, 0).fill('172.23.0.1');
         await expect(table.getEndUserCell(eu_table, 0, 0)).not.toHaveClass(/is-invalid/);
     });
 });
