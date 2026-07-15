@@ -140,7 +140,7 @@ final class TableQuestion extends AbstractQuestionType implements
 
             if ($pattern !== '') {
                 // Only `/…/flags`: matches the JS and HTML `pattern` attribute delimiter stripping.
-                if (preg_match('/^\/.*\/[a-zA-Z]*$/s', $pattern) !== 1) {
+                if (preg_match('/^\/.*\/[a-z]*$/s', $pattern) !== 1) {
                     return false;
                 }
 
