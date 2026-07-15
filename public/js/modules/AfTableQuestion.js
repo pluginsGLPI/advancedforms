@@ -104,6 +104,11 @@ export class AfTableQuestion {
         // Skip tables hidden by step-by-step navigation or conditional sections.
         if (table.offsetParent === null) { return null; }
 
+        // Core only clears its own server-rendered errors when a new request
+        // round-trips; if we block the submit below, that never happens, leaving
+        // stale messages from a previous attempt next to our fresh ones.
+        table.querySelectorAll('.invalid-tooltip').forEach(el => el.remove());
+
         const requiredCols = (table.dataset.afRequiredCols ?? '')
             .split(',')
             .filter(value => value !== '');
@@ -120,15 +125,22 @@ export class AfTableQuestion {
             if (regex) { patternRegexes[colIndex] = regex; }
         });
 
-        if (requiredCols.length === 0 && Object.keys(patternRegexes).length === 0) { return null; }
-
         let firstInvalid = null;
         table.querySelectorAll('[data-af-table-row]').forEach(row => {
             const controls = AfTableQuestion.#rowControls(row);
-            const rowHasValue = controls.some(control => AfTableQuestion.#hasValue(control));
+            // Browsers reset .value to "" for un-parseable content in type=number
+            // inputs, so hasValue() alone can't see it; badInput must count too.
+            const rowHasValue = controls.some(control => AfTableQuestion.#hasValue(control) || control.validity?.badInput);
 
             controls.forEach(control => {
                 const colIndex = AfTableQuestion.#columnIndex(control);
+
+                if (control.validity?.badInput) {
+                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    if (!firstInvalid) { firstInvalid = control; }
+                    return;
+                }
+
                 const hasValue = AfTableQuestion.#hasValue(control);
 
                 if (rowHasValue && requiredCols.includes(colIndex) && !hasValue) {
@@ -139,6 +151,13 @@ export class AfTableQuestion {
 
                 const regex = patternRegexes[colIndex];
                 if (hasValue && regex && !regex.test(control.value)) {
+                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    if (!firstInvalid) { firstInvalid = control; }
+                    return;
+                }
+
+                // Native constraint from the column's type (number, email...); "missing" is handled above.
+                if (hasValue && control.validity && !control.validity.valid && !control.validity.valueMissing) {
                     AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
                     if (!firstInvalid) { firstInvalid = control; }
                     return;

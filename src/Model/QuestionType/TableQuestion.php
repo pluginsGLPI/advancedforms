@@ -40,6 +40,7 @@ use Glpi\Form\QuestionType\QuestionTypeDropdown;
 use Glpi\Form\QuestionType\QuestionTypeUrgency;
 use CommonItilObject_Item;
 use Dropdown;
+use GLPIMailer;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
@@ -218,8 +219,14 @@ final class TableQuestion extends AbstractQuestionType implements
             return $result;
         }
 
+        $type_instances = [];
+        foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
+            $type_instances[$type::class] = $type;
+        }
+
         $required_columns = [];
         $pattern_columns  = [];
+        $native_columns   = [];
         foreach ($this->loadConfig($question)->getColumns() as $index => $col) {
             if ($col[TableQuestionConfig::COL_REQUIRED]) {
                 $required_columns[$index] = $col[TableQuestionConfig::COL_NAME];
@@ -229,10 +236,22 @@ final class TableQuestion extends AbstractQuestionType implements
             $fqcn    = $col[TableQuestionConfig::COL_QUESTION_TYPE];
             if ($pattern !== '' && is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true)) {
                 $pattern_columns[$index] = [$col[TableQuestionConfig::COL_NAME], $pattern];
+                continue;
+            }
+
+            // Text columns rely on the (optional) pattern above; Email/Number
+            // enforce their own native format server-side, since core does not
+            // expose them as a portable regex.
+            $native_type = $type_instances[$fqcn] ?? null;
+            if ($native_type instanceof AbstractQuestionTypeShortAnswer) {
+                $input_type = $native_type->getInputType();
+                if ($input_type === 'email' || $input_type === 'number') {
+                    $native_columns[$index] = [$col[TableQuestionConfig::COL_NAME], $input_type];
+                }
             }
         }
 
-        if ($required_columns === [] && $pattern_columns === []) {
+        if ($required_columns === [] && $pattern_columns === [] && $native_columns === []) {
             return $result;
         }
 
@@ -273,6 +292,25 @@ final class TableQuestion extends AbstractQuestionType implements
                 }
 
                 if (!$matches_pattern) {
+                    $result->addError($question, sprintf(
+                        __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
+                        $row_number,
+                        $name,
+                    ));
+                }
+            }
+
+            foreach ($native_columns as $index => [$name, $input_type]) {
+                $value = $row['col_' . $index] ?? '';
+                if (!is_scalar($value) || (string) $value === '') {
+                    continue;
+                }
+
+                $is_valid = $input_type === 'email'
+                    ? GLPIMailer::validateAddress((string) $value)
+                    : is_numeric($value);
+
+                if (!$is_valid) {
                     $result->addError($question, sprintf(
                         __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
                         $row_number,
@@ -647,10 +685,18 @@ final class TableQuestion extends AbstractQuestionType implements
 
         // FQCN => icon class, consumed by the select2 formatter defined in the template.
         $icons = [];
+        // Only plain-text columns accept a manual pattern; typed short answers
+        // (E-mail, Number, ...) already enforce their own native format.
+        $short_answer_fqcns = [];
         foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
             $fqcn = $type::class;
-            if (isset($compatible_types[$fqcn])) {
-                $icons[$fqcn] = $type->getIcon();
+            if (!isset($compatible_types[$fqcn])) {
+                continue;
+            }
+
+            $icons[$fqcn] = $type->getIcon();
+            if ($type instanceof AbstractQuestionTypeShortAnswer && $type->getInputType() === 'text') {
+                $short_answer_fqcns[] = $fqcn;
             }
         }
 
@@ -662,12 +708,6 @@ final class TableQuestion extends AbstractQuestionType implements
                 (new QuestionTypeItemDropdown())->getAllowedItemtypes(),
             ),
         ];
-
-        // Only short-answer column types (Text, E-mail, Number, ...) accept a validation pattern.
-        $short_answer_fqcns = array_values(array_filter(
-            array_keys($compatible_types),
-            static fn(string $fqcn): bool => is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true),
-        ));
 
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
@@ -801,7 +841,7 @@ final class TableQuestion extends AbstractQuestionType implements
      * Returns how a table cell should be rendered for the given question type FQCN.
      *
      * @param ?QuestionTypeInterface $type Pre-resolved instance; instantiated from $fqcn when null.
-     * @return array{mode: string, input_type?: string, options?: array<string, string>}
+     * @return array{mode: string, input_type?: string, attributes?: array<string, mixed>, options?: array<string, string>}
      */
     public function getCellInfo(string $fqcn, ?QuestionTypeInterface $type = null): array
     {
@@ -822,11 +862,17 @@ final class TableQuestion extends AbstractQuestionType implements
             return ['mode' => 'checkbox'];
         }
 
-        if (is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true)) {
-            $input_type = $type instanceof AbstractQuestionTypeShortAnswer
-                ? $type->getInputType()
-                : 'text';
-            return ['mode' => 'input', 'input_type' => $input_type];
+        if ($type instanceof AbstractQuestionTypeShortAnswer) {
+            $attributes = [];
+            foreach ($type->getInputAttributes() as $key => $value) {
+                $attributes[(string) $key] = $value;
+            }
+
+            return [
+                'mode'       => 'input',
+                'input_type' => $type->getInputType(),
+                'attributes' => $attributes,
+            ];
         }
 
         return ['mode' => 'input', 'input_type' => 'text'];

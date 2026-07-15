@@ -36,6 +36,8 @@ namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 use Glpi\Form\AnswersHandler\AnswersHandler;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
+use Glpi\Form\QuestionType\QuestionTypeEmail;
+use Glpi\Form\QuestionType\QuestionTypeNumber;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
@@ -284,6 +286,73 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         $this->assertTrue($result->isValid());
     }
 
+    public function testNumberColumnRejectsNonNumericValue(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Quantity', QuestionTypeNumber::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'not-a-number'],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertCount(1, $result->getErrors());
+    }
+
+    public function testNumberColumnAcceptsNumericValue(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Quantity', QuestionTypeNumber::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '42.5'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testEmailColumnRejectsInvalidAddress(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'not-an-email'],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertCount(1, $result->getErrors());
+    }
+
+    public function testEmailColumnAcceptsValidAddress(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'user@example.com'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testOptionalNumberColumnEmptyIsValid(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Quantity', QuestionTypeNumber::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => ''],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
     public function testAnswersHandlerReportsMissingRequiredColumn(): void
     {
         // The condition engine only validates visible questions; plugin types require authentication.
@@ -329,6 +398,7 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
 
         return Question::getById($this->getQuestionId($form, 'Table'));
     }
+
 
     /**
      * @return array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}

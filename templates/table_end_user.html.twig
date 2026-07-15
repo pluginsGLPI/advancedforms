@@ -106,6 +106,7 @@
                                     placeholder="{{ col.name }}"
                                     {% if col.required %} required {% endif %}
                                     {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
+                                    {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
                                 >
                             {% endif %}
                         </td>
@@ -161,6 +162,7 @@
                             placeholder="{{ col.name }}"
                             {% if col.required %} required {% endif %}
                             {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
+                            {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
                         >
                     {% endif %}
                 </td>

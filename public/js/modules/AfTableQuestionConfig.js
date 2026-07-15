@@ -127,7 +127,12 @@ export class AfTableQuestionConfig {
             });
         };
 
-        typeSelect.addEventListener('change', update);
+        // select2's "change" only fires through jQuery, not native addEventListener.
+        if (window.$) {
+            window.$(typeSelect).on('change', update);
+        } else {
+            typeSelect.addEventListener('change', update);
+        }
         update();
     }
 
@@ -153,7 +158,11 @@ export class AfTableQuestionConfig {
             }
         };
 
-        typeSelect.addEventListener('change', update);
+        if (window.$) {
+            window.$(typeSelect).on('change', update);
+        } else {
+            typeSelect.addEventListener('change', update);
+        }
         update();
     }
 
