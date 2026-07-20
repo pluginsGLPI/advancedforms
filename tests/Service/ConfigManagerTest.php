@@ -35,6 +35,7 @@ namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use DOMElement;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -43,6 +44,15 @@ use Toolbox;
 
 final class ConfigManagerTest extends AdvancedFormsTestCase
 {
+    public function testReservationQuestionIsConfigurable(): void
+    {
+        $types = array_map(
+            fn($t): string => $t::class,
+            ConfigManager::getInstance()->getConfigurableQuestionTypes(),
+        );
+        $this->assertContains(ReservationQuestion::class, $types);
+    }
+
     #[DataProvider('provideQuestionTypes')]
     public function testQuestionTypeConfigFormWhenEnabled(
         ConfigurableItemInterface $item,
