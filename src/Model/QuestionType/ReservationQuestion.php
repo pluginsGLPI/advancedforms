@@ -39,6 +39,7 @@ use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use InvalidArgumentException;
 use Override;
 
 use function Safe\json_decode;
@@ -132,17 +133,28 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
     #[Override]
     public function renderEndUserTemplate(Question $question): string
     {
-        // Minimal placeholder: the full Select2/Flatpickr widget is wired in
-        // a later task. For now, expose the raw wire format as empty hidden
-        // inputs so the end user answer processing pipeline can be tested.
-        return TemplateRenderer::getInstance()->renderFromStringTemplate(
-            <<<TWIG
-                <input type="hidden" name="{{ question.getEndUserInputName() }}[reservationitems_id]" value="" data-reservation-question-field="reservationitems_id">
-                <input type="hidden" name="{{ question.getEndUserInputName() }}[begin]" value="" data-reservation-question-field="begin">
-                <input type="hidden" name="{{ question.getEndUserInputName() }}[end]" value="" data-reservation-question-field="end">
-                TWIG,
-            ['question' => $question],
-        );
+        $decoded_extra_data = [];
+        if (is_string($question->fields['extra_data'])) {
+            $decoded_extra_data = json_decode(
+                $question->fields['extra_data'],
+                associative: true,
+            );
+
+            // Fallback to safe value
+            if (!is_array($decoded_extra_data)) {
+                $decoded_extra_data = [];
+            }
+        }
+
+        $config = $this->getExtraDataConfig($decoded_extra_data);
+        if (!$config instanceof ReservationQuestionConfig) {
+            $config = new ReservationQuestionConfig();
+        }
+
+        return TemplateRenderer::getInstance()->render('@advancedforms/reservation_question.html.twig', [
+            'input_name'        => $question->getEndUserInputName(),
+            'allowed_itemtypes' => $config->getAllowedItemtypes(),
+        ]);
     }
 
     #[Override]
@@ -152,7 +164,14 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
             return null;
         }
 
-        return ReservationQuestionAnswer::fromArray($answer)->toArray();
+        try {
+            return ReservationQuestionAnswer::fromArray($answer)->toArray();
+        } catch (InvalidArgumentException) {
+            // The question is optional (or was simply left untouched) and
+            // the widget's hidden inputs are empty: treat this the same as
+            // "not answered" instead of failing the whole form submission.
+            return null;
+        }
     }
 
     #[Override]
@@ -162,7 +181,11 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
             return '';
         }
 
-        $parsed = ReservationQuestionAnswer::fromArray($answer);
+        try {
+            $parsed = ReservationQuestionAnswer::fromArray($answer);
+        } catch (InvalidArgumentException) {
+            return '';
+        }
 
         return sprintf('%s → %s', $parsed->getBegin(), $parsed->getEnd());
     }

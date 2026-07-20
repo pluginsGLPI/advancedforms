@@ -70,6 +70,16 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThan(0, $html->filter('input[name$="[reservationitems_id]"]')->count());
         $this->assertGreaterThan(0, $html->filter('input[name$="[begin]"]')->count());
         $this->assertGreaterThan(0, $html->filter('input[name$="[end]"]')->count());
+
+        // The rendered helpdesk page contains several `<script type="module">`
+        // tags (fuzzy search, other widgets, ...), so every module script's
+        // text is concatenated before asserting instead of only looking at
+        // the first matched node (Crawler::text() only reads node 0).
+        $module_scripts_text = implode(
+            "\n",
+            $html->filter('script[type="module"]')->each(fn(Crawler $node) => $node->text()),
+        );
+        $this->assertStringContainsString("ReservationQuestionWidget.js", $module_scripts_text);
     }
 
     #[Override]
@@ -111,5 +121,69 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $formatted = $type->formatRawAnswer($raw, $question);
         $this->assertStringContainsString('2026-01-15 09:00:00', $formatted);
         $this->assertStringContainsString('2026-01-15 12:00:00', $formatted);
+    }
+
+    public function testPrepareEndUserAnswerReturnsNullWhenAnswerIsEmptyOrIncomplete(): void
+    {
+        $type = new ReservationQuestion();
+
+        $this->enableConfigurableItem($type);
+        $builder = new FormBuilder("My form");
+        $builder->addQuestion("My question", ReservationQuestion::class);
+        $form = $this->createForm($builder);
+        $questions_id = $this->getQuestionId($form, "My question");
+        $question = new Question();
+        $this->assertTrue($question->getFromDB($questions_id));
+
+        // Entirely empty answer, as submitted by the widget's untouched
+        // hidden inputs when the question is left unanswered.
+        $this->assertNull($type->prepareEndUserAnswer($question, [
+            'reservationitems_id' => '',
+            'begin' => '',
+            'end' => '',
+        ]));
+
+        // Missing keys entirely.
+        $this->assertNull($type->prepareEndUserAnswer($question, []));
+
+        // Partially filled: should still be treated as "not answered"
+        // rather than throwing.
+        $this->assertNull($type->prepareEndUserAnswer($question, [
+            'reservationitems_id' => 42,
+            'begin' => '',
+            'end' => '',
+        ]));
+
+        // Not an array at all.
+        $this->assertNull($type->prepareEndUserAnswer($question, null));
+    }
+
+    public function testFormatRawAnswerReturnsEmptyStringWhenAnswerIsEmptyOrIncomplete(): void
+    {
+        $type = new ReservationQuestion();
+
+        $this->enableConfigurableItem($type);
+        $builder = new FormBuilder("My form");
+        $builder->addQuestion("My question", ReservationQuestion::class);
+        $form = $this->createForm($builder);
+        $questions_id = $this->getQuestionId($form, "My question");
+        $question = new Question();
+        $this->assertTrue($question->getFromDB($questions_id));
+
+        $this->assertSame('', $type->formatRawAnswer([
+            'reservationitems_id' => '',
+            'begin' => '',
+            'end' => '',
+        ], $question));
+
+        $this->assertSame('', $type->formatRawAnswer([], $question));
+
+        $this->assertSame('', $type->formatRawAnswer([
+            'reservationitems_id' => 42,
+            'begin' => '',
+            'end' => '',
+        ], $question));
+
+        $this->assertSame('', $type->formatRawAnswer(null, $question));
     }
 }
