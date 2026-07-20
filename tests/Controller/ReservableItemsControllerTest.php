@@ -107,6 +107,40 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
         $this->assertNotContains('test-inactive-computer (Computer)', $names);
     }
 
+    public function testFallsBackToConfigReservationTypesWhenAllowedItemtypesOmitted(): void
+    {
+        $this->login();
+
+        global $CFG_GLPI;
+        $original_reservation_types = $CFG_GLPI['reservation_types'] ?? null;
+        $CFG_GLPI['reservation_types'] = ['Computer'];
+
+        try {
+            $computer = $this->createItem('Computer', ['name' => 'test-fallback-computer', 'entities_id' => 0]);
+            $res_item = $this->createItem('ReservationItem', [
+                'itemtype' => 'Computer',
+                'items_id' => $computer->getID(),
+                'is_active' => 1,
+            ]);
+
+            $controller = new ReservableItemsController();
+            $response = $controller(Request::create('/', 'POST', []));
+
+            $this->assertSame(200, $response->getStatusCode());
+            $data = json_decode((string) $response->getContent(), true);
+            $this->assertIsArray($data);
+
+            $ids = array_column($data, 'id');
+            $this->assertContains($res_item->getID(), $ids);
+
+            foreach ($data as $row) {
+                $this->assertSame('Computer', $row['itemtype']);
+            }
+        } finally {
+            $CFG_GLPI['reservation_types'] = $original_reservation_types;
+        }
+    }
+
     public function testSearchFiltersResults(): void
     {
         $this->login();

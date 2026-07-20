@@ -91,6 +91,42 @@ final class GetReservationsControllerTest extends AdvancedFormsTestCase
         $this->assertArrayNotHasKey('comment', $data[0]);
     }
 
+    public function testFiltersReservationsByDateRange(): void
+    {
+        $this->login();
+        $item = $this->getReservableItem();
+
+        $reservation_in_range = new Reservation();
+        $this->assertGreaterThan(0, $reservation_in_range->add([
+            'reservationitems_id' => $item->getID(),
+            'begin' => '2026-02-01 09:00:00',
+            'end' => '2026-02-01 11:00:00',
+            'users_id' => Session::getLoginUserID(),
+        ]));
+
+        $reservation_out_of_range = new Reservation();
+        $this->assertGreaterThan(0, $reservation_out_of_range->add([
+            'reservationitems_id' => $item->getID(),
+            'begin' => '2026-02-02 09:00:00',
+            'end' => '2026-02-02 11:00:00',
+            'users_id' => Session::getLoginUserID(),
+        ]));
+
+        $controller = new GetReservationsController();
+        $response = $controller(Request::create('/', 'POST', [
+            'reservationitems_id' => $item->getID(),
+            'begin' => '2026-02-01 00:00:00',
+            'end' => '2026-02-01 23:59:59',
+        ]));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertCount(1, $data);
+        $this->assertSame('2026-02-01 09:00:00', $data[0]['begin']);
+        $this->assertSame('2026-02-01 11:00:00', $data[0]['end']);
+    }
+
     public function testReturnsEmptyArrayWhenNoReservations(): void
     {
         $this->login();
