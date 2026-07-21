@@ -34,11 +34,14 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Form\Destination\FormDestinationManager;
+use Glpi\Form\Destination\FormDestinationTicket;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
 use Plugin;
@@ -51,6 +54,7 @@ final class InitManager
     {
         $this->registerConfiguration();
         $this->registerPluginTypes();
+        $this->registerDestinationFields();
     }
 
     private function registerConfiguration(): void
@@ -95,5 +99,30 @@ final class InitManager
                 );
             }
         }
+    }
+
+    private function registerDestinationFields(): void
+    {
+        $destination_manager = FormDestinationManager::getInstance();
+
+        // `FormDestinationManager` is a plain singleton with no way to
+        // unregister a field: `init()` may legitimately be called several
+        // times during the same request/process (e.g. once automatically on
+        // plugin boot, then again whenever a configurable item is toggled).
+        // Guard against registering the same field more than once, which
+        // would otherwise make `applyConfiguratedValueAfterDestinationCreation()`
+        // run multiple times per created ticket.
+        $already_registered = array_filter(
+            $destination_manager->getPluginCommonITILConfigFields(FormDestinationTicket::class),
+            fn($field) => $field instanceof PreReservationField,
+        );
+        if ($already_registered !== []) {
+            return;
+        }
+
+        $destination_manager->registerPluginCommonITILConfigField(
+            FormDestinationTicket::class,
+            new PreReservationField(),
+        );
     }
 }
