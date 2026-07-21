@@ -33,6 +33,8 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Destination;
 
+use Glpi\Form\QuestionType\QuestionTypeCheckbox;
+use Glpi\Form\QuestionType\QuestionTypeSelectableExtraDataConfig;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationFieldConfig;
@@ -128,6 +130,79 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
             true,
             answer_question: false,
         );
+
+        $request = new TicketReservationRequest();
+        $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
+    }
+
+    /**
+     * `ReservationQuestion::prepareEndUserAnswer()` already sanitizes any
+     * incomplete/invalid submitted value down to `null` before it is ever
+     * persisted, so it is not possible to make a `ReservationQuestion` itself
+     * store a malformed (but non-null) raw answer through the real
+     * submission pipeline: that path is already covered by
+     * `testUnansweredQuestionCreatesNoRequestAndDoesNotCrash()`.
+     *
+     * The catch block in
+     * `PreReservationField::applyConfiguratedValueAfterDestinationCreation()`
+     * instead protects against a different, but very real, situation: the
+     * destination field's configured `question_id` no longer points to a
+     * question shaped like a reservation answer (for example because the
+     * question was edited and its type was changed after the pre-reservation
+     * config was set up). In that case, the answer stored for that question
+     * id is whatever its own question type produced, which can be a
+     * perfectly valid (but differently shaped) array, such as a checkbox
+     * question's list of selected options.
+     *
+     * This test reproduces that scenario by pointing the config at a
+     * `QuestionTypeCheckbox` question instead of the `ReservationQuestion`,
+     * and asserts that `ReservationQuestionAnswer::fromArray()`'s resulting
+     * `InvalidArgumentException` is caught: no `TicketReservationRequest` is
+     * created and the ticket creation itself is not blocked.
+     */
+    public function testAnswerWithMismatchedShapeCreatesNoRequestAndDoesNotCrash(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(new ReservationQuestion());
+
+        $builder = new FormBuilder("Reservation form with mismatched pre-reservation question");
+        $builder->addQuestion("Reservation", ReservationQuestion::class);
+        $builder->addQuestion(
+            "Not a reservation",
+            QuestionTypeCheckbox::class,
+            extra_data: json_encode(new QuestionTypeSelectableExtraDataConfig([
+                'foo' => 'Foo',
+                'bar' => 'Bar',
+            ])),
+        );
+        $form = $this->createForm($builder);
+
+        // Point the pre-reservation config at the checkbox question rather
+        // than the actual `ReservationQuestion`.
+        $question_id = $this->getQuestionId($form, "Not a reservation");
+
+        $config = new PreReservationFieldConfig(
+            strategy: PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            question_id: $question_id,
+            require_approval: true,
+        );
+
+        $destinations = $form->getDestinations();
+        $this->assertCount(1, $destinations);
+        $destination = current($destinations);
+        $this->updateItem(
+            $destination::getType(),
+            $destination->getId(),
+            ['config' => [PreReservationField::getKey() => $config->jsonSerialize()]],
+            ['config'],
+        );
+
+        $ticket = $this->sendFormAndGetCreatedTicket($form, [
+            "Not a reservation" => ['foo', 'bar'],
+        ]);
+
+        // Ticket creation must not be blocked by the mismatched answer shape.
+        $this->assertGreaterThan(0, $ticket->getID());
 
         $request = new TicketReservationRequest();
         $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
