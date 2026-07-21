@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Model;
 
 use CommonDBChild;
+use NotificationEvent;
 use Override;
 use Reservation;
 use Ticket;
@@ -75,6 +76,21 @@ final class TicketReservationRequest extends CommonDBChild
     public static function getIcon(): string
     {
         return 'ti ti-calendar-event';
+    }
+
+    #[Override]
+    public function post_addItem(): void
+    {
+        parent::post_addItem();
+
+        // Only notify ticket actors that a new request needs an answer when
+        // the request is actually created in a waiting state. A request
+        // created already accepted (e.g. a future "direct reservation, no
+        // approval needed" path) has nothing to approve/refuse, so it must
+        // not raise this event.
+        if ((int) $this->fields['status'] === self::STATUS_WAITING) {
+            NotificationEvent::raiseEvent('reservation_request_created', $this);
+        }
     }
 
     /**
@@ -128,13 +144,19 @@ final class TicketReservationRequest extends CommonDBChild
             return false;
         }
 
-        return $this->update([
+        $updated = $this->update([
             'id' => $this->getID(),
             'status' => self::STATUS_ACCEPTED,
             'users_id_validate' => $users_id_validate,
             'comment_validation' => $comment,
             'validation_date' => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ]);
+
+        if ($updated) {
+            NotificationEvent::raiseEvent('reservation_request_approved', $this);
+        }
+
+        return $updated;
     }
 
     /**
@@ -145,25 +167,37 @@ final class TicketReservationRequest extends CommonDBChild
      */
     public function refuse(int $users_id_validate, string $comment = ''): bool
     {
-        return $this->update([
+        $updated = $this->update([
             'id' => $this->getID(),
             'status' => self::STATUS_REFUSED,
             'users_id_validate' => $users_id_validate,
             'comment_validation' => $comment,
             'validation_date' => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ]);
+
+        if ($updated) {
+            NotificationEvent::raiseEvent('reservation_request_refused', $this);
+        }
+
+        return $updated;
     }
 
     /**
      * Mark this request as no longer available (e.g. the reservable item was
-     * removed or deactivated). No notification is raised here.
+     * removed or deactivated).
      */
     public function markUnavailable(): bool
     {
-        return $this->update([
+        $updated = $this->update([
             'id' => $this->getID(),
             'status' => self::STATUS_CANCELED,
         ]);
+
+        if ($updated) {
+            NotificationEvent::raiseEvent('reservation_request_slot_unavailable', $this);
+        }
+
+        return $updated;
     }
 
     /**

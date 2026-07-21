@@ -35,10 +35,16 @@ namespace GlpiPlugin\Advancedforms\Tests\Model;
 
 use Glpi\Tests\DbTestCase;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
+use Notification;
+use Notification_NotificationTemplate;
+use NotificationTarget;
+use NotificationTemplate;
+use NotificationTemplateTranslation;
 use Reservation;
 use ReservationItem;
 use Session;
 use Ticket;
+use UserEmail;
 
 final class TicketReservationRequestTest extends DbTestCase
 {
@@ -239,6 +245,176 @@ final class TicketReservationRequestTest extends DbTestCase
         $this->assertCount(0, $reservation->find(['reservationitems_id' => $item->getID()]));
     }
 
+    public function testCreatingWaitingRequestRaisesCreatedNotification(): void
+    {
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_created');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+
+        $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-01 09:00:00',
+            'end' => '2026-05-01 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+        $this->assertGreaterThan($queue_before, $queue_after);
+    }
+
+    public function testCreatingAlreadyAcceptedRequestDoesNotRaiseCreatedNotification(): void
+    {
+        // A request created directly in the ACCEPTED state (no approval
+        // step needed) must not raise the "new request needs an answer"
+        // notification.
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_created');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+
+        $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-02 09:00:00',
+            'end' => '2026-05-02 10:00:00',
+            'status' => TicketReservationRequest::STATUS_ACCEPTED,
+        ]);
+
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+        $this->assertSame($queue_before, $queue_after);
+    }
+
+    public function testApproveRaisesApprovedNotification(): void
+    {
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_approved');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-03 09:00:00',
+            'end' => '2026-05-03 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+        $this->assertTrue($request->approve($requester_id, 'ok'));
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+
+        $this->assertGreaterThan($queue_before, $queue_after);
+    }
+
+    public function testApproveFailureDoesNotRaiseApprovedNotification(): void
+    {
+        // Same setup as testApproveFailsAndDoesNotMutateStatusWhenSlotIsNoLongerAvailable:
+        // a conflicting reservation makes Reservation::add() fail gracefully,
+        // so approve() must return false without raising any notification.
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_approved');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-04 09:00:00',
+            'end' => '2026-05-04 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $conflicting = new Reservation();
+        $this->assertGreaterThan(0, $conflicting->add([
+            'reservationitems_id' => $item->getID(),
+            'begin' => '2026-05-04 09:00:00',
+            'end' => '2026-05-04 10:00:00',
+            'users_id' => $requester_id,
+            'comment' => '',
+        ]));
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+        $this->assertFalse($request->approve($requester_id, 'ok'));
+        $this->hasSessionMessages(ERROR, ['The required item is already reserved for this timeframe']);
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+
+        $this->assertSame($queue_before, $queue_after);
+    }
+
+    public function testRefuseRaisesRefusedNotification(): void
+    {
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_refused');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-05 09:00:00',
+            'end' => '2026-05-05 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+        $this->assertTrue($request->refuse($requester_id, 'nope'));
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+
+        $this->assertGreaterThan($queue_before, $queue_after);
+    }
+
+    public function testMarkUnavailableRaisesSlotUnavailableNotification(): void
+    {
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_slot_unavailable');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-06 09:00:00',
+            'end' => '2026-05-06 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+        $this->assertTrue($request->markUnavailable());
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+
+        $this->assertGreaterThan($queue_before, $queue_after);
+    }
+
     public function testCanAnswerTrueWhenWaitingAndUserCanUpdateTicket(): void
     {
         $this->login();
@@ -335,6 +511,73 @@ final class TicketReservationRequestTest extends DbTestCase
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),
             'is_active' => 1,
+        ]);
+    }
+
+    /**
+     * Give the given user a default email address: `NotificationTarget`'s
+     * `addItemAuthor()`/`addToRecipientsList()` silently drops recipients
+     * that have no resolvable email address, so without this a queued
+     * notification would never be created regardless of everything else
+     * being correctly configured.
+     */
+    private function giveUserADefaultEmail(int $users_id): void
+    {
+        $this->createItem(UserEmail::class, [
+            'users_id' => $users_id,
+            'email' => 'reservationrequest-test-' . $users_id . '@example.com',
+            'is_default' => 1,
+        ]);
+    }
+
+    /**
+     * Register a minimal, active `Notification` (+ template + "requester"
+     * target) for the given `TicketReservationRequest` event, so that
+     * `NotificationEvent::raiseEvent()` actually queues something: this
+     * plugin does not ship any notification configuration of its own (that
+     * is left to the GLPI administrator), so tests must create their own.
+     *
+     * Also enables notifications globally in `$CFG_GLPI`.
+     */
+    private function activateReservationRequestNotification(string $event): void
+    {
+        global $CFG_GLPI;
+
+        $CFG_GLPI['use_notifications'] = 1;
+        $CFG_GLPI['notifications_mailing'] = 1;
+
+        $notification = $this->createItem(Notification::class, [
+            'name' => 'test-' . $event,
+            'itemtype' => TicketReservationRequest::class,
+            'event' => $event,
+            'entities_id' => 0,
+            'is_recursive' => 1,
+            'is_active' => 1,
+        ]);
+
+        $template = $this->createItem(NotificationTemplate::class, [
+            'name' => 'test-template-' . $event,
+            'itemtype' => TicketReservationRequest::class,
+        ]);
+
+        $this->createItem(NotificationTemplateTranslation::class, [
+            'notificationtemplates_id' => $template->getID(),
+            'language' => '',
+            'subject' => 'test subject',
+            'content_text' => 'test content',
+            'content_html' => '',
+        ]);
+
+        $this->createItem(Notification_NotificationTemplate::class, [
+            'notifications_id' => $notification->getID(),
+            'mode' => Notification_NotificationTemplate::MODE_MAIL,
+            'notificationtemplates_id' => $template->getID(),
+        ]);
+
+        $this->createItem(NotificationTarget::class, [
+            'notifications_id' => $notification->getID(),
+            'type' => Notification::USER_TYPE,
+            'items_id' => Notification::AUTHOR,
         ]);
     }
 }
