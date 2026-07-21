@@ -177,6 +177,137 @@ final class TimelineManagerTest extends DbTestCase
         $this->assertCount(2, $timeline);
     }
 
+    public function testAddTimelineItemsRendersStatusBadgeAndLabelForEachStatus(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        // Maps each status to the twig template's expected badge color
+        // ("badge bg-{color}") and translated label.
+        $expectations = [
+            TicketReservationRequest::STATUS_WAITING  => ['warning', 'Pending validation'],
+            TicketReservationRequest::STATUS_ACCEPTED => ['success', 'Approved'],
+            TicketReservationRequest::STATUS_REFUSED  => ['danger', 'Refused'],
+            TicketReservationRequest::STATUS_CANCELED => ['secondary', 'Canceled'],
+        ];
+
+        $requests = [];
+        $hour = 9;
+        foreach ($expectations as $status => $_) {
+            $requests[$status] = $this->createItem(TicketReservationRequest::class, [
+                'tickets_id' => $ticket->getID(),
+                'reservationitems_id' => $item->getID(),
+                'users_id' => Session::getLoginUserID(),
+                'begin' => sprintf('2026-05-03 %02d:00:00', $hour),
+                'end' => sprintf('2026-05-03 %02d:00:00', $hour + 1),
+                'status' => $status,
+                // Non-zero on ACCEPTED so this isn't read as a direct
+                // reservation, which is irrelevant to badge rendering.
+                'users_id_validate' => $status === TicketReservationRequest::STATUS_ACCEPTED
+                    ? Session::getLoginUserID()
+                    : 0,
+            ]);
+            $hour++;
+        }
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        foreach ($expectations as $status => [$badge_color, $label]) {
+            $key = "TicketReservationRequest_{$requests[$status]->getID()}";
+            $this->assertArrayHasKey($key, $timeline);
+            $content = $timeline[$key]['item']['content'];
+            $this->assertStringContainsString('badge bg-' . $badge_color, $content);
+            $this->assertStringContainsString($label, $content);
+        }
+    }
+
+    public function testAddTimelineItemsShowsSlotUnavailableMessageWhenCanceledIsNotDirectReservation(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => Session::getLoginUserID(),
+            'begin' => '2026-05-04 09:00:00',
+            'end' => '2026-05-04 10:00:00',
+            'status' => TicketReservationRequest::STATUS_CANCELED,
+            // Non-zero: this was an approved/validated request that later
+            // became unavailable, not an auto-accepted direct reservation.
+            'users_id_validate' => Session::getLoginUserID(),
+        ]);
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        $key = "TicketReservationRequest_{$request->getID()}";
+        $this->assertArrayHasKey($key, $timeline);
+        $content = $timeline[$key]['item']['content'];
+        $this->assertStringContainsString(
+            'This slot is no longer available. Please submit a new reservation request.',
+            $content,
+        );
+        $this->assertStringNotContainsString('confirmed automatically', $content);
+    }
+
+    public function testAddTimelineItemsRendersCommentValidationWhenSet(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => Session::getLoginUserID(),
+            'begin' => '2026-05-05 09:00:00',
+            'end' => '2026-05-05 10:00:00',
+            'status' => TicketReservationRequest::STATUS_REFUSED,
+            'users_id_validate' => Session::getLoginUserID(),
+            'comment_validation' => 'Not available for this timeframe, please pick another slot.',
+        ]);
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        $key = "TicketReservationRequest_{$request->getID()}";
+        $this->assertArrayHasKey($key, $timeline);
+        $this->assertStringContainsString(
+            'Not available for this timeframe, please pick another slot.',
+            $timeline[$key]['item']['content'],
+        );
+    }
+
+    public function testAddTimelineItemsRendersEquipmentNameAndTimeSlot(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => Session::getLoginUserID(),
+            'begin' => '2026-05-06 09:00:00',
+            'end' => '2026-05-06 10:30:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        $key = "TicketReservationRequest_{$request->getID()}";
+        $this->assertArrayHasKey($key, $timeline);
+        $content = $timeline[$key]['item']['content'];
+        $this->assertStringContainsString('test-computer', $content);
+        $this->assertStringContainsString('2026-05-06 09:00:00', $content);
+        $this->assertStringContainsString('2026-05-06 10:30:00', $content);
+    }
+
     private function getReservableItem(): ReservationItem
     {
         $computer = $this->createItem('Computer', ['name' => 'test-computer', 'entities_id' => $this->getTestRootEntity(true)]);
