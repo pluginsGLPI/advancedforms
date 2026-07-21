@@ -1,0 +1,105 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% set request_class = 'GlpiPlugin\\Advancedforms\\Model\\TicketReservationRequest' %}
+{% set status_classes = {
+    (constant(request_class ~ '::STATUS_WAITING')): 'warning',
+    (constant(request_class ~ '::STATUS_ACCEPTED')): 'success',
+    (constant(request_class ~ '::STATUS_REFUSED')): 'danger',
+    (constant(request_class ~ '::STATUS_CANCELED')): 'secondary',
+} %}
+{% set status_labels = {
+    (constant(request_class ~ '::STATUS_WAITING')): __('Pending validation', 'advancedforms'),
+    (constant(request_class ~ '::STATUS_ACCEPTED')): __('Approved', 'advancedforms'),
+    (constant(request_class ~ '::STATUS_REFUSED')): __('Refused', 'advancedforms'),
+    (constant(request_class ~ '::STATUS_CANCELED')): __('Canceled', 'advancedforms'),
+} %}
+
+<div class="reservation-request-timeline-item" data-reservation-request-id="{{ request.id }}">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <i class="ti ti-calendar-event"></i>
+        <span class="fw-bold">{{ equipment_name|default('') }}</span>
+        <span class="badge bg-{{ status_classes[request.status]|default('secondary') }}">
+            {{ status_labels[request.status]|default(request.status) }}
+        </span>
+    </div>
+
+    <div class="reservation-request-slot">
+        {{ request.begin }} &rarr; {{ request.end }}
+    </div>
+
+    {% if request.is_direct_reservation %}
+        <div class="text-muted small mt-1">
+            <i class="ti ti-circle-check me-1"></i>{{ __('Reservation confirmed automatically', 'advancedforms') }}
+        </div>
+    {% elseif request.status == constant(request_class ~ '::STATUS_CANCELED') %}
+        <div class="text-muted small mt-1">
+            {{ __('This slot is no longer available. Please submit a new reservation request.', 'advancedforms') }}
+        </div>
+    {% endif %}
+
+    {% if request.comment_validation is not empty %}
+        <div class="reservation-request-comment mt-1">
+            {{ request.comment_validation }}
+        </div>
+    {% endif %}
+
+    {% if request.can_answer %}
+        <form class="reservation-request-answer-form mt-2" data-reservation-request-form>
+            <div class="mb-2">
+                <textarea
+                    class="form-control"
+                    name="comment"
+                    placeholder="{{ __('Comment (optional)', 'advancedforms') }}"
+                    data-reservation-request-comment
+                ></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-success"
+                    data-reservation-request-id="{{ request.id }}"
+                    data-reservation-request-action="approve"
+                >
+                    <i class="ti ti-check me-1"></i>{{ __('Approve', 'advancedforms') }}
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    data-reservation-request-id="{{ request.id }}"
+                    data-reservation-request-action="refuse"
+                >
+                    <i class="ti ti-x me-1"></i>{{ __('Refuse', 'advancedforms') }}
+                </button>
+            </div>
+        </form>
+    {% endif %}
+</div>

@@ -55,6 +55,7 @@ final class InitManager
         $this->registerConfiguration();
         $this->registerPluginTypes();
         $this->registerDestinationFields();
+        $this->registerTimelineHooks();
     }
 
     private function registerConfiguration(): void
@@ -124,5 +125,13 @@ final class InitManager
             FormDestinationTicket::class,
             new PreReservationField(),
         );
+    }
+
+    private function registerTimelineHooks(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::TIMELINE_ITEMS]['advancedforms'] = [TimelineManager::class, 'addTimelineItems'];
     }
 }
