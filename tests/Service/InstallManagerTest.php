@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
@@ -57,5 +58,19 @@ final class InstallManagerTest extends AdvancedFormsTestCase
         // Assert: config should be empty after uninstallation
         $this->assertNotEmpty($config_before);
         $this->assertEmpty($config_after);
+    }
+
+    public function testInstallCreatesTicketReservationRequestsTable(): void
+    {
+        global $DB;
+
+        $this->assertTrue(InstallManager::getInstance()->install());
+        $this->assertTrue($DB->tableExists(TicketReservationRequest::getTable()));
+    }
+
+    public function testInstallIsIdempotent(): void
+    {
+        $this->assertTrue(InstallManager::getInstance()->install());
+        $this->assertTrue(InstallManager::getInstance()->install());
     }
 }

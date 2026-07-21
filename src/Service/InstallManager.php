@@ -34,7 +34,10 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use DBConnection;
 use Glpi\Toolbox\SingletonTrait;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
+use Migration;
 
 final class InstallManager
 {
@@ -42,7 +45,57 @@ final class InstallManager
 
     public function install(): bool
     {
+        global $DB;
+
+        $migration = new Migration(PLUGIN_ADVANCEDFORMS_VERSION);
+
+        $this->installTicketReservationRequestsTable($DB);
+
+        // No addField()/addKey()/... calls are queued on `$migration` yet
+        // (the table above is created with a plain, guarded `CREATE TABLE`),
+        // so this call is currently a no-op. It is kept as a safety net so
+        // that any future schema change added here (e.g. via `addField()`)
+        // is not silently forgotten, matching the convention used by other
+        // GLPI plugins (see `plugins/fields/hook.php`).
+        $migration->executeMigration();
+
         return true;
+    }
+
+    private function installTicketReservationRequestsTable(\DBmysql $DB): void
+    {
+        $table = TicketReservationRequest::getTable();
+        if ($DB->tableExists($table)) {
+            return;
+        }
+
+        $default_charset = DBConnection::getDefaultCharset();
+        $default_collation = DBConnection::getDefaultCollation();
+        $default_key_sign = DBConnection::getDefaultPrimaryKeySignOption();
+
+        $query = "CREATE TABLE `$table` (
+            `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
+            `tickets_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+            `reservationitems_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+            `users_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+            `begin` timestamp NULL DEFAULT NULL,
+            `end` timestamp NULL DEFAULT NULL,
+            `status` int NOT NULL DEFAULT '1',
+            `comment_submission` text,
+            `comment_validation` text,
+            `users_id_validate` int {$default_key_sign} NOT NULL DEFAULT '0',
+            `date_creation` timestamp NULL DEFAULT NULL,
+            `date_mod` timestamp NULL DEFAULT NULL,
+            `validation_date` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `tickets_id` (`tickets_id`),
+            KEY `reservationitems_id` (`reservationitems_id`),
+            KEY `users_id` (`users_id`),
+            KEY `status` (`status`),
+            KEY `date_creation` (`date_creation`)
+        ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC;";
+
+        $DB->doQuery($query);
     }
 
     public function uninstall(): bool
