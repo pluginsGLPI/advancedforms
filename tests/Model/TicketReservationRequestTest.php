@@ -270,6 +270,41 @@ final class TicketReservationRequestTest extends DbTestCase
         $this->assertGreaterThan($queue_before, $queue_after);
     }
 
+    public function testCreatingWaitingRequestWithDisablenotifFlagDoesNotRaiseCreatedNotification(): void
+    {
+        // A request created in the WAITING state can still opt out of the
+        // "new request needs an answer" notification via the standard
+        // `_disablenotif` input key (same convention used throughout GLPI
+        // core, e.g. `Ticket`/`CommonITILObject`/`Reservation`). This is what
+        // `PreReservationField` relies on for its "no approval required"
+        // (direct reservation) path: the row is inserted as WAITING only as
+        // a transient step before immediately being transitioned to its real
+        // final state, so the "please wait for approval" notification must
+        // not fire for that insert.
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_created');
+
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $queue_before = countElementsInTable('glpi_queuednotifications');
+
+        $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-05-07 09:00:00',
+            'end' => '2026-05-07 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+            '_disablenotif' => true,
+        ]);
+
+        $queue_after = countElementsInTable('glpi_queuednotifications');
+        $this->assertSame($queue_before, $queue_after);
+    }
+
     public function testCreatingAlreadyAcceptedRequestDoesNotRaiseCreatedNotification(): void
     {
         // A request created directly in the ACCEPTED state (no approval

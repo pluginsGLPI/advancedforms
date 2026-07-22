@@ -181,8 +181,9 @@ final class PreReservationField extends AbstractConfigField
             return;
         }
 
-        $request = new TicketReservationRequest();
-        $request_id = $request->add([
+        $require_approval = $config->isApprovalRequired();
+
+        $add_input = [
             'tickets_id'          => $ticket->getID(),
             'reservationitems_id' => $answer->getReservationItemsId(),
             // @phpstan-ignore cast.int (CommonDBTM::$fields is not generically typed)
@@ -190,13 +191,30 @@ final class PreReservationField extends AbstractConfigField
             'begin'               => $answer->getBegin(),
             'end'                 => $answer->getEnd(),
             'status'              => TicketReservationRequest::STATUS_WAITING,
-        ]);
+        ];
+
+        if (!$require_approval) {
+            // In direct/no-approval mode, the WAITING status set above is
+            // only a transient step before immediately transitioning this
+            // request to its real final state below (ACCEPTED/CANCELED),
+            // which each raise their own distinct notification event. The
+            // request never actually waits for approval, so the "please wait
+            // for approval" notification must be suppressed for this insert.
+            // (The key must only be present when disabling: `isset()` is what
+            // `TicketReservationRequest::post_addItem()` checks, and it is
+            // `true` even for an explicit `false` value, matching the
+            // `_disablenotif` convention used throughout GLPI core.)
+            $add_input['_disablenotif'] = true;
+        }
+
+        $request = new TicketReservationRequest();
+        $request_id = $request->add($add_input);
 
         if (!$request_id) {
             return;
         }
 
-        if (!$config->isApprovalRequired()) {
+        if (!$require_approval) {
             if ($request->isSlotStillAvailable()) {
                 $request->approve(0, '');
             } else {

@@ -65,7 +65,13 @@ final class InstallManager
     private function installTicketReservationRequestsTable(\DBmysql $DB): void
     {
         $table = TicketReservationRequest::getTable();
-        if ($DB->tableExists($table)) {
+        // `tableExists()`'s cache only ever grows (a table once found never
+        // leaves it), it is never invalidated when a table is dropped. Since
+        // `uninstall()` can genuinely drop this table within the same PHP
+        // process (e.g. an uninstall immediately followed by a reinstall),
+        // relying on the cache here could make this guard wrongly believe
+        // the table still exists and skip recreating it. Bypass the cache.
+        if ($DB->tableExists($table, false)) {
             return;
         }
 
@@ -100,8 +106,18 @@ final class InstallManager
 
     public function uninstall(): bool
     {
+        global $DB;
+
         $config = new Config();
         $config->deleteByCriteria(['context' => 'advancedforms']);
+
+        $table = TicketReservationRequest::getTable();
+        // Bypass the cache here too, for the same reason as in
+        // installTicketReservationRequestsTable().
+        if ($DB->tableExists($table, false)) {
+            $DB->dropTable($table);
+        }
+
         return true;
     }
 }

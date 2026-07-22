@@ -221,6 +221,80 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertGreaterThan($queue_before_submission, $queue_after_submission);
     }
 
+    public function testDirectModeSlotFreeDoesNotRaiseCreatedNotification(): void
+    {
+        // Regression test: in "no approval required" (direct reservation)
+        // mode, the underlying `TicketReservationRequest` row is still
+        // inserted as WAITING before immediately being auto-approved by
+        // `PreReservationField`. Only the "created" ("please wait for
+        // approval") notification is activated here: if it fired for this
+        // transient WAITING insert, the requester would wrongly receive both
+        // a "please wait" and an "approved" notification for one
+        // auto-confirmed action, and technicians-in-charge would be pinged
+        // with an approval request for something that needs no approval.
+        //
+        // The count is scoped to `TicketReservationRequest` notifications
+        // (rather than the whole queue) because submitting the form also
+        // creates a `Ticket` and a `Reservation`, which raise their own,
+        // unrelated core notifications ("New ticket"/"New reservation") in
+        // this test environment.
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_created');
+
+        $queue_before_submission = $this->countReservationRequestQueuedNotifications();
+
+        [$ticket] = $this->submitReservationForm(require_approval: false);
+        $this->assertGreaterThan(0, $ticket->getID());
+
+        $request = new TicketReservationRequest();
+        $rows = $request->find(['tickets_id' => $ticket->getID()]);
+        $this->assertCount(1, $rows);
+        $this->assertSame(TicketReservationRequest::STATUS_ACCEPTED, (int) reset($rows)['status']);
+
+        $queue_after_submission = $this->countReservationRequestQueuedNotifications();
+        $this->assertSame($queue_before_submission, $queue_after_submission);
+    }
+
+    public function testDirectModeSlotConflictingDoesNotRaiseCreatedNotification(): void
+    {
+        // Same regression as above, but for the "slot no longer available"
+        // (markUnavailable) branch of direct mode.
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $this->giveUserADefaultEmail($requester_id);
+        $this->activateReservationRequestNotification('reservation_request_created');
+
+        $item = $this->getReservableItem();
+
+        $conflict = new Reservation();
+        $this->assertGreaterThan(0, $conflict->add([
+            'reservationitems_id' => $item->getID(),
+            'begin' => '2026-07-03 09:00:00',
+            'end' => '2026-07-03 11:00:00',
+            'users_id' => $requester_id,
+            'comment' => '',
+        ]));
+
+        $queue_before_submission = $this->countReservationRequestQueuedNotifications();
+
+        [$ticket] = $this->submitReservationForm(
+            require_approval: false,
+            item: $item,
+            begin: '2026-07-03 10:00:00',
+            end: '2026-07-03 12:00:00',
+        );
+
+        $request = new TicketReservationRequest();
+        $rows = $request->find(['tickets_id' => $ticket->getID()]);
+        $this->assertCount(1, $rows);
+        $this->assertSame(TicketReservationRequest::STATUS_CANCELED, (int) reset($rows)['status']);
+
+        $queue_after_submission = $this->countReservationRequestQueuedNotifications();
+        $this->assertSame($queue_before_submission, $queue_after_submission);
+    }
+
     public function testApproveDeniedWithoutTicketUpdateRightLeavesRequestUnchanged(): void
     {
         [$ticket] = $this->submitReservationForm(require_approval: true);
@@ -251,6 +325,19 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         // silent side effect: the request must be untouched.
         $this->assertTrue($request->getFromDB($request->getID()));
         $this->assertSame(TicketReservationRequest::STATUS_WAITING, (int) $request->fields['status']);
+    }
+
+    /**
+     * Count queued notifications for `TicketReservationRequest`, ignoring
+     * unrelated notifications also queued by submitting the form (e.g. the
+     * core "New ticket"/"New reservation" notifications triggered by the
+     * `Ticket`/`Reservation` created along the way).
+     */
+    private function countReservationRequestQueuedNotifications(): int
+    {
+        return countElementsInTable('glpi_queuednotifications', [
+            'itemtype' => TicketReservationRequest::class,
+        ]);
     }
 
     /**

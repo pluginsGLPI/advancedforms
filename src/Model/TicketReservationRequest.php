@@ -88,7 +88,21 @@ final class TicketReservationRequest extends CommonDBChild
         // created already accepted (e.g. a future "direct reservation, no
         // approval needed" path) has nothing to approve/refuse, so it must
         // not raise this event.
-        if ((int) $this->fields['status'] === self::STATUS_WAITING) {
+        //
+        // A caller can also explicitly opt out of this notification (via the
+        // standard `_disablenotif` input key, see `CommonDBTM`/`Ticket`/etc.)
+        // even while inserting the row in the WAITING state: this is used by
+        // `PreReservationField` for its "no approval required" (direct
+        // reservation) path, where the row is inserted as WAITING only as a
+        // transient step before immediately transitioning it to its real
+        // final state (ACCEPTED/CANCELED) via `approve()`/`markUnavailable()`,
+        // which each raise their own distinct event. Without this, the
+        // "please wait for approval" notification would fire for something
+        // that never actually waits for approval.
+        if (
+            (int) $this->fields['status'] === self::STATUS_WAITING
+            && !isset($this->input['_disablenotif'])
+        ) {
             NotificationEvent::raiseEvent('reservation_request_created', $this);
         }
     }
