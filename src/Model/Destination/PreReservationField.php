@@ -176,7 +176,6 @@ final class PreReservationField extends AbstractConfigField
         }
 
         try {
-            // @phpstan-ignore argument.type (the exact shape is validated at runtime by fromArray() itself)
             $answer = ReservationQuestionAnswer::fromArray($raw_answer);
         } catch (InvalidArgumentException) {
             // Incomplete/invalid answer: do not block the ticket creation.

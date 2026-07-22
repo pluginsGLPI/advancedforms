@@ -105,7 +105,7 @@ final class TicketReservationRequest extends CommonDBChild
         // "please wait for approval" notification would fire for something
         // that never actually waits for approval.
         if (
-            (int) $this->fields['status'] === self::STATUS_WAITING
+            $this->getIntField('status') === self::STATUS_WAITING
             && !isset($this->input['_disablenotif'])
         ) {
             NotificationEvent::raiseEvent('reservation_request_created', $this);
@@ -133,7 +133,11 @@ final class TicketReservationRequest extends CommonDBChild
             ],
         ])->current();
 
-        return ((int) $conflicts['cpt']) === 0;
+        $count = is_array($conflicts) && is_numeric($conflicts['cpt'] ?? null)
+            ? (int) $conflicts['cpt']
+            : 0;
+
+        return $count === 0;
     }
 
     /**
@@ -237,14 +241,14 @@ final class TicketReservationRequest extends CommonDBChild
     {
         return [
             'id' => $this->getID(),
-            'status' => (int) $this->fields['status'],
-            'reservationitems_id' => (int) $this->fields['reservationitems_id'],
-            'begin' => $this->fields['begin'],
-            'end' => $this->fields['end'],
-            'comment_validation' => $this->fields['comment_validation'] ?? '',
+            'status' => $this->getIntField('status'),
+            'reservationitems_id' => $this->getIntField('reservationitems_id'),
+            'begin' => $this->getNullableStringField('begin'),
+            'end' => $this->getNullableStringField('end'),
+            'comment_validation' => $this->getNullableStringField('comment_validation') ?? '',
             'can_answer' => $this->canAnswer(),
-            'is_direct_reservation' => (int) $this->fields['status'] === self::STATUS_ACCEPTED
-                && (int) $this->fields['users_id_validate'] === 0,
+            'is_direct_reservation' => $this->getIntField('status') === self::STATUS_ACCEPTED
+                && $this->getIntField('users_id_validate') === 0,
         ];
     }
 
@@ -255,15 +259,29 @@ final class TicketReservationRequest extends CommonDBChild
      */
     public function canAnswer(): bool
     {
-        if ((int) $this->fields['status'] !== self::STATUS_WAITING) {
+        if ($this->getIntField('status') !== self::STATUS_WAITING) {
             return false;
         }
 
         $ticket = new Ticket();
-        if (!$ticket->getFromDB($this->fields['tickets_id'])) {
+        if (!$ticket->getFromDB($this->getIntField('tickets_id'))) {
             return false;
         }
 
         return $ticket->canUpdateItem();
+    }
+
+    private function getIntField(string $field): int
+    {
+        $value = $this->fields[$field] ?? null;
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private function getNullableStringField(string $field): ?string
+    {
+        $value = $this->fields[$field] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 }

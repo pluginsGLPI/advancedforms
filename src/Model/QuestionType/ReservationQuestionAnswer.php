@@ -35,6 +35,8 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use InvalidArgumentException;
 
+use function Safe\strtotime;
+
 final readonly class ReservationQuestionAnswer
 {
     public function __construct(
@@ -44,11 +46,7 @@ final readonly class ReservationQuestionAnswer
     ) {}
 
     /**
-     * @param array{
-     *      reservationitems_id: int,
-     *      begin: string,
-     *      end: string
-     * } $data
+     * @param array<array-key, mixed> $data
      */
     public static function fromArray(array $data): self
     {
@@ -58,10 +56,18 @@ final readonly class ReservationQuestionAnswer
             }
         }
 
+        $reservationitems_id = $data['reservationitems_id'];
+        $begin = $data['begin'];
+        $end = $data['end'];
+
+        if (!is_numeric($reservationitems_id) || !is_string($begin) || !is_string($end)) {
+            throw new InvalidArgumentException('Invalid type for reservation answer data');
+        }
+
         return new self(
-            reservationitems_id: $data['reservationitems_id'],
-            begin: $data['begin'],
-            end: $data['end'],
+            reservationitems_id: (int) $reservationitems_id,
+            begin: $begin,
+            end: $end,
         );
     }
 
