@@ -78,6 +78,32 @@ final class TimelineManagerTest extends DbTestCase
         );
     }
 
+    public function testAddTimelineItemsWiresApproveRefuseButtonsToController(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => Session::getLoginUserID(),
+            'begin' => '2026-05-01 09:30:00',
+            'end' => '2026-05-01 10:30:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        $key = "TicketReservationRequest_{$request->getID()}";
+        $this->assertArrayHasKey($key, $timeline);
+        $content = $timeline[$key]['item']['content'];
+
+        $this->assertStringContainsString('ReservationRequestTimelineActions.js', $content);
+        $this->assertStringContainsString('data-reservation-request-action="approve"', $content);
+    }
+
     public function testAddTimelineItemsHidesApproveRefuseButtonsWhenUserCannotAnswer(): void
     {
         // Ticket is created by the default logged-in user (requester).

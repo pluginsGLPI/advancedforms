@@ -101,5 +101,13 @@
                 </button>
             </div>
         </form>
+        <script type="module">
+            import { ReservationRequestTimelineActions } from '/plugins/advancedforms/js/modules/ReservationRequestTimelineActions.js';
+            $(function() {
+                new ReservationRequestTimelineActions(
+                    document.querySelector('[data-reservation-request-id="{{ request.id }}"]')
+                );
+            });
+        </script>
     {% endif %}
 </div>
