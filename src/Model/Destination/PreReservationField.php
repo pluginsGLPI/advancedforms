@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Model\Destination;
 
+use Glpi\Form\Answer;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\AnswersSet;
@@ -92,6 +93,7 @@ final class PreReservationField extends AbstractConfigField
         foreach (PreReservationFieldStrategy::cases() as $strategy) {
             $values[$strategy->value] = $strategy->getLabel();
         }
+
         return $values;
     }
 
@@ -163,7 +165,7 @@ final class PreReservationField extends AbstractConfigField
         }
 
         $question_answer = $answers_set->getAnswerByQuestionId($question_id);
-        if ($question_answer === null) {
+        if (!$question_answer instanceof Answer) {
             // The question was left unanswered (or skipped): nothing to do.
             return;
         }

@@ -100,7 +100,7 @@ final class ReservableItemsController extends AbstractController
             $where['items_id'] = new QuerySubQuery([
                 'SELECT' => 'id',
                 'FROM' => $itemtype::getTable(),
-                'WHERE' => ['name' => ['LIKE', "%$search%"]],
+                'WHERE' => ['name' => ['LIKE', sprintf('%%%s%%', $search)]],
             ]);
         }
 

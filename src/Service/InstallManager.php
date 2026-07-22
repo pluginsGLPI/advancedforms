@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
+use DBmysql;
 use Config;
 use DBConnection;
 use Glpi\Toolbox\SingletonTrait;
@@ -62,7 +63,7 @@ final class InstallManager
         return true;
     }
 
-    private function installTicketReservationRequestsTable(\DBmysql $DB): void
+    private function installTicketReservationRequestsTable(DBmysql $DB): void
     {
         $table = TicketReservationRequest::getTable();
         // `tableExists()`'s cache only ever grows (a table once found never
@@ -79,7 +80,7 @@ final class InstallManager
         $default_collation = DBConnection::getDefaultCollation();
         $default_key_sign = DBConnection::getDefaultPrimaryKeySignOption();
 
-        $query = "CREATE TABLE `$table` (
+        $query = "CREATE TABLE `{$table}` (
             `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
             `tickets_id` int {$default_key_sign} NOT NULL DEFAULT '0',
             `reservationitems_id` int {$default_key_sign} NOT NULL DEFAULT '0',

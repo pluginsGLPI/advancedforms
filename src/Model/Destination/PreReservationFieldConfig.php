@@ -43,7 +43,9 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
 {
     // Unique reference to hardcoded names used for serialization and forms input names
     public const STRATEGY = 'strategy';
+
     public const QUESTION_ID = 'question_id';
+
     public const REQUIRE_APPROVAL = 'require_approval';
 
     public function __construct(

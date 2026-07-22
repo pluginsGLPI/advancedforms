@@ -72,6 +72,7 @@ final class GetReservationsController extends AbstractController
         if ($begin !== '') {
             $where['end'] = ['>', $begin];
         }
+
         if ($end !== '') {
             $where['begin'] = ['<', $end];
         }

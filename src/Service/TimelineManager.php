@@ -95,7 +95,7 @@ final class TimelineManager
             $users_id = $request->fields['users_id'] ?? 0;
             $users_id = is_numeric($users_id) ? (int) $users_id : 0;
 
-            $timeline["TicketReservationRequest_{$request->getID()}"] = [
+            $timeline['TicketReservationRequest_' . $request->getID()] = [
                 'type' => TicketReservationRequest::class,
                 'item' => [
                     'id' => $request->getID(),

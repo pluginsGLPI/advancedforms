@@ -54,14 +54,14 @@ final readonly class ReservationQuestionAnswer
     {
         foreach (['reservationitems_id', 'begin', 'end'] as $key) {
             if (!isset($data[$key]) || $data[$key] === '') {
-                throw new InvalidArgumentException("Missing or empty key: $key");
+                throw new InvalidArgumentException('Missing or empty key: ' . $key);
             }
         }
 
         return new self(
-            reservationitems_id: (int) $data['reservationitems_id'],
-            begin: (string) $data['begin'],
-            end: (string) $data['end'],
+            reservationitems_id: $data['reservationitems_id'],
+            begin: $data['begin'],
+            end: $data['end'],
         );
     }
 

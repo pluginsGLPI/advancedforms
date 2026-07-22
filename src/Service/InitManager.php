@@ -132,6 +132,6 @@ final class InitManager
         global $PLUGIN_HOOKS;
 
         // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
-        $PLUGIN_HOOKS[Hooks::TIMELINE_ITEMS]['advancedforms'] = [TimelineManager::class, 'addTimelineItems'];
+        $PLUGIN_HOOKS[Hooks::TIMELINE_ITEMS]['advancedforms'] = TimelineManager::addTimelineItems(...);
     }
 }
