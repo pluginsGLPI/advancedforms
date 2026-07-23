@@ -71,10 +71,6 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThan(0, $html->filter('input[name$="[begin]"]')->count());
         $this->assertGreaterThan(0, $html->filter('input[name$="[end]"]')->count());
 
-        // The rendered helpdesk page contains several `<script type="module">`
-        // tags (fuzzy search, other widgets, ...), so every module script's
-        // text is concatenated before asserting instead of only looking at
-        // the first matched node (Crawler::text() only reads node 0).
         $module_scripts_text = implode(
             "\n",
             $html->filter('script[type="module"]')->each(fn(Crawler $node) => $node->text()),
@@ -98,11 +94,6 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
             'end' => '2026-01-15 12:00:00',
         ];
 
-        // `Glpi\Form\Question` is final and cannot be mocked, and neither
-        // `prepareEndUserAnswer()` nor `formatRawAnswer()` actually read
-        // from the question here, so a real question is built instead.
-        // The question type must be enabled or `Section::getQuestions()`
-        // will silently skip it (treating it as an unknown/disabled type).
         $this->enableConfigurableItem($type);
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", ReservationQuestion::class);
@@ -135,26 +126,20 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $question = new Question();
         $this->assertTrue($question->getFromDB($questions_id));
 
-        // Entirely empty answer, as submitted by the widget's untouched
-        // hidden inputs when the question is left unanswered.
         $this->assertNull($type->prepareEndUserAnswer($question, [
             'reservationitems_id' => '',
             'begin' => '',
             'end' => '',
         ]));
 
-        // Missing keys entirely.
         $this->assertNull($type->prepareEndUserAnswer($question, []));
 
-        // Partially filled: should still be treated as "not answered"
-        // rather than throwing.
         $this->assertNull($type->prepareEndUserAnswer($question, [
             'reservationitems_id' => 42,
             'begin' => '',
             'end' => '',
         ]));
 
-        // Not an array at all.
         $this->assertNull($type->prepareEndUserAnswer($question, null));
     }
 

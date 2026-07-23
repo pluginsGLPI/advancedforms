@@ -40,26 +40,15 @@ use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use ReservationItem;
 use Ticket;
 
-/**
- * Injects `TicketReservationRequest` entries into a `Ticket`'s timeline.
- *
- * Registered against `Hooks::TIMELINE_ITEMS` by `InitManager::registerTimelineHooks()`.
- */
+/** Injects `TicketReservationRequest` entries into a `Ticket`'s timeline (registered against `Hooks::TIMELINE_ITEMS`). */
 final class TimelineManager
 {
     /**
      * @param array{item: object, timeline: array<string, array<string, mixed>>} $params
-     *        Called by core's `Plugin::doHook(Hooks::TIMELINE_ITEMS, ['item' => $this, 'timeline' => &$timeline])`
-     *        (see `CommonITILObject::getTimelineItems()`). The 'timeline' entry
-     *        of the array holds a genuine PHP reference to the caller's
-     *        `$timeline` variable: mutating `$params['timeline'][...]` here
-     *        is visible to the caller even though `$params` itself is passed
-     *        by value (a copied array preserves references held by its
-     *        elements). The parameter is therefore intentionally NOT declared
-     *        `array &$params`: `Plugin::doHook()` invokes this callback via
-     *        `call_user_func()`, which cannot pass its argument by reference
-     *        to a callee declaring a by-reference parameter (it triggers a
-     *        PHP warning).
+     *        `$params['timeline']` holds a real PHP reference to the caller's array (see
+     *        `CommonITILObject::getTimelineItems()`), which survives being passed here by
+     *        value — do not declare this `array &$params`, `Plugin::doHook()` calls it via
+     *        `call_user_func()`, which warns on by-ref params.
      */
     public static function addTimelineItems(array $params): void
     {
@@ -72,10 +61,7 @@ final class TimelineManager
 
         $request = new TicketReservationRequest();
 
-        // Only the ids are read off `find()`'s raw rows: their static return
-        // type is a generic (unshaped) `array`, so anything read from a row
-        // is reported as `mixed` by phpstan. All actual field values are
-        // instead read back from `$request->fields` after `getFromDB()`.
+        // Only ids come from find(); actual fields are re-read via getFromDB() below.
         $ids = array_keys($request->find(['tickets_id' => $ticket->getID()]));
 
         foreach ($ids as $id) {
@@ -111,11 +97,7 @@ final class TimelineManager
         }
     }
 
-    /**
-     * Resolve a human-readable name for the reservable asset behind a
-     * `ReservationItem`, e.g. "Laptop #42". Returns an empty string if the
-     * reservation item or its underlying asset can no longer be found.
-     */
+    /** Resolves the reservable asset's display name; empty string if it no longer exists. */
     private static function getEquipmentName(int $reservationitems_id): string
     {
         $reservation_item = new ReservationItem();

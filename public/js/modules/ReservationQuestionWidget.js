@@ -33,10 +33,7 @@ export class ReservationQuestionWidget {
     #root;
     #endpoint_url = `${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationWidget`;
 
-    /**
-     * @param {HTMLElement} root - The root element of the widget, as rendered
-     *  by `templates/reservation_question.html.twig`.
-     */
+    /** @param {HTMLElement} root - root element rendered by templates/reservation_question.html.twig */
     constructor(root) {
         if (!root) {
             return;
@@ -45,7 +42,7 @@ export class ReservationQuestionWidget {
         this.#root = root;
 
         this.#initItemSelect();
-        this.#initDatePickers();
+        this.#initDateChangeListeners();
     }
 
     #initItemSelect() {
@@ -78,13 +75,7 @@ export class ReservationQuestionWidget {
         $select.on('select2:clear select2:unselecting', () => this.#onItemCleared());
     }
 
-    /**
-     * Group flat `{id, text, itemtype}` results into Select2 optgroups so
-     * items are presented per reservable itemtype.
-     *
-     * @param {Array<{id: number, text: string, itemtype: string}>} data
-     * @return {Array<{text: string, children: Array<{id: number, text: string}>}>}
-     */
+    /** Groups flat {id, text, itemtype} results into Select2 optgroups per itemtype. */
     #groupResultsByItemtype(data) {
         const groups = new Map();
 
@@ -104,58 +95,54 @@ export class ReservationQuestionWidget {
 
     #onItemSelected() {
         const $select = $(this.#root.querySelector('[data-reservation-question-item-select]'));
-        this.#setFieldValue('reservationitems_id', $select.val());
+        this.#setReservationItemsId($select.val());
         $(this.#root.querySelector('[data-reservation-question-dates]')).removeClass('d-none');
         this.#checkAvailability();
     }
 
     #onItemCleared() {
-        this.#setFieldValue('reservationitems_id', '');
-        this.#setFieldValue('begin', '');
-        this.#setFieldValue('end', '');
+        this.#setReservationItemsId('');
+        if (this.#getBeginInput()) {
+            this.#getBeginInput().value = '';
+        }
+        if (this.#getEndInput()) {
+            this.#getEndInput().value = '';
+        }
         $(this.#root.querySelector('[data-reservation-question-dates]')).addClass('d-none');
         this.#showAvailability(null);
     }
 
-    #initDatePickers() {
-        const begin_input = this.#root.querySelector('[data-reservation-question-begin-picker]');
-        const end_input = this.#root.querySelector('[data-reservation-question-end-picker]');
+    /** begin/end are rendered by the datetimeField macro (self-initializing Flatpickr); just react to changes. */
+    #initDateChangeListeners() {
+        const begin_input = this.#getBeginInput();
+        const end_input = this.#getEndInput();
         if (!begin_input || !end_input) {
             return;
         }
 
-        const options = {
-            enableTime: true,
-            enableSeconds: true,
-            time_24hr: true,
-            dateFormat: 'Y-m-d H:i:S',
-            onChange: (selected_dates, date_str, instance) => {
-                const field = instance.element === begin_input ? 'begin' : 'end';
-                this.#setFieldValue(field, date_str);
-                this.#checkAvailability();
-            },
-        };
-
-        flatpickr(begin_input, options);
-        flatpickr(end_input, options);
+        $(begin_input).on('change', () => this.#checkAvailability());
+        $(end_input).on('change', () => this.#checkAvailability());
     }
 
-    #setFieldValue(field, value) {
-        const input = this.#root.querySelector(`[data-reservation-question-field="${field}"]`);
+    #getBeginInput() {
+        return this.#root.querySelector('[data-reservation-question-begin-picker]');
+    }
+
+    #getEndInput() {
+        return this.#root.querySelector('[data-reservation-question-end-picker]');
+    }
+
+    #setReservationItemsId(value) {
+        const input = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]');
         if (input) {
             input.value = value ?? '';
         }
     }
 
-    #getFieldValue(field) {
-        const input = this.#root.querySelector(`[data-reservation-question-field="${field}"]`);
-        return input ? input.value : '';
-    }
-
     #checkAvailability() {
-        const reservationitems_id = this.#getFieldValue('reservationitems_id');
-        const begin = this.#getFieldValue('begin');
-        const end = this.#getFieldValue('end');
+        const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
+        const begin = this.#getBeginInput()?.value ?? '';
+        const end = this.#getEndInput()?.value ?? '';
 
         if (!reservationitems_id || !begin || !end) {
             this.#showAvailability(null);

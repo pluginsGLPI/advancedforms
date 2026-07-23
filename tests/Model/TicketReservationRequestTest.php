@@ -95,9 +95,6 @@ final class TicketReservationRequestTest extends DbTestCase
 
     public function testIsSlotStillAvailableWithBackToBackSlot(): void
     {
-        // Back-to-back reservations (one ending exactly when the other begins)
-        // are not considered overlapping: core's Reservation::is_reserved()
-        // uses strict inequalities (`end > begin AND begin < end`).
         $this->login();
         $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
         $item = $this->getReservableItem();
@@ -164,10 +161,6 @@ final class TicketReservationRequestTest extends DbTestCase
 
     public function testApproveFailsAndDoesNotMutateStatusWhenSlotIsNoLongerAvailable(): void
     {
-        // Simulate a Reservation::add() failure by creating a conflicting
-        // reservation on the same item/timeframe before approving: core's
-        // Reservation::prepareInputForAdd() rejects overlapping reservations,
-        // so add() will gracefully return false without throwing.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
@@ -272,15 +265,6 @@ final class TicketReservationRequestTest extends DbTestCase
 
     public function testCreatingWaitingRequestWithDisablenotifFlagDoesNotRaiseCreatedNotification(): void
     {
-        // A request created in the WAITING state can still opt out of the
-        // "new request needs an answer" notification via the standard
-        // `_disablenotif` input key (same convention used throughout GLPI
-        // core, e.g. `Ticket`/`CommonITILObject`/`Reservation`). This is what
-        // `PreReservationField` relies on for its "no approval required"
-        // (direct reservation) path: the row is inserted as WAITING only as
-        // a transient step before immediately being transitioned to its real
-        // final state, so the "please wait for approval" notification must
-        // not fire for that insert.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $this->giveUserADefaultEmail($requester_id);
@@ -307,9 +291,6 @@ final class TicketReservationRequestTest extends DbTestCase
 
     public function testCreatingAlreadyAcceptedRequestDoesNotRaiseCreatedNotification(): void
     {
-        // A request created directly in the ACCEPTED state (no approval
-        // step needed) must not raise the "new request needs an answer"
-        // notification.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $this->giveUserADefaultEmail($requester_id);
@@ -361,9 +342,6 @@ final class TicketReservationRequestTest extends DbTestCase
 
     public function testApproveFailureDoesNotRaiseApprovedNotification(): void
     {
-        // Same setup as testApproveFailsAndDoesNotMutateStatusWhenSlotIsNoLongerAvailable:
-        // a conflicting reservation makes Reservation::add() fail gracefully,
-        // so approve() must return false without raising any notification.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $this->giveUserADefaultEmail($requester_id);
@@ -502,9 +480,7 @@ final class TicketReservationRequestTest extends DbTestCase
             'status' => TicketReservationRequest::STATUS_WAITING,
         ]);
 
-        // Switch to a "post-only" session: this user is not the ticket's
-        // requester and uses the helpdesk interface, so Ticket::canUpdateItem()
-        // is guaranteed to return false regardless of any right assignment.
+        // Switch to a "post-only" session: this user is not the ticket's requester
         $this->login('post-only', 'postonly');
         $current_ticket = new Ticket();
         $this->assertTrue($current_ticket->getFromDB($ticket->getID()));
@@ -549,13 +525,6 @@ final class TicketReservationRequestTest extends DbTestCase
         ]);
     }
 
-    /**
-     * Give the given user a default email address: `NotificationTarget`'s
-     * `addItemAuthor()`/`addToRecipientsList()` silently drops recipients
-     * that have no resolvable email address, so without this a queued
-     * notification would never be created regardless of everything else
-     * being correctly configured.
-     */
     private function giveUserADefaultEmail(int $users_id): void
     {
         $this->createItem(UserEmail::class, [
@@ -565,15 +534,6 @@ final class TicketReservationRequestTest extends DbTestCase
         ]);
     }
 
-    /**
-     * Register a minimal, active `Notification` (+ template + "requester"
-     * target) for the given `TicketReservationRequest` event, so that
-     * `NotificationEvent::raiseEvent()` actually queues something: this
-     * plugin does not ship any notification configuration of its own (that
-     * is left to the GLPI administrator), so tests must create their own.
-     *
-     * Also enables notifications globally in `$CFG_GLPI`.
-     */
     private function activateReservationRequestNotification(string $event): void
     {
         global $CFG_GLPI;

@@ -72,8 +72,6 @@ final class ReservationRequestController extends AbstractController
             throw new AccessDeniedHttpException();
         }
 
-        // The controller requires an authenticated session (see the
-        // SecurityStrategy attribute above), so this is always a real user id.
         $users_id_validate = (int) Session::getLoginUserID();
 
         if ($action === 'approve') {

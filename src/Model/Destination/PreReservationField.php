@@ -48,11 +48,7 @@ use InvalidArgumentException;
 use Override;
 use Ticket;
 
-/**
- * Destination config field allowing a form to automatically create a
- * `TicketReservationRequest` from the answer of a `ReservationQuestion` once
- * the destination `Ticket` has been created.
- */
+/** Turns a ReservationQuestion answer into a TicketReservationRequest once the destination Ticket is created. */
 final class PreReservationField extends AbstractConfigField
 {
     #[Override]
@@ -112,13 +108,10 @@ final class PreReservationField extends AbstractConfigField
 
         $twig = TemplateRenderer::getInstance();
         return $twig->render('@advancedforms/destination/prereservation_config_field.html.twig', [
-            // Possible configuration constant that will be used to hide/show additional fields
             'CONFIG_FROM_SPECIFIC_QUESTION' => PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION->value,
 
-            // General display options
             'options' => $display_options,
 
-            // Additional config displayed only for the FROM_SPECIFIC_QUESTION strategy
             'question_extra_field' => [
                 'empty_label'     => __("Select a question...", 'advancedforms'),
                 'value'           => $config->getQuestionId(),
@@ -143,10 +136,8 @@ final class PreReservationField extends AbstractConfigField
             return;
         }
 
-        // Only one strategy is allowed
         $strategy = current($config->getStrategies());
         if ($strategy !== PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION) {
-            // Nothing to do: no pre-reservation was requested for this destination.
             return;
         }
 
@@ -155,9 +146,6 @@ final class PreReservationField extends AbstractConfigField
             return;
         }
 
-        // `$created_objects` maps each destination's id to the items it
-        // created (see `DestinationFieldInterface::applyConfiguratedValueAfterDestinationCreation()`
-        // and `AnswersHandler::createDestinations()`), it is not a flat list.
         $destination_items = $created_objects[$destination->getID()] ?? [];
         $ticket = $destination_items[0] ?? null;
         if (!$ticket instanceof Ticket) {
@@ -166,7 +154,6 @@ final class PreReservationField extends AbstractConfigField
 
         $question_answer = $answers_set->getAnswerByQuestionId($question_id);
         if (!$question_answer instanceof Answer) {
-            // The question was left unanswered (or skipped): nothing to do.
             return;
         }
 
@@ -178,7 +165,6 @@ final class PreReservationField extends AbstractConfigField
         try {
             $answer = ReservationQuestionAnswer::fromArray($raw_answer);
         } catch (InvalidArgumentException) {
-            // Incomplete/invalid answer: do not block the ticket creation.
             return;
         }
 
@@ -195,16 +181,6 @@ final class PreReservationField extends AbstractConfigField
         ];
 
         if (!$require_approval) {
-            // In direct/no-approval mode, the WAITING status set above is
-            // only a transient step before immediately transitioning this
-            // request to its real final state below (ACCEPTED/CANCELED),
-            // which each raise their own distinct notification event. The
-            // request never actually waits for approval, so the "please wait
-            // for approval" notification must be suppressed for this insert.
-            // (The key must only be present when disabling: `isset()` is what
-            // `TicketReservationRequest::post_addItem()` checks, and it is
-            // `true` even for an explicit `false` value, matching the
-            // `_disablenotif` convention used throughout GLPI core.)
             $add_input['_disablenotif'] = true;
         }
 

@@ -33,10 +33,7 @@ export class ReservationRequestTimelineActions {
     #root;
     #endpoint_url = `${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationRequest`;
 
-    /**
-     * @param {HTMLElement} root - The root element of a single timeline card,
-     *  as rendered by `templates/timeline/reservation_request.html.twig`.
-     */
+    /** @param {HTMLElement} root - one timeline card, rendered by templates/timeline/reservation_request.html.twig */
     constructor(root) {
         if (!root) {
             return;

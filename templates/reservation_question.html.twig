@@ -29,6 +29,8 @@
  # -------------------------------------------------------------------------
  #}
 
+{% import 'components/form/fields_macros.html.twig' as fields %}
+
 <div class="reservation-question-widget"
      data-reservation-question-widget
      data-input-name="{{ input_name }}"
@@ -38,33 +40,35 @@
         <option value=""></option>
     </select>
 
-    <div class="reservation-question-dates d-none mt-2" data-reservation-question-dates>
-        <div class="row g-2">
-            <div class="col-12 col-sm-6">
-                <input
-                    type="text"
-                    class="form-control"
-                    placeholder="{{ __('Start date', 'advancedforms') }}"
-                    aria-label="{{ __('Start date', 'advancedforms') }}"
-                    data-reservation-question-begin-picker
-                >
-            </div>
-            <div class="col-12 col-sm-6">
-                <input
-                    type="text"
-                    class="form-control"
-                    placeholder="{{ __('End date', 'advancedforms') }}"
-                    aria-label="{{ __('End date', 'advancedforms') }}"
-                    data-reservation-question-end-picker
-                >
-            </div>
+    <div class="reservation-question-dates row g-2 mt-2 d-none" data-reservation-question-dates>
+        <div class="col-12 col-sm-6">
+            {{ fields.datetimeField(
+                input_name ~ '[begin]',
+                '',
+                __('Start date', 'advancedforms'),
+                {
+                    is_horizontal: false,
+                    full_width: true,
+                    additional_attributes: {'data-reservation-question-begin-picker': ''},
+                }
+            ) }}
         </div>
-        <div class="mt-1 small" data-reservation-question-availability></div>
+        <div class="col-12 col-sm-6">
+            {{ fields.datetimeField(
+                input_name ~ '[end]',
+                '',
+                __('End date', 'advancedforms'),
+                {
+                    is_horizontal: false,
+                    full_width: true,
+                    additional_attributes: {'data-reservation-question-end-picker': ''},
+                }
+            ) }}
+        </div>
+        <div class="col-12 mt-1 small" data-reservation-question-availability></div>
     </div>
 
     <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
-    <input type="hidden" name="{{ input_name }}[begin]" data-reservation-question-field="begin">
-    <input type="hidden" name="{{ input_name }}[end]" data-reservation-question-field="end">
 </div>
 <script type="module">
     import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js';

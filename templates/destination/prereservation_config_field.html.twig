@@ -31,12 +31,6 @@
 
 {% import 'components/form/fields_macros.html.twig' as fields %}
 
-{# The strategy dropdown itself is already rendered by the generic
-   destination field wrapper (form_destination_commonitil_config.html.twig).
-   This template only renders the additional fields shown when the
-   FROM_SPECIFIC_QUESTION strategy is selected: it relies on the same
-   `data-glpi-itildestination-field-config-display-condition` convention used
-   by core fields (e.g. UrgencyField) to be shown/hidden automatically. #}
 <div data-glpi-itildestination-field-config-display-condition="{{ CONFIG_FROM_SPECIFIC_QUESTION }}">
     {{ fields.dropdownArrayField(
         question_extra_field.input_name,
@@ -53,14 +47,19 @@
         })
     ) }}
 
-    {{ fields.checkboxField(
-        require_approval_extra_field.input_name,
-        require_approval_extra_field.value,
-        __('Require technician approval', 'advancedforms'),
-        options|merge({
-            field_class: '',
-            mb: '',
-            no_label: true,
-        })
-    ) }}
+    <label class="col form-check form-switch mt-3 mb-0">
+        <input
+            name="{{ require_approval_extra_field.input_name }}"
+            type="hidden"
+            value="0"
+        >
+        <input
+            name="{{ require_approval_extra_field.input_name }}"
+            class="form-check-input"
+            type="checkbox"
+            value="1"
+            {{ require_approval_extra_field.value ? 'checked' : '' }}
+        >
+        <span class="form-check-label">{{ __('Require technician approval', 'advancedforms') }}</span>
+    </label>
 </div>

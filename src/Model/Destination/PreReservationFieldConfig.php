@@ -41,7 +41,6 @@ use Override;
 #[HasFieldWithQuestionId(self::QUESTION_ID)]
 final readonly class PreReservationFieldConfig implements JsonFieldInterface, ConfigFieldWithStrategiesInterface
 {
-    // Unique reference to hardcoded names used for serialization and forms input names
     public const STRATEGY = 'strategy';
 
     public const QUESTION_ID = 'question_id';
@@ -99,9 +98,7 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
         return self::STRATEGY;
     }
 
-    /**
-     * @return array<PreReservationFieldStrategy>
-     */
+    /** @return array<PreReservationFieldStrategy> */
     #[Override]
     public function getStrategies(): array
     {

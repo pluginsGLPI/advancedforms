@@ -53,16 +53,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Ticket;
 use UserEmail;
 
-/**
- * Functional end-to-end test exercising the full reservation question
- * workflow across all the pieces built for it: `ReservationQuestion`,
- * `PreReservationField`, `TicketReservationRequest` (+ notifications) and
- * `ReservationRequestController`.
- *
- * This test focuses on integration seams between those pieces rather than
- * re-testing each one in isolation (that is already covered by their own
- * dedicated unit tests).
- */
+/** End-to-end test covering the integration seams across all reservation pieces (see per-class unit tests for the rest). */
 final class ReservationWorkflowTest extends AdvancedFormsTestCase
 {
     public function testFullApprovalFlow(): void
@@ -84,14 +75,10 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertTrue($request->getFromDB((int) array_key_first($rows)));
         $this->assertSame(TicketReservationRequest::STATUS_WAITING, (int) $request->fields['status']);
 
-        // The requester must have been notified that their request needs
-        // an answer.
         $queue_after_submission = countElementsInTable('glpi_queuednotifications');
         $this->assertGreaterThan($queue_before_submission, $queue_after_submission);
 
-        // A different (technician) user approves the request through the
-        // real HTTP controller, not by calling the model directly, so that
-        // the full stack (rights-checking included) is exercised.
+        // Approve via the real HTTP controller, as a different (technician) user.
         $this->login('glpi', 'glpi');
         $this->assertNotSame($requester_id, Session::getLoginUserID());
 
@@ -108,8 +95,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertTrue($request->getFromDB($request->getID()));
         $this->assertSame(TicketReservationRequest::STATUS_ACCEPTED, (int) $request->fields['status']);
 
-        // The resulting Reservation must be attributed to the original
-        // requester, not to the technician who approved it.
+        // Reservation must be attributed to the requester, not the approving technician.
         $reservation = new Reservation();
         $found = $reservation->find(['reservationitems_id' => $item->getID()]);
         $this->assertCount(1, $found);
@@ -223,21 +209,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
 
     public function testDirectModeSlotFreeDoesNotRaiseCreatedNotification(): void
     {
-        // Regression test: in "no approval required" (direct reservation)
-        // mode, the underlying `TicketReservationRequest` row is still
-        // inserted as WAITING before immediately being auto-approved by
-        // `PreReservationField`. Only the "created" ("please wait for
-        // approval") notification is activated here: if it fired for this
-        // transient WAITING insert, the requester would wrongly receive both
-        // a "please wait" and an "approved" notification for one
-        // auto-confirmed action, and technicians-in-charge would be pinged
-        // with an approval request for something that needs no approval.
-        //
-        // The count is scoped to `TicketReservationRequest` notifications
-        // (rather than the whole queue) because submitting the form also
-        // creates a `Ticket` and a `Reservation`, which raise their own,
-        // unrelated core notifications ("New ticket"/"New reservation") in
-        // this test environment.
+        // Regression: direct mode must not also fire the "please wait for approval" event.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $this->giveUserADefaultEmail($requester_id);
@@ -259,8 +231,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
 
     public function testDirectModeSlotConflictingDoesNotRaiseCreatedNotification(): void
     {
-        // Same regression as above, but for the "slot no longer available"
-        // (markUnavailable) branch of direct mode.
+        // Same regression, for the markUnavailable() branch.
         $this->login();
         $requester_id = Session::getLoginUserID();
         $this->giveUserADefaultEmail($requester_id);
@@ -304,9 +275,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertCount(1, $rows);
         $this->assertTrue($request->getFromDB((int) array_key_first($rows)));
 
-        // Switch to a "post-only" session: this user is not the ticket's
-        // requester and uses the helpdesk interface, so Ticket::canUpdateItem()
-        // is guaranteed to return false regardless of any right assignment.
+        // "post-only" is not the ticket's requester and uses the helpdesk interface.
         $this->login('post-only', 'postonly');
 
         $controller = new ReservationRequestController();
@@ -321,18 +290,12 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         }
         $this->assertTrue($denied, 'Expected an AccessDeniedHttpException to be thrown.');
 
-        // The denial must be a real gate, not just an exception with a
-        // silent side effect: the request must be untouched.
+        // The denial must be a real gate: the request itself stays untouched.
         $this->assertTrue($request->getFromDB($request->getID()));
         $this->assertSame(TicketReservationRequest::STATUS_WAITING, (int) $request->fields['status']);
     }
 
-    /**
-     * Count queued notifications for `TicketReservationRequest`, ignoring
-     * unrelated notifications also queued by submitting the form (e.g. the
-     * core "New ticket"/"New reservation" notifications triggered by the
-     * `Ticket`/`Reservation` created along the way).
-     */
+    /** Counts queued notifications for TicketReservationRequest only, ignoring unrelated core ones (New ticket, etc). */
     private function countReservationRequestQueuedNotifications(): int
     {
         return countElementsInTable('glpi_queuednotifications', [
@@ -340,14 +303,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         ]);
     }
 
-    /**
-     * Build a form with a single `ReservationQuestion`, configure its
-     * `Ticket` destination's `PreReservationField` with the given approval
-     * mode, submit it as the current test user and return the created
-     * `Ticket` alongside the `ReservationItem` used for the answer.
-     *
-     * @return array{0: Ticket, 1: ReservationItem}
-     */
+    /** @return array{0: Ticket, 1: ReservationItem} */
     private function submitReservationForm(
         bool $require_approval,
         ?ReservationItem $item = null,
@@ -406,13 +362,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         ]);
     }
 
-    /**
-     * Give the given user a default email address: `NotificationTarget`'s
-     * `addItemAuthor()`/`addToRecipientsList()` silently drops recipients
-     * that have no resolvable email address, so without this a queued
-     * notification would never be created regardless of everything else
-     * being correctly configured.
-     */
+    /** NotificationTarget silently drops recipients without a resolvable email. */
     private function giveUserADefaultEmail(int $users_id): void
     {
         $this->createItem(UserEmail::class, [
@@ -422,15 +372,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         ]);
     }
 
-    /**
-     * Register a minimal, active `Notification` (+ template + "requester"
-     * target) for the given `TicketReservationRequest` event, so that
-     * `NotificationEvent::raiseEvent()` actually queues something: this
-     * plugin does not ship any notification configuration of its own (that
-     * is left to the GLPI administrator), so tests must create their own.
-     *
-     * Also enables notifications globally in `$CFG_GLPI`.
-     */
+    /** This plugin ships no notification config of its own; tests must register their own. */
     private function activateReservationRequestNotification(string $event): void
     {
         global $CFG_GLPI;

@@ -39,12 +39,7 @@ use Override;
 use Reservation;
 use Ticket;
 
-/**
- * A request, made from a ticket, to reserve a reservable item (asset) for a
- * given timeframe. It is created by the "reservation" question type's
- * destination field and must be approved or refused by a ticket actor before
- * an actual `Reservation` is created.
- */
+/** A ticket-driven request to reserve an equipment item for a timeframe. */
 final class TicketReservationRequest extends CommonDBChild
 {
     public static $itemtype = 'Ticket';
@@ -64,10 +59,6 @@ final class TicketReservationRequest extends CommonDBChild
     #[Override]
     public static function getTable($classname = null): string
     {
-        // The default table name computation (based on the fully qualified
-        // class name) would produce `glpi_plugin_advancedforms_models_ticketreservationrequests`
-        // because of the `Model` sub-namespace. The table must be forced to
-        // its expected name instead.
         return 'glpi_plugin_advancedforms_ticketreservationrequests';
     }
 
@@ -88,22 +79,6 @@ final class TicketReservationRequest extends CommonDBChild
     {
         parent::post_addItem();
 
-        // Only notify ticket actors that a new request needs an answer when
-        // the request is actually created in a waiting state. A request
-        // created already accepted (e.g. a future "direct reservation, no
-        // approval needed" path) has nothing to approve/refuse, so it must
-        // not raise this event.
-        //
-        // A caller can also explicitly opt out of this notification (via the
-        // standard `_disablenotif` input key, see `CommonDBTM`/`Ticket`/etc.)
-        // even while inserting the row in the WAITING state: this is used by
-        // `PreReservationField` for its "no approval required" (direct
-        // reservation) path, where the row is inserted as WAITING only as a
-        // transient step before immediately transitioning it to its real
-        // final state (ACCEPTED/CANCELED) via `approve()`/`markUnavailable()`,
-        // which each raise their own distinct event. Without this, the
-        // "please wait for approval" notification would fire for something
-        // that never actually waits for approval.
         if (
             $this->getIntField('status') === self::STATUS_WAITING
             && !isset($this->input['_disablenotif'])
@@ -112,13 +87,7 @@ final class TicketReservationRequest extends CommonDBChild
         }
     }
 
-    /**
-     * Whether the requested reservation item is still free for this
-     * request's timeframe, i.e. no existing `Reservation` overlaps it.
-     *
-     * Mirrors core's `Reservation::is_reserved()` conflict detection exactly
-     * (strict inequalities: `end > begin AND begin < end`).
-     */
+    /** Mirrors core's Reservation::is_reserved() overlap check (strict inequalities). */
     public function isSlotStillAvailable(): bool
     {
         global $DB;
@@ -140,18 +109,7 @@ final class TicketReservationRequest extends CommonDBChild
         return $count === 0;
     }
 
-    /**
-     * Approve this request: create the actual `Reservation` (attributed to
-     * the original requester, not the validator) and mark this request as
-     * accepted.
-     *
-     * @param int    $users_id_validate Id of the user validating the request
-     * @param string $comment           Optional comment from the validator
-     *
-     * @return bool False if the `Reservation` could not be created (for
-     *              instance because the slot is no longer available); in
-     *              that case, this request is left untouched.
-     */
+    /** Creates the Reservation for the original requester and accepts this request; returns false, untouched, if the slot is no longer available. */
     public function approve(int $users_id_validate, string $comment = ''): bool
     {
         $reservation = new Reservation();
@@ -159,7 +117,7 @@ final class TicketReservationRequest extends CommonDBChild
             'reservationitems_id' => $this->fields['reservationitems_id'],
             'begin' => $this->fields['begin'],
             'end' => $this->fields['end'],
-            'users_id' => $this->fields['users_id'], // original requester, not the validator
+            'users_id' => $this->fields['users_id'],
             'comment' => $this->fields['comment_submission'] ?? '',
         ]);
 
@@ -182,12 +140,6 @@ final class TicketReservationRequest extends CommonDBChild
         return $updated;
     }
 
-    /**
-     * Refuse this request. No `Reservation` is created.
-     *
-     * @param int    $users_id_validate Id of the user refusing the request
-     * @param string $comment           Optional comment from the validator
-     */
     public function refuse(int $users_id_validate, string $comment = ''): bool
     {
         $updated = $this->update([
@@ -205,10 +157,7 @@ final class TicketReservationRequest extends CommonDBChild
         return $updated;
     }
 
-    /**
-     * Mark this request as no longer available (e.g. the reservable item was
-     * removed or deactivated).
-     */
+    /** Marks this request canceled (e.g. the reservable item was removed or deactivated). */
     public function markUnavailable(): bool
     {
         $updated = $this->update([
@@ -224,8 +173,6 @@ final class TicketReservationRequest extends CommonDBChild
     }
 
     /**
-     * Data needed to render this request in a ticket's timeline.
-     *
      * @return array{
      *     id: int,
      *     status: int,
@@ -252,11 +199,7 @@ final class TicketReservationRequest extends CommonDBChild
         ];
     }
 
-    /**
-     * Whether the current session's user may approve/refuse this request:
-     * it must still be waiting, and the user must be able to update the
-     * parent ticket.
-     */
+    /** Whether the current user may approve/refuse this still-waiting request. */
     public function canAnswer(): bool
     {
         if ($this->getIntField('status') !== self::STATUS_WAITING) {

@@ -84,10 +84,7 @@ final class ReservationRequestControllerTest extends AdvancedFormsTestCase
         $this->login();
         $request = $this->createWaitingRequest();
 
-        // Switch to a "post-only" session: this user is not the ticket's
-        // requester and uses the helpdesk interface, so Ticket::canUpdateItem()
-        // is guaranteed to return false regardless of any right assignment,
-        // making TicketReservationRequest::canAnswer() false as well.
+        // Switch to a "post-only" session: this user is not the ticket's requester
         $this->login('post-only', 'postonly');
 
         $controller = new ReservationRequestController();

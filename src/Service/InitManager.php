@@ -106,13 +106,7 @@ final class InitManager
     {
         $destination_manager = FormDestinationManager::getInstance();
 
-        // `FormDestinationManager` is a plain singleton with no way to
-        // unregister a field: `init()` may legitimately be called several
-        // times during the same request/process (e.g. once automatically on
-        // plugin boot, then again whenever a configurable item is toggled).
-        // Guard against registering the same field more than once, which
-        // would otherwise make `applyConfiguratedValueAfterDestinationCreation()`
-        // run multiple times per created ticket.
+        // init() may run multiple times per process; avoid double-registering the field.
         $already_registered = array_filter(
             $destination_manager->getPluginCommonITILConfigFields(FormDestinationTicket::class),
             fn($field) => $field instanceof PreReservationField,

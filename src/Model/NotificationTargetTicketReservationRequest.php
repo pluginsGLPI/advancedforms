@@ -39,14 +39,7 @@ use NotificationTarget;
 use Override;
 use Ticket;
 
-/**
- * Notification target for `TicketReservationRequest`. Auto-discovered by
- * core (see `NotificationTarget::getInstanceClass()`) because it lives in
- * the same namespace as `TicketReservationRequest` and is named
- * `NotificationTarget<ShortClassName>`.
- *
- * @extends NotificationTarget<TicketReservationRequest>
- */
+/** @extends NotificationTarget<TicketReservationRequest> */
 final class NotificationTargetTicketReservationRequest extends NotificationTarget
 {
     #[Override]
@@ -63,12 +56,8 @@ final class NotificationTargetTicketReservationRequest extends NotificationTarge
     #[Override]
     public function addAdditionalTargets($event = ''): void
     {
-        // The original requester (the request's own `users_id`, not the
-        // validator) is always notified.
         $this->addTarget(Notification::AUTHOR, __('Requester'));
 
-        // Only notify the parent ticket's technician(s) when a new request
-        // is created: they are the ones expected to approve/refuse it.
         if ($event === 'reservation_request_created') {
             $this->addTarget(Notification::ITEM_TECH_IN_CHARGE, __('Technician in charge'));
             $this->addTarget(Notification::ITEM_TECH_GROUP_IN_CHARGE, __('Group in charge'));
@@ -114,11 +103,6 @@ final class NotificationTargetTicketReservationRequest extends NotificationTarge
     #[Override]
     public function getObjectItem($event = '')
     {
-        // Technician-in-charge related targets are resolved from
-        // `$this->target_object` (see `NotificationTarget::addUserByField()`),
-        // and technicians are attached to the parent `Ticket`, not to the
-        // `TicketReservationRequest` itself. Point `target_object` at the
-        // parent ticket so those targets resolve correctly.
         if ($this->obj instanceof TicketReservationRequest) {
             $tickets_id = $this->obj->fields['tickets_id'];
             $ticket = new Ticket();

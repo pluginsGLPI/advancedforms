@@ -41,18 +41,12 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
     // Unique reference to hardcoded name used for serialization
     public const ALLOWED_ITEMTYPES = 'allowed_itemtypes';
 
-    /**
-     * @param array<string> $allowed_itemtypes
-     */
+    /** @param array<string> $allowed_itemtypes */
     public function __construct(
         private array $allowed_itemtypes = [],
     ) {}
 
-    /**
-     * @param array{
-     *      allowed_itemtypes?: array<string>
-     * } $data
-     */
+    /** @param array{allowed_itemtypes?: array<string>} $data */
     #[Override]
     public static function jsonDeserialize(array $data): self
     {
@@ -61,11 +55,7 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
         );
     }
 
-    /**
-     * @return array{
-     *      allowed_itemtypes: array<string>
-     * } $data
-     */
+    /** @return array{allowed_itemtypes: array<string>} */
     #[Override]
     public function jsonSerialize(): array
     {
@@ -74,17 +64,13 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
         ];
     }
 
-    /**
-     * @return array<string>
-     */
+    /** @return array<string> */
     public function getAllowedItemtypes(): array
     {
         return $this->allowed_itemtypes;
     }
 
-    /**
-     * @return array<string>
-     */
+    /** @return array<string> */
     public function getEffectiveAllowedItemtypes(): array
     {
         global $CFG_GLPI;

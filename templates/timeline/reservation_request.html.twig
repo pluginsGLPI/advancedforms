@@ -44,30 +44,33 @@
 } %}
 
 <div class="reservation-request-timeline-item" data-reservation-request-id="{{ request.id }}">
-    <div class="d-flex align-items-center gap-2 mb-1">
-        <i class="ti ti-calendar-event"></i>
-        <span class="fw-bold">{{ equipment_name|default('') }}</span>
-        <span class="badge bg-{{ status_classes[request.status]|default('secondary') }}">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="ti ti-calendar-event fs-4 text-muted"></i>
+        <div class="flex-grow-1">
+            <div class="fw-bold">{{ equipment_name|default('') }}</div>
+            <div class="text-muted small">
+                <i class="ti ti-clock me-1"></i>{{ request.begin }} &rarr; {{ request.end }}
+            </div>
+        </div>
+        <span class="badge bg-{{ status_classes[request.status]|default('secondary') }}-lt">
             {{ status_labels[request.status]|default(request.status) }}
         </span>
     </div>
 
-    <div class="reservation-request-slot">
-        {{ request.begin }} &rarr; {{ request.end }}
-    </div>
-
     {% if request.is_direct_reservation %}
-        <div class="text-muted small mt-1">
-            <i class="ti ti-circle-check me-1"></i>{{ __('Reservation confirmed automatically', 'advancedforms') }}
+        <div class="d-flex align-items-center gap-2 text-success small mb-2">
+            <i class="ti ti-circle-check"></i>
+            <span>{{ __('Reservation confirmed automatically', 'advancedforms') }}</span>
         </div>
     {% elseif request.status == constant(request_class ~ '::STATUS_CANCELED') %}
-        <div class="text-muted small mt-1">
-            {{ __('This slot is no longer available. Please submit a new reservation request.', 'advancedforms') }}
+        <div class="d-flex align-items-center gap-2 text-muted small mb-2">
+            <i class="ti ti-alert-triangle"></i>
+            <span>{{ __('This slot is no longer available. Please submit a new reservation request.', 'advancedforms') }}</span>
         </div>
     {% endif %}
 
     {% if request.comment_validation is not empty %}
-        <div class="reservation-request-comment mt-1">
+        <div class="reservation-request-comment border-start border-3 ps-2 text-muted small mb-2">
             {{ request.comment_validation }}
         </div>
     {% endif %}

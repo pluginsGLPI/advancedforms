@@ -120,9 +120,7 @@ final class TimelineManagerTest extends DbTestCase
             'status' => TicketReservationRequest::STATUS_WAITING,
         ]);
 
-        // Switch to a "post-only" session: this user is not the ticket's
-        // requester and uses the helpdesk interface, so canAnswer() is
-        // guaranteed to return false regardless of any right assignment.
+        // "post-only" is not the requester and uses the helpdesk interface.
         $this->login('post-only', 'postonly');
         $current_ticket = new Ticket();
         $this->assertTrue($current_ticket->getFromDB($ticket->getID()));

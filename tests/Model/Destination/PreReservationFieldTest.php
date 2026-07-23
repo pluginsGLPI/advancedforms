@@ -135,31 +135,6 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
     }
 
-    /**
-     * `ReservationQuestion::prepareEndUserAnswer()` already sanitizes any
-     * incomplete/invalid submitted value down to `null` before it is ever
-     * persisted, so it is not possible to make a `ReservationQuestion` itself
-     * store a malformed (but non-null) raw answer through the real
-     * submission pipeline: that path is already covered by
-     * `testUnansweredQuestionCreatesNoRequestAndDoesNotCrash()`.
-     *
-     * The catch block in
-     * `PreReservationField::applyConfiguratedValueAfterDestinationCreation()`
-     * instead protects against a different, but very real, situation: the
-     * destination field's configured `question_id` no longer points to a
-     * question shaped like a reservation answer (for example because the
-     * question was edited and its type was changed after the pre-reservation
-     * config was set up). In that case, the answer stored for that question
-     * id is whatever its own question type produced, which can be a
-     * perfectly valid (but differently shaped) array, such as a checkbox
-     * question's list of selected options.
-     *
-     * This test reproduces that scenario by pointing the config at a
-     * `QuestionTypeCheckbox` question instead of the `ReservationQuestion`,
-     * and asserts that `ReservationQuestionAnswer::fromArray()`'s resulting
-     * `InvalidArgumentException` is caught: no `TicketReservationRequest` is
-     * created and the ticket creation itself is not blocked.
-     */
     public function testAnswerWithMismatchedShapeCreatesNoRequestAndDoesNotCrash(): void
     {
         $this->login();
@@ -208,14 +183,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
     }
 
-    /**
-     * Build a form with a single (optional) `ReservationQuestion`, configure
-     * its `Ticket` destination's `PreReservationField` with the given
-     * strategy, submit it as the current test user and return the created
-     * `Ticket` alongside the `ReservationItem` used for the answer.
-     *
-     * @return array{0: Ticket, 1: ReservationItem}
-     */
+    /** @return array{0: Ticket, 1: ReservationItem} */
     private function submitReservationForm(
         PreReservationFieldStrategy $strategy,
         bool $require_approval,

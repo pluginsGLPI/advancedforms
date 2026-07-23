@@ -80,15 +80,12 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
     #[Override]
     public function validateExtraDataInput(array $input): bool
     {
-        // All fields of `ReservationQuestionConfig` are optional: an empty
-        // `allowed_itemtypes` list means "every reservable type is allowed".
         return true;
     }
 
     #[Override]
     public function renderAdministrationTemplate(Question|null $question): string
     {
-        // Read extra config specific to this question type
         $decoded_extra_data = [];
         if ($question instanceof Question && is_string($question->fields['extra_data'])) {
             $decoded_extra_data = json_decode(
@@ -96,7 +93,6 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
                 associative: true,
             );
 
-            // Fallback to safe value
             if (!is_array($decoded_extra_data)) {
                 $decoded_extra_data = [];
             }
@@ -140,7 +136,6 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
                 associative: true,
             );
 
-            // Fallback to safe value
             if (!is_array($decoded_extra_data)) {
                 $decoded_extra_data = [];
             }
@@ -167,9 +162,6 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
         try {
             return ReservationQuestionAnswer::fromArray($answer)->toArray();
         } catch (InvalidArgumentException) {
-            // The question is optional (or was simply left untouched) and
-            // the widget's hidden inputs are empty: treat this the same as
-            // "not answered" instead of failing the whole form submission.
             return null;
         }
     }

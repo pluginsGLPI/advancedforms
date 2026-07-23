@@ -45,9 +45,7 @@ final readonly class ReservationQuestionAnswer
         private string $end,
     ) {}
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
+    /** @param array<array-key, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach (['reservationitems_id', 'begin', 'end'] as $key) {
@@ -71,13 +69,7 @@ final readonly class ReservationQuestionAnswer
         );
     }
 
-    /**
-     * @return array{
-     *      reservationitems_id: int,
-     *      begin: string,
-     *      end: string
-     * }
-     */
+    /** @return array{reservationitems_id: int, begin: string, end: string} */
     public function toArray(): array
     {
         return [
