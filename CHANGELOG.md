@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+### Add
+
+- Add configurable table question type
+
 ### Fixed
 
 - Fix visibility conditions on tree cascade dropdown questions

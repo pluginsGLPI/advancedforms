@@ -1,4 +1,4 @@
-/*!
+/**
  * -------------------------------------------------------------------------
  * advancedforms plugin for GLPI
  * -------------------------------------------------------------------------
@@ -29,48 +29,6 @@
  * -------------------------------------------------------------------------
  */
 
-/* Hide ldap preview on active questions */
-[data-glpi-form-editor-active-question] [data-ldap-question-preview] {
-        display: none !important;
-}
-
-[data-glpi-form-editor-question]:has([data-af-table-admin]) label.form-check:has([data-glpi-form-editor-original-name="is_mandatory"]) {
-    display: none !important;
-}
-
-[data-af-table-column] .select2-selection--single .select2-selection__rendered,
-[data-af-table-question] td .select2-selection--single .select2-selection__rendered {
-    display: flex !important;
-    align-items: center !important;
-    line-height: normal !important;
-    direction: ltr !important;
-    height: 100% !important;
-}
-[data-af-table-column] .select2-selection--single .select2-selection__rendered::before,
-[data-af-table-question] td .select2-selection--single .select2-selection__rendered::before {
-    display: none !important;
-}
-
-.af-required-toggle {
-    display: inline-flex;
-    align-items: center;
-    color: var(--tblr-secondary);
-}
-.af-required-toggle:hover {
-    color: var(--tblr-body-color);
-}
-.af-required-toggle:has(:checked) {
-    color: var(--tblr-danger);
-}
-.af-required-toggle:has(:focus-visible) {
-    outline: 2px solid var(--tblr-primary);
-    outline-offset: 2px;
-    border-radius: var(--tblr-border-radius);
-}
-
-[data-af-table-question]:has(select.is-invalid) td:not(:has(select.is-invalid)) .select2-container--default .select2-selection {
-    border-color: var(--tblr-border-color) !important;
-}
-[data-af-table-question] td:has(select.is-invalid) .select2-container--default .select2-selection {
-    border-color: var(--tblr-form-invalid-border-color) !important;
-}
+// Re-export the core GLPI fixture so plugin specs share the same authenticated
+// `test`/`expect` and the worker/profile/api helpers.
+export * from '../../../../../tests/e2e/fixtures/glpi_fixture';

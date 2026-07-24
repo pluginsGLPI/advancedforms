@@ -1,0 +1,313 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% set rand = random() %}
+
+<script>
+    window.afTableColumnTypeTemplate = window.afTableColumnTypeTemplate || function (item) {
+        const icons = {{ icons_json|raw }};
+        if (!item.id || !icons[item.id]) {
+            return item.text;
+        }
+        return $('<span>', { 'class': 'd-flex align-items-center gap-1' })
+            .append($('<i>', { 'class': icons[item.id] }))
+            .append(document.createTextNode(' ' + item.text));
+    };
+</script>
+
+<div class="dropdown" data-glpi-form-editor-question-extra-details>
+    <button
+        id="af-table-cfg-{{ rand }}"
+        class="btn btn-icon"
+        type="button"
+        data-bs-toggle="dropdown"
+        data-bs-auto-close="outside"
+        aria-expanded="false"
+        title="{{ __('Configure table columns', 'advancedforms') }}"
+        aria-label="{{ __('Configure table columns', 'advancedforms') }}"
+    >
+        <i class="ti ti-settings"></i>
+    </button>
+    <div
+        style="width: 52rem"
+        class="dropdown-menu dropdown-menu-end dropdown-menu-card animate__animated animate__zoomIn"
+        role="menu"
+        aria-labelledby="af-table-cfg-{{ rand }}"
+    >
+        <div class="card">
+            <div class="card-body">
+
+                <p class="fw-semibold mb-2">{{ __('Columns', 'advancedforms') }}</p>
+
+                <div
+                    class="mb-3"
+                    data-af-table-columns-container="{{ rand }}"
+                    data-af-short-answer-fqcns="{{ short_answer_fqcns_json|e('html_attr') }}"
+                >
+                    {% for index, col in config.getColumns() %}
+                        <div class="mb-2" data-af-table-column>
+                            <div class="d-flex align-items-center gap-2">
+                                <input
+                                    class="form-control"
+                                    style="flex: 1 1 auto; min-width: 0; width: auto"
+                                    type="text"
+                                    name="extra_data[columns][{{ index }}][{{ COL_NAME }}]"
+                                    value="{{ col[COL_NAME] }}"
+                                    placeholder="{{ __('Column name', 'advancedforms') }}"
+                                >
+                                {% set col_select %}
+                                    {% do call('Dropdown::showFromArray', [
+                                        'extra_data[columns][' ~ index ~ '][' ~ COL_QUESTION_TYPE ~ ']',
+                                        compatible_types,
+                                        {
+                                            'value'             : col[COL_QUESTION_TYPE],
+                                            'class'             : 'form-select',
+                                            'width'             : '200px',
+                                            'templateResult'    : 'window.afTableColumnTypeTemplate',
+                                            'templateSelection' : 'window.afTableColumnTypeTemplate',
+                                        }
+                                    ]) %}
+                                {% endset %}
+                                {{ col_select|raw }}
+                                {% for type_fqcn, options in itemtype_options %}
+                                    <div data-af-itemtype-wrapper="{{ type_fqcn }}" style="display: none">
+                                        <select
+                                            class="form-select flex-shrink-0"
+                                            style="width: 170px"
+                                            name="extra_data[columns][{{ index }}][{{ COL_ITEMTYPE }}]"
+                                            disabled
+                                        >
+                                            <option value="">{{ __('Select a type', 'advancedforms') }}</option>
+                                            {% for group_or_key, value in options %}
+                                                {% if value is iterable %}
+                                                    <optgroup label="{{ group_or_key }}">
+                                                        {% for item_fqcn, name in value %}
+                                                            <option value="{{ item_fqcn }}" {{ col[COL_ITEMTYPE] == item_fqcn ? 'selected' : '' }}>{{ name }}</option>
+                                                        {% endfor %}
+                                                    </optgroup>
+                                                {% else %}
+                                                    <option value="{{ group_or_key }}" {{ col[COL_ITEMTYPE] == group_or_key ? 'selected' : '' }}>{{ value }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                {% endfor %}
+                                <label
+                                    class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="{{ __('Required column', 'advancedforms') }}"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        class="visually-hidden"
+                                        name="extra_data[columns][{{ index }}][{{ COL_REQUIRED }}]"
+                                        value="1"
+                                        aria-label="{{ __('Required column', 'advancedforms') }}"
+                                        {{ col[COL_REQUIRED] ? 'checked' : '' }}
+                                    >
+                                    <i class="ti ti-asterisk" aria-hidden="true"></i>
+                                </label>
+                                <i
+                                    role="button"
+                                    class="ti ti-trash ms-1 cursor-pointer text-danger flex-shrink-0"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="{{ __('Remove column', 'advancedforms') }}"
+                                    aria-label="{{ __('Remove column', 'advancedforms') }}"
+                                    data-af-table-column-remove
+                                ></i>
+                            </div>
+                            <div class="mt-1" data-af-pattern-wrapper style="display: none">
+                                <input
+                                    class="form-control form-control-sm"
+                                    type="text"
+                                    name="extra_data[columns][{{ index }}][{{ COL_PATTERN }}]"
+                                    value="{{ col[COL_PATTERN] }}"
+                                    placeholder="/regex/"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="{{ __('Validation pattern', 'advancedforms') }}"
+                                    aria-label="{{ __('Validation pattern', 'advancedforms') }}"
+                                >
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {# Template cloned by JS for new columns #}
+                <template data-af-table-column-template="{{ rand }}">
+                    <div class="mb-2" data-af-table-column>
+                        <div class="d-flex align-items-center gap-2">
+                            <input
+                                class="form-control"
+                                style="flex: 1 1 auto; min-width: 0; width: auto"
+                                type="text"
+                                name="extra_data[columns][__INDEX__][{{ COL_NAME }}]"
+                                placeholder="{{ __('Column name', 'advancedforms') }}"
+                            >
+                            <select
+                                class="form-select"
+                                style="width: 200px; flex-shrink: 0"
+                                name="extra_data[columns][__INDEX__][{{ COL_QUESTION_TYPE }}]"
+                                data-af-table-type-select
+                            >
+                                {% for fqcn, label in compatible_types %}
+                                    <option value="{{ fqcn }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% for type_fqcn, options in itemtype_options %}
+                                <div data-af-itemtype-wrapper="{{ type_fqcn }}" style="display: none">
+                                    <select
+                                        class="form-select flex-shrink-0"
+                                        style="width: 170px"
+                                        name="extra_data[columns][__INDEX__][{{ COL_ITEMTYPE }}]"
+                                        disabled
+                                    >
+                                        <option value="">{{ __('Select a type', 'advancedforms') }}</option>
+                                        {% for group_or_key, value in options %}
+                                            {% if value is iterable %}
+                                                <optgroup label="{{ group_or_key }}">
+                                                    {% for item_fqcn, name in value %}
+                                                        <option value="{{ item_fqcn }}">{{ name }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                            {% else %}
+                                                <option value="{{ group_or_key }}">{{ value }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% endfor %}
+                            <label
+                                class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ __('Required column', 'advancedforms') }}"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="visually-hidden"
+                                    name="extra_data[columns][__INDEX__][{{ COL_REQUIRED }}]"
+                                    value="1"
+                                    aria-label="{{ __('Required column', 'advancedforms') }}"
+                                >
+                                <i class="ti ti-asterisk" aria-hidden="true"></i>
+                            </label>
+                            <i
+                                role="button"
+                                class="ti ti-trash ms-1 cursor-pointer text-danger flex-shrink-0"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ __('Remove column', 'advancedforms') }}"
+                                aria-label="{{ __('Remove column', 'advancedforms') }}"
+                                data-af-table-column-remove
+                            ></i>
+                        </div>
+                        <div class="mt-1" data-af-pattern-wrapper style="display: none">
+                            <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                name="extra_data[columns][__INDEX__][{{ COL_PATTERN }}]"
+                                placeholder="/regex/"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ __('Validation pattern', 'advancedforms') }}"
+                                aria-label="{{ __('Validation pattern', 'advancedforms') }}"
+                            >
+                        </div>
+                    </div>
+                </template>
+
+                <i
+                    role="button"
+                    class="ti ti-plus cursor-pointer mb-3"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    title="{{ __('Add column', 'advancedforms') }}"
+                    aria-label="{{ __('Add column', 'advancedforms') }}"
+                    data-af-table-column-add="{{ rand }}"
+                ></i>
+
+                <hr class="mt-3 mb-2">
+
+                <div class="d-flex gap-4 align-items-center flex-wrap">
+                    <label class="d-flex align-items-center gap-2 mb-0">
+                        <span class="text-nowrap">{{ __('Min rows', 'advancedforms') }}</span>
+                        <input
+                            type="number"
+                            class="form-control form-control-sm"
+                            style="width: 5rem"
+                            name="extra_data[{{ MIN_ROWS }}]"
+                            value="{{ config.getMinRows() }}"
+                            min="1"
+                            max="50"
+                            step="1"
+                        >
+                    </label>
+                    <label class="d-flex align-items-center gap-2 mb-0">
+                        <span class="text-nowrap">{{ __('Max rows', 'advancedforms') }}</span>
+                        <input
+                            type="number"
+                            class="form-control form-control-sm"
+                            style="width: 5rem"
+                            name="extra_data[{{ MAX_ROWS }}]"
+                            value="{{ config.getMaxRows() }}"
+                            min="1"
+                            max="50"
+                            step="1"
+                        >
+                    </label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.select2_configs = window.select2_configs || {};
+    window.select2_configs['af-table-type-template-{{ rand }}'] = {
+        type: 'adapt',
+        field_id: 'af-table-type-template-{{ rand }}',
+        width: '200px',
+        dropdown_css_class: '',
+        placeholder: '',
+        ajax_limit_count: {{ ajax_limit_count }},
+        templateresult: window.afTableColumnTypeTemplate,
+        templateselection: window.afTableColumnTypeTemplate,
+    };
+</script>
+
+<script type="module">
+    import { AfTableQuestionConfig } from '/plugins/advancedforms/js/modules/AfTableQuestionConfig.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
+    new AfTableQuestionConfig();
+</script>
