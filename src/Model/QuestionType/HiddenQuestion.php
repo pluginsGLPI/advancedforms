@@ -116,6 +116,13 @@ TWIG;
     }
 
     #[Override]
+    public function prepareEndUserAnswer(Question $question, mixed $answer): mixed
+    {
+        // Ignore the submitted value: this field must never be attacker-controlled.
+        return $question->fields['default_value'];
+    }
+
+    #[Override]
     public static function getConfigKey(): string
     {
         return "enable_question_type_hidden";

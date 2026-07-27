@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- Fixed the `Hidden`, `IP address`, and `Hostname` questions to always use the correct value regardless of what was submitted, and restored the missing access check on the tree cascade dropdown children endpoint
+- Fixed the `LDAP select` question's autocomplete search to properly handle special characters in the search text
 - Fix visibility conditions on tree cascade dropdown questions
 - Fixed the `Tree cascade Dropdown` field so that the subtree depth limit is enforced when loading children via AJAX
 - Fixed the `Tree cascade Dropdown` question to only show items from the configured custom dropdown instead of all custom dropdowns

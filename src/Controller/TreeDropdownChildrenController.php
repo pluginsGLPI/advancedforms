@@ -39,6 +39,7 @@ use DBmysql;
 use CommonTreeDropdown;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Controller\AbstractController;
+use Glpi\Controller\Form\Utils\CanCheckAccessPolicies;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,6 +48,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class TreeDropdownChildrenController extends AbstractController
 {
+    use CanCheckAccessPolicies;
+
     #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
     #[Route(
         path: 'TreeDropdownChildren',
@@ -65,6 +68,9 @@ final class TreeDropdownChildrenController extends AbstractController
         if (!$question->getFromDB($questions_id)) {
             return new Response('', Response::HTTP_OK);
         }
+
+        // Validate that the form is readable for the current user
+        $this->checkFormAccessPolicies($question->getForm(), $request);
 
         /** @var QuestionTypeItemDropdown $question_type */
         $question_type = $question->getQuestionType();
