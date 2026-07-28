@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use InvalidArgumentException;
+use Safe\Exceptions\DatetimeException;
 
 use function Safe\strtotime;
 
@@ -96,6 +97,10 @@ final readonly class ReservationQuestionAnswer
 
     public function isValidRange(): bool
     {
-        return strtotime($this->begin) < strtotime($this->end);
+        try {
+            return strtotime($this->begin) < strtotime($this->end);
+        } catch (DatetimeException) {
+            return false;
+        }
     }
 }

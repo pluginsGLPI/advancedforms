@@ -75,4 +75,13 @@ class ReservationQuestionAnswerTest extends TestCase
         ]);
         $this->assertFalse($invalid->isValidRange());
     }
+
+    public function testIsValidRangeReturnsFalseOnMalformedDates(): void
+    {
+        // Safe\strtotime() throws on garbage: isValidRange() must swallow it, not bubble up.
+        $malformed = ReservationQuestionAnswer::fromArray([
+            'reservationitems_id' => 1, 'begin' => 'not-a-date', 'end' => 'also-not-a-date',
+        ]);
+        $this->assertFalse($malformed->isValidRange());
+    }
 }

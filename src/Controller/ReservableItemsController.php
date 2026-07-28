@@ -37,6 +37,7 @@ use CommonDBTM;
 use Glpi\DBAL\QuerySubQuery;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
+use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestionConfig;
 use ReservationItem;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,11 +60,9 @@ final class ReservableItemsController extends AbstractReservationWidgetControlle
         $allowed_itemtypes = $request->request->all('allowed_itemtypes');
         $search = $request->request->getString('search', '');
 
-        global $CFG_GLPI;
-        $reservation_types = $CFG_GLPI['reservation_types'] ?? [];
-        $itemtypes = $allowed_itemtypes !== []
-            ? $allowed_itemtypes
-            : (is_array($reservation_types) ? $reservation_types : []);
+        // Same fallback as the question config: given types, or all reservable types.
+        $allowed = array_values(array_filter($allowed_itemtypes, is_string(...)));
+        $itemtypes = (new ReservationQuestionConfig($allowed))->getEffectiveAllowedItemtypes();
 
         $results = [];
         foreach ($itemtypes as $itemtype) {

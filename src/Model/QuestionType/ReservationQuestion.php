@@ -38,6 +38,8 @@ use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use Glpi\Form\QuestionType\QuestionTypeValidationInterface;
+use Glpi\Form\ValidationResult;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use InvalidArgumentException;
@@ -45,7 +47,7 @@ use Override;
 
 use function Safe\json_decode;
 
-final class ReservationQuestion extends AbstractQuestionType implements ConfigurableItemInterface
+final class ReservationQuestion extends AbstractQuestionType implements ConfigurableItemInterface, QuestionTypeValidationInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -172,6 +174,49 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
         }
 
         return $parsed->toArray();
+    }
+
+    /**
+     * Validates the end-user answer before submission so an item selected with
+     * missing or incoherent dates is reported instead of being silently dropped.
+     */
+    #[Override]
+    public function validateAnswer(Question $question, mixed $answer): ValidationResult
+    {
+        $result = new ValidationResult(true);
+
+        if (!is_array($answer)) {
+            $result->addError($question, __('Unexpected value', 'advancedforms'));
+            return $result;
+        }
+
+        $item = $answer['reservationitems_id'] ?? '';
+        $begin = $answer['begin'] ?? '';
+        $end = $answer['end'] ?? '';
+
+        // Nothing filled at all: treat as unanswered. The generic mandatory check
+        // never fires here (the answer is a non-empty array), so enforce it now.
+        if (in_array($item, ['', null], true) && in_array($begin, ['', null], true) && in_array($end, ['', null], true)) {
+            if (!empty($question->fields['is_mandatory'])) {
+                $result->addError($question, __('This field is mandatory'));
+            }
+
+            return $result;
+        }
+
+        // Partially filled or complete: the whole triple is required.
+        try {
+            $parsed = ReservationQuestionAnswer::fromArray($answer);
+        } catch (InvalidArgumentException) {
+            $result->addError($question, __('Please select an item and both a start and end date.', 'advancedforms'));
+            return $result;
+        }
+
+        if (!$parsed->isValidRange()) {
+            $result->addError($question, __('The end date must be after the start date.', 'advancedforms'));
+        }
+
+        return $result;
     }
 
     #[Override]

@@ -43,6 +43,24 @@ export class ReservationQuestionWidget {
 
         this.#initItemSelect();
         this.#initDateChangeListeners();
+        this.#initSubmitReset();
+    }
+
+    /**
+     * The form renderer validates each question server-side before submitting and
+     * surfaces any error next to the question, so clear our inline availability
+     * hint on submit to avoid showing duplicate or stale messaging.
+     */
+    #initSubmitReset() {
+        const form = this.#root.closest('form');
+        if (!form) {
+            return;
+        }
+
+        $(form).on('submit', () => this.#showAvailability(null));
+        $(form)
+            .find('[data-glpi-form-renderer-action="submit"]')
+            .on('click', () => this.#showAvailability(null));
     }
 
     #initItemSelect() {
@@ -56,7 +74,7 @@ export class ReservationQuestionWidget {
         $select.select2({
             width: '100%',
             allowClear: true,
-            placeholder: __('Select an item to reserve'),
+            placeholder: __('Select an item to reserve', 'advancedforms'),
             ajax: {
                 url: `${this.#endpoint_url}/ReservableItems`,
                 type: 'POST',
@@ -151,9 +169,32 @@ export class ReservationQuestionWidget {
             return;
         }
 
+        // Catch the obvious end-before-begin case locally, before asking the server.
+        if (!this.#isRangeValid(begin, end)) {
+            this.#showRangeError();
+            return;
+        }
+
         $.post(`${this.#endpoint_url}/CheckAvailability`, { reservationitems_id, begin, end })
             .done((data) => this.#showAvailability(data.available))
-            .fail(() => this.#showAvailability(null));
+            .fail(() => this.#showStatus(__('Could not check availability, please try again', 'advancedforms'), 'text-danger'));
+    }
+
+    /** @returns {boolean} false only when both dates parse and end is not strictly after begin. */
+    #isRangeValid(begin, end) {
+        const begin_ts = Date.parse(begin.replace(' ', 'T'));
+        const end_ts = Date.parse(end.replace(' ', 'T'));
+
+        if (Number.isNaN(begin_ts) || Number.isNaN(end_ts)) {
+            // Unparseable here: let the server-side validation decide.
+            return true;
+        }
+
+        return end_ts > begin_ts;
+    }
+
+    #showRangeError() {
+        this.#showStatus(__('The end date must be after the start date', 'advancedforms'), 'text-danger');
     }
 
     /** Fetches the equipment's existing reservations and lists them so the user can see busy slots. */
@@ -199,19 +240,27 @@ export class ReservationQuestionWidget {
     }
 
     #showAvailability(available) {
+        if (available === null || available === undefined) {
+            this.#showStatus('', null);
+            return;
+        }
+
+        this.#showStatus(
+            available ? __('This slot is available', 'advancedforms') : __('This slot is no longer available', 'advancedforms'),
+            available ? 'text-success' : 'text-danger',
+        );
+    }
+
+    /** Renders a single status line under the date pickers (availability, range error or request failure). */
+    #showStatus(text, css_class) {
         const $result = $(this.#root.querySelector('[data-reservation-question-availability]'));
         if ($result.length === 0) {
             return;
         }
 
-        if (available === null || available === undefined) {
-            $result.text('').removeClass('text-danger text-success');
-            return;
+        $result.text(text).removeClass('text-danger text-success');
+        if (css_class) {
+            $result.addClass(css_class);
         }
-
-        $result
-            .text(available ? __('This slot is available') : __('This slot is no longer available'))
-            .toggleClass('text-danger', !available)
-            .toggleClass('text-success', available);
     }
 }

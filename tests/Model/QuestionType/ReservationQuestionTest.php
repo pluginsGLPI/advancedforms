@@ -171,4 +171,92 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
 
         $this->assertSame('', $type->formatRawAnswer(null, $question));
     }
+
+    public function testValidateAnswerAcceptsCompleteCoherentAnswer(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(), [
+            'reservationitems_id' => 5,
+            'begin' => '2026-01-15 09:00:00',
+            'end' => '2026-01-15 12:00:00',
+        ]);
+
+        $this->assertTrue($result->isValid());
+        $this->assertSame([], $result->getErrors());
+    }
+
+    public function testValidateAnswerRejectsPartialAnswer(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(), [
+            'reservationitems_id' => 5,
+            'begin' => '2026-01-15 09:00:00',
+            'end' => '',
+        ]);
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function testValidateAnswerRejectsEndBeforeBegin(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(), [
+            'reservationitems_id' => 5,
+            'begin' => '2026-01-15 12:00:00',
+            'end' => '2026-01-15 09:00:00',
+        ]);
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function testValidateAnswerAcceptsFullyEmptyOptionalQuestion(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(mandatory: false), [
+            'reservationitems_id' => '',
+            'begin' => '',
+            'end' => '',
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testValidateAnswerRejectsFullyEmptyMandatoryQuestion(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(mandatory: true), [
+            'reservationitems_id' => '',
+            'begin' => '',
+            'end' => '',
+        ]);
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function testValidateAnswerRejectsNonArrayAnswer(): void
+    {
+        $type = new ReservationQuestion();
+        $result = $type->validateAnswer($this->makeReservationQuestion(), 'not-an-array');
+
+        $this->assertFalse($result->isValid());
+    }
+
+    private function makeReservationQuestion(bool $mandatory = false): Question
+    {
+        $type = new ReservationQuestion();
+        $this->enableConfigurableItem($type);
+
+        $builder = new FormBuilder("Reservation validation form");
+        $builder->addQuestion("Reservation", ReservationQuestion::class);
+        $form = $this->createForm($builder);
+
+        $question = new Question();
+        $this->assertTrue($question->getFromDB($this->getQuestionId($form, "Reservation")));
+
+        if ($mandatory) {
+            $question->fields['is_mandatory'] = 1;
+        }
+
+        return $question;
+    }
 }
