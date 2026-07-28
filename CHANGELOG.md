@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Add
 
+- Add Reservation question type
 - Add configurable table question type
 
 ### Fixed
