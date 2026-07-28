@@ -172,7 +172,7 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
 
             $this->assertFalse(
                 $result->isValid(),
-                "Required validation should fail for column type {$fqcn}",
+                'Required validation should fail for column type ' . $fqcn,
             );
         }
     }

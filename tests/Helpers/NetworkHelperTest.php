@@ -33,13 +33,14 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Helpers;
 
+use Generator;
 use GlpiPlugin\Advancedforms\Helpers\NetworkHelper;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class NetworkHelperTest extends AdvancedFormsTestCase
 {
-    public static function getRemoteIpAddressProvider(): \Generator
+    public static function getRemoteIpAddressProvider(): Generator
     {
         // Test X-Forwarded-For header with single IP (highest priority)
         yield 'X-Forwarded-For with single IP' => [
@@ -126,13 +127,13 @@ final class NetworkHelperTest extends AdvancedFormsTestCase
 
         // Setup environment
         if ($http_x_forwarded_for !== '') {
-            putenv("HTTP_X_FORWARDED_FOR={$http_x_forwarded_for}");
+            putenv('HTTP_X_FORWARDED_FOR=' . $http_x_forwarded_for);
         } else {
             putenv("HTTP_X_FORWARDED_FOR=");
         }
 
         if ($remote_addr_env !== '') {
-            putenv("REMOTE_ADDR={$remote_addr_env}");
+            putenv('REMOTE_ADDR=' . $remote_addr_env);
         } else {
             putenv("REMOTE_ADDR=");
         }

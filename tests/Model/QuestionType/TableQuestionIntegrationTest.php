@@ -52,7 +52,7 @@ final class TableQuestionIntegrationTest extends QuestionTypeTestCase
     }
 
     #[Override]
-    protected function getDefaultExtraDataForQuestionType(QuestionTypeInterface $type): ?string
+    protected function getDefaultExtraDataForQuestionType(QuestionTypeInterface $type): string
     {
         return json_encode(new TableQuestionConfig(
             columns: [
