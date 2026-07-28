@@ -98,6 +98,7 @@ export class ReservationQuestionWidget {
         this.#setReservationItemsId($select.val());
         $(this.#root.querySelector('[data-reservation-question-dates]')).removeClass('d-none');
         this.#checkAvailability();
+        this.#loadReservations();
     }
 
     #onItemCleared() {
@@ -110,6 +111,7 @@ export class ReservationQuestionWidget {
         }
         $(this.#root.querySelector('[data-reservation-question-dates]')).addClass('d-none');
         this.#showAvailability(null);
+        this.#renderReservations([]);
     }
 
     /** begin/end are rendered by the datetimeField macro (self-initializing Flatpickr); just react to changes. */
@@ -152,6 +154,48 @@ export class ReservationQuestionWidget {
         $.post(`${this.#endpoint_url}/CheckAvailability`, { reservationitems_id, begin, end })
             .done((data) => this.#showAvailability(data.available))
             .fail(() => this.#showAvailability(null));
+    }
+
+    /** Fetches the equipment's existing reservations and lists them so the user can see busy slots. */
+    #loadReservations() {
+        const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
+        if (!reservationitems_id) {
+            this.#renderReservations([]);
+            return;
+        }
+
+        $.post(`${this.#endpoint_url}/Reservations`, { reservationitems_id })
+            .done((data) => this.#renderReservations(Array.isArray(data) ? data : []))
+            .fail(() => this.#renderReservations([]));
+    }
+
+    /** @param {Array<{begin: string, end: string}>} reservations */
+    #renderReservations(reservations) {
+        const container = this.#root.querySelector('[data-reservation-question-reservations]');
+        if (!container) {
+            return;
+        }
+
+        if (reservations.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const title = document.createElement('div');
+        title.className = 'text-muted small mb-1';
+        title.textContent = __('Existing reservations for this item', 'advancedforms');
+
+        const list = document.createElement('ul');
+        list.className = 'list-unstyled small mb-0';
+        for (const reservation of reservations) {
+            const line = document.createElement('li');
+            line.className = 'text-muted';
+            // textContent, never innerHTML: dates come from the server but stay untrusted here.
+            line.textContent = `${reservation.begin} → ${reservation.end}`;
+            list.appendChild(line);
+        }
+
+        container.replaceChildren(title, list);
     }
 
     #showAvailability(available) {

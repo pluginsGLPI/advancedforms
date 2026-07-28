@@ -33,20 +33,16 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
-use Glpi\Controller\AbstractController;
-use Glpi\Exception\Http\AccessDeniedHttpException;
 use Glpi\Exception\Http\BadRequestHttpException;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
 use Reservation;
-use ReservationItem;
-use Session;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class GetReservationsController extends AbstractController
+final class GetReservationsController extends AbstractReservationWidgetController
 {
     #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
     #[Route(
@@ -56,9 +52,7 @@ final class GetReservationsController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        if (!Session::haveRightsOr('reservation', [READ, ReservationItem::RESERVEANITEM])) {
-            throw new AccessDeniedHttpException();
-        }
+        $this->checkReservationAccess();
 
         $reservationitems_id = $request->request->getInt('reservationitems_id');
         if ($reservationitems_id <= 0) {

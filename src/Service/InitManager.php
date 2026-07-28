@@ -44,6 +44,7 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Plugin;
 
 final class InitManager
@@ -56,6 +57,22 @@ final class InitManager
         $this->registerPluginTypes();
         $this->registerDestinationFields();
         $this->registerTimelineHooks();
+        $this->registerNotifications();
+    }
+
+    private function registerNotifications(): void
+    {
+        global $CFG_GLPI;
+
+        $itemtype = TicketReservationRequest::class;
+
+        // init() may run multiple times per process; avoid duplicate registration.
+        $registered = $CFG_GLPI['notificationtemplates_types'] ?? [];
+        if (is_array($registered) && in_array($itemtype, $registered, true)) {
+            return;
+        }
+
+        Plugin::registerClass($itemtype, ['notificationtemplates_types' => true]);
     }
 
     private function registerConfiguration(): void

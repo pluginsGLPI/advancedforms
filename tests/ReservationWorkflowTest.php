@@ -215,7 +215,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->giveUserADefaultEmail($requester_id);
         $this->activateReservationRequestNotification('reservation_request_created');
 
-        $queue_before_submission = $this->countReservationRequestQueuedNotifications();
+        $queue_before_submission = $this->countReservationRequestQueuedNotifications('reservation_request_created');
 
         [$ticket] = $this->submitReservationForm(require_approval: false);
         $this->assertGreaterThan(0, $ticket->getID());
@@ -225,7 +225,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertCount(1, $rows);
         $this->assertSame(TicketReservationRequest::STATUS_ACCEPTED, (int) reset($rows)['status']);
 
-        $queue_after_submission = $this->countReservationRequestQueuedNotifications();
+        $queue_after_submission = $this->countReservationRequestQueuedNotifications('reservation_request_created');
         $this->assertSame($queue_before_submission, $queue_after_submission);
     }
 
@@ -248,7 +248,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
             'comment' => '',
         ]));
 
-        $queue_before_submission = $this->countReservationRequestQueuedNotifications();
+        $queue_before_submission = $this->countReservationRequestQueuedNotifications('reservation_request_created');
 
         [$ticket] = $this->submitReservationForm(
             require_approval: false,
@@ -262,7 +262,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $this->assertCount(1, $rows);
         $this->assertSame(TicketReservationRequest::STATUS_CANCELED, (int) reset($rows)['status']);
 
-        $queue_after_submission = $this->countReservationRequestQueuedNotifications();
+        $queue_after_submission = $this->countReservationRequestQueuedNotifications('reservation_request_created');
         $this->assertSame($queue_before_submission, $queue_after_submission);
     }
 
@@ -296,11 +296,14 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
     }
 
     /** Counts queued notifications for TicketReservationRequest only, ignoring unrelated core ones (New ticket, etc). */
-    private function countReservationRequestQueuedNotifications(): int
+    private function countReservationRequestQueuedNotifications(?string $event = null): int
     {
-        return countElementsInTable('glpi_queuednotifications', [
-            'itemtype' => TicketReservationRequest::class,
-        ]);
+        $criteria = ['itemtype' => TicketReservationRequest::class];
+        if ($event !== null) {
+            $criteria['event'] = $event;
+        }
+
+        return countElementsInTable('glpi_queuednotifications', $criteria);
     }
 
     /** @return array{0: Ticket, 1: ReservationItem} */

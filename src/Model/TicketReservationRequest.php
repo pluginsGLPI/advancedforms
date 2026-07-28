@@ -34,10 +34,14 @@
 namespace GlpiPlugin\Advancedforms\Model;
 
 use CommonDBChild;
+use CommonDBTM;
 use NotificationEvent;
 use Override;
 use Reservation;
+use ReservationItem;
 use Ticket;
+
+use function getItemForItemtype;
 
 /** A ticket-driven request to reserve an equipment item for a timeframe. */
 final class TicketReservationRequest extends CommonDBChild
@@ -87,8 +91,12 @@ final class TicketReservationRequest extends CommonDBChild
         }
     }
 
-    /** Mirrors core's Reservation::is_reserved() overlap check (strict inequalities). */
-    public function isSlotStillAvailable(): bool
+    /**
+     * Whether no existing Reservation overlaps the given slot for the item.
+     * Single source of truth for the overlap check, mirroring core's
+     * Reservation::is_reserved() (strict inequalities, back-to-back slots allowed).
+     */
+    public static function isSlotFree(int $reservationitems_id, string $begin, string $end): bool
     {
         global $DB;
 
@@ -96,9 +104,9 @@ final class TicketReservationRequest extends CommonDBChild
             'COUNT' => 'cpt',
             'FROM' => Reservation::getTable(),
             'WHERE' => [
-                'reservationitems_id' => $this->fields['reservationitems_id'],
-                'end' => ['>', $this->fields['begin']],
-                'begin' => ['<', $this->fields['end']],
+                'reservationitems_id' => $reservationitems_id,
+                'end' => ['>', $begin],
+                'begin' => ['<', $end],
             ],
         ])->current();
 
@@ -107,6 +115,15 @@ final class TicketReservationRequest extends CommonDBChild
             : 0;
 
         return $count === 0;
+    }
+
+    public function isSlotStillAvailable(): bool
+    {
+        return self::isSlotFree(
+            $this->getIntField('reservationitems_id'),
+            $this->getNullableStringField('begin') ?? '',
+            $this->getNullableStringField('end') ?? '',
+        );
     }
 
     /** Creates the Reservation for the original requester and accepts this request; returns false, untouched, if the slot is no longer available. */
@@ -130,6 +147,8 @@ final class TicketReservationRequest extends CommonDBChild
             'status' => self::STATUS_ACCEPTED,
             'users_id_validate' => $users_id_validate,
             'comment_validation' => $comment,
+            // Keep a link back to the created Reservation for traceability and cleanup.
+            'reservations_id' => $reservation->getID(),
             'validation_date' => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ]);
 
@@ -157,7 +176,22 @@ final class TicketReservationRequest extends CommonDBChild
         return $updated;
     }
 
-    /** Marks this request canceled (e.g. the reservable item was removed or deactivated). */
+    /** Removes the Reservation created on approval so it never outlives its request. */
+    #[Override]
+    public function pre_deleteItem(): bool
+    {
+        $reservations_id = $this->getIntField('reservations_id');
+        if ($reservations_id > 0) {
+            $reservation = new Reservation();
+            if ($reservation->getFromDB($reservations_id)) {
+                $reservation->delete(['id' => $reservations_id]);
+            }
+        }
+
+        return parent::pre_deleteItem();
+    }
+
+    /** Marks this request canceled (slot no longer available, e.g. taken during a direct reservation). */
     public function markUnavailable(): bool
     {
         $updated = $this->update([
@@ -197,6 +231,28 @@ final class TicketReservationRequest extends CommonDBChild
             'is_direct_reservation' => $this->getIntField('status') === self::STATUS_ACCEPTED
                 && $this->getIntField('users_id_validate') === 0,
         ];
+    }
+
+    /** Resolves the reservable asset's display name; empty string if it no longer exists. */
+    public static function getReservableItemName(int $reservationitems_id): string
+    {
+        $reservation_item = new ReservationItem();
+        if (!$reservation_item->getFromDB($reservationitems_id)) {
+            return '';
+        }
+
+        $itemtype = $reservation_item->fields['itemtype'] ?? '';
+        $itemtype = is_string($itemtype) ? $itemtype : '';
+
+        $items_id = $reservation_item->fields['items_id'] ?? 0;
+        $items_id = is_numeric($items_id) ? (int) $items_id : 0;
+
+        $item = getItemForItemtype($itemtype);
+        if (!$item instanceof CommonDBTM || !$item->getFromDB($items_id)) {
+            return '';
+        }
+
+        return $item->getName();
     }
 
     /** Whether the current user may approve/refuse this still-waiting request. */

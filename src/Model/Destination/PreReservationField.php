@@ -41,12 +41,18 @@ use Glpi\Form\Destination\AbstractConfigField;
 use Glpi\Form\Destination\CommonITILField\Category;
 use Glpi\Form\Destination\FormDestination;
 use Glpi\Form\Form;
+use Glpi\Form\Question;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestionAnswer;
+use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestionConfig;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use InvalidArgumentException;
 use Override;
+use ReservationItem;
+use Safe\Exceptions\JsonException;
 use Ticket;
+
+use function Safe\json_decode;
 
 /** Turns a ReservationQuestion answer into a TicketReservationRequest once the destination Ticket is created. */
 final class PreReservationField extends AbstractConfigField
@@ -168,13 +174,30 @@ final class PreReservationField extends AbstractConfigField
             return;
         }
 
+        // Reject incoherent timeframes (end before begin, etc.).
+        if (!$answer->isValidRange()) {
+            return;
+        }
+
+        // A pre-reservation without a real requester makes no sense.
+        // @phpstan-ignore cast.int (CommonDBTM::$fields is not generically typed)
+        $users_id = (int) ($answers_set->fields['users_id'] ?? 0);
+        if ($users_id <= 0) {
+            return;
+        }
+
+        // The item id comes from a client-controlled hidden field: re-check it is
+        // an active reservable item allowed by the question configuration.
+        if (!$this->isAnswerItemAllowed($answer->getReservationItemsId(), $question_id)) {
+            return;
+        }
+
         $require_approval = $config->isApprovalRequired();
 
         $add_input = [
             'tickets_id'          => $ticket->getID(),
             'reservationitems_id' => $answer->getReservationItemsId(),
-            // @phpstan-ignore cast.int (CommonDBTM::$fields is not generically typed)
-            'users_id'            => (int) ($answers_set->fields['users_id'] ?? 0),
+            'users_id'            => $users_id,
             'begin'               => $answer->getBegin(),
             'end'                 => $answer->getEnd(),
             'status'              => TicketReservationRequest::STATUS_WAITING,
@@ -198,6 +221,68 @@ final class PreReservationField extends AbstractConfigField
                 $request->markUnavailable();
             }
         }
+    }
+
+    /**
+     * Whether the answered item is a still-active reservable item that the question accepts.
+     * The item id is client-controlled, so it must never be trusted as-is.
+     */
+    private function isAnswerItemAllowed(int $reservationitems_id, int $question_id): bool
+    {
+        if ($reservationitems_id <= 0) {
+            return false;
+        }
+
+        $reservation_item = new ReservationItem();
+        if (!$reservation_item->getFromDB($reservationitems_id)) {
+            return false;
+        }
+
+        $is_active = $reservation_item->fields['is_active'] ?? 0;
+        if (!is_numeric($is_active) || (int) $is_active !== 1) {
+            return false;
+        }
+
+        $allowed_itemtypes = $this->getConfiguredAllowedItemtypes($question_id);
+        if ($allowed_itemtypes === []) {
+            // Question accepts any reservable item; being active is enough.
+            return true;
+        }
+
+        $itemtype = $reservation_item->fields['itemtype'] ?? '';
+
+        return is_string($itemtype) && in_array($itemtype, $allowed_itemtypes, true);
+    }
+
+    /**
+     * Itemtypes explicitly whitelisted on the question, or [] when unrestricted.
+     *
+     * @return array<string>
+     */
+    private function getConfiguredAllowedItemtypes(int $question_id): array
+    {
+        $question = Question::getById($question_id);
+        if (!$question instanceof Question) {
+            return [];
+        }
+
+        $extra_data = $question->fields['extra_data'] ?? null;
+        if (!is_string($extra_data) || $extra_data === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($extra_data, associative: true);
+        } catch (JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        /** @var array{allowed_itemtypes?: array<string>} $decoded */
+        return ReservationQuestionConfig::jsonDeserialize($decoded)->getAllowedItemtypes();
     }
 
     /** @return array<int, string> */

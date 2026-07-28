@@ -56,12 +56,9 @@ final class NotificationTargetTicketReservationRequest extends NotificationTarge
     #[Override]
     public function addAdditionalTargets($event = ''): void
     {
+        // Only the requester is offered: this itemtype carries no technician
+        // fields, so core item-technician targets cannot be resolved against it.
         $this->addTarget(Notification::AUTHOR, __('Requester'));
-
-        if ($event === 'reservation_request_created') {
-            $this->addTarget(Notification::ITEM_TECH_IN_CHARGE, __('Technician in charge'));
-            $this->addTarget(Notification::ITEM_TECH_GROUP_IN_CHARGE, __('Group in charge'));
-        }
     }
 
     #[Override]
@@ -75,18 +72,33 @@ final class NotificationTargetTicketReservationRequest extends NotificationTarge
         $end = $this->obj->getField('end');
         $comment = $this->obj->getField('comment_validation');
 
+        $this->data['##reservationrequest.action##'] = $this->getEvents()[$event] ?? '';
         $this->data['##reservationrequest.begin##'] = is_string($begin) ? (Html::convDateTime($begin) ?? '') : '';
         $this->data['##reservationrequest.end##'] = is_string($end) ? (Html::convDateTime($end) ?? '') : '';
         $this->data['##reservationrequest.comment##'] = is_string($comment) ? $comment : '';
+
+        $tickets_id = $this->obj->fields['tickets_id'] ?? 0;
+        $ticket = new Ticket();
+        if ((is_int($tickets_id) || is_string($tickets_id)) && $ticket->getFromDB($tickets_id)) {
+            $title = $ticket->fields['name'] ?? '';
+            $this->data['##reservationrequest.ticket_title##'] = is_string($title) ? $title : '';
+            $this->data['##reservationrequest.ticket_url##'] = $ticket->getFormURLWithID($ticket->getID());
+        } else {
+            $this->data['##reservationrequest.ticket_title##'] = '';
+            $this->data['##reservationrequest.ticket_url##'] = '';
+        }
     }
 
     #[Override]
     public function getTags(): void
     {
         $tags = [
+            'reservationrequest.action' => __('Notification reason', 'advancedforms'),
             'reservationrequest.begin' => __('Reservation start date', 'advancedforms'),
             'reservationrequest.end' => __('Reservation end date', 'advancedforms'),
             'reservationrequest.comment' => __('Validation comment', 'advancedforms'),
+            'reservationrequest.ticket_title' => __('Ticket title', 'advancedforms'),
+            'reservationrequest.ticket_url' => __('Ticket URL', 'advancedforms'),
         ];
 
         foreach ($tags as $tag => $label) {

@@ -34,19 +34,16 @@
 namespace GlpiPlugin\Advancedforms\Controller;
 
 use CommonDBTM;
-use Glpi\Controller\AbstractController;
 use Glpi\DBAL\QuerySubQuery;
-use Glpi\Exception\Http\AccessDeniedHttpException;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
 use ReservationItem;
-use Session;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class ReservableItemsController extends AbstractController
+final class ReservableItemsController extends AbstractReservationWidgetController
 {
     #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
     #[Route(
@@ -56,9 +53,7 @@ final class ReservableItemsController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        if (!Session::haveRightsOr('reservation', [READ, ReservationItem::RESERVEANITEM])) {
-            throw new AccessDeniedHttpException();
-        }
+        $this->checkReservationAccess();
 
         /** @var array<mixed> $allowed_itemtypes */
         $allowed_itemtypes = $request->request->all('allowed_itemtypes');

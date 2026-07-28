@@ -33,11 +33,9 @@
 
 namespace GlpiPlugin\Advancedforms\Service;
 
-use CommonDBTM;
 use CommonITILObject;
 use Glpi\Application\View\TemplateRenderer;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
-use ReservationItem;
 use Ticket;
 
 /** Injects `TicketReservationRequest` entries into a `Ticket`'s timeline (registered against `Hooks::TIMELINE_ITEMS`). */
@@ -61,20 +59,20 @@ final class TimelineManager
 
         $request = new TicketReservationRequest();
 
-        // Only ids come from find(); actual fields are re-read via getFromDB() below.
-        $ids = array_keys($request->find(['tickets_id' => $ticket->getID()]));
-
-        foreach ($ids as $id) {
-            if (!$request->getFromDB($id)) {
+        foreach ($request->find(['tickets_id' => $ticket->getID()]) as $row) {
+            if (!is_array($row)) {
                 continue;
             }
+
+            // find() already returns the full row; hydrate in place, no extra query.
+            $request->getFromResultSet($row);
 
             $reservationitems_id = $request->fields['reservationitems_id'] ?? 0;
             $reservationitems_id = is_numeric($reservationitems_id) ? (int) $reservationitems_id : 0;
 
             $content = TemplateRenderer::getInstance()->render('@advancedforms/timeline/reservation_request.html.twig', [
                 'request' => $request->getTimelineInfo(),
-                'equipment_name' => self::getEquipmentName($reservationitems_id),
+                'equipment_name' => TicketReservationRequest::getReservableItemName($reservationitems_id),
             ]);
 
             $date_creation = $request->fields['date_creation'] ?? null;
@@ -95,27 +93,5 @@ final class TimelineManager
                 'object' => clone $request,
             ];
         }
-    }
-
-    /** Resolves the reservable asset's display name; empty string if it no longer exists. */
-    private static function getEquipmentName(int $reservationitems_id): string
-    {
-        $reservation_item = new ReservationItem();
-        if (!$reservation_item->getFromDB($reservationitems_id)) {
-            return '';
-        }
-
-        $itemtype = $reservation_item->fields['itemtype'] ?? '';
-        $itemtype = is_string($itemtype) ? $itemtype : '';
-
-        $items_id = $reservation_item->fields['items_id'] ?? 0;
-        $items_id = is_numeric($items_id) ? (int) $items_id : 0;
-
-        $item = getItemForItemtype($itemtype);
-        if (!$item instanceof CommonDBTM || !$item->getFromDB($items_id)) {
-            return '';
-        }
-
-        return $item->getName();
     }
 }

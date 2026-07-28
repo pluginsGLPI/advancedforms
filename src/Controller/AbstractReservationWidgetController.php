@@ -33,37 +33,19 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
-use Glpi\Exception\Http\BadRequestHttpException;
-use Glpi\Http\Firewall;
-use Glpi\Security\Attribute\SecurityStrategy;
-use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
+use Glpi\Controller\AbstractController;
+use Glpi\Exception\Http\AccessDeniedHttpException;
+use ReservationItem;
+use Session;
 
-final class CheckAvailabilityController extends AbstractReservationWidgetController
+/** Shared base for the reservation widget AJAX endpoints (common access guard). */
+abstract class AbstractReservationWidgetController extends AbstractController
 {
-    #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
-    #[Route(
-        path: 'ReservationWidget/CheckAvailability',
-        name: 'reservation_widget_check_availability',
-        methods: 'POST',
-    )]
-    public function __invoke(Request $request): Response
+    /** @throws AccessDeniedHttpException when the current user cannot read reservations. */
+    protected function checkReservationAccess(): void
     {
-        $this->checkReservationAccess();
-
-        $reservationitems_id = $request->request->getInt('reservationitems_id');
-        $begin = $request->request->getString('begin');
-        $end = $request->request->getString('end');
-
-        if ($reservationitems_id <= 0 || $begin === '' || $end === '') {
-            throw new BadRequestHttpException();
+        if (!Session::haveRightsOr('reservation', [READ, ReservationItem::RESERVEANITEM])) {
+            throw new AccessDeniedHttpException();
         }
-
-        return new JsonResponse([
-            'available' => TicketReservationRequest::isSlotFree($reservationitems_id, $begin, $end),
-        ]);
     }
 }

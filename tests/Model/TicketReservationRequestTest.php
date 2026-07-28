@@ -157,6 +157,36 @@ final class TicketReservationRequestTest extends DbTestCase
         $this->assertCount(1, $found);
         $found_reservation = reset($found);
         $this->assertSame('please', $found_reservation['comment']);
+
+        // The created reservation must be linked back for traceability/cleanup.
+        $this->assertSame((int) $found_reservation['id'], (int) $request->fields['reservations_id']);
+    }
+
+    public function testDeletingAcceptedRequestRemovesLinkedReservation(): void
+    {
+        $this->login();
+        $requester_id = Session::getLoginUserID();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $request = $this->createItem(TicketReservationRequest::class, [
+            'tickets_id' => $ticket->getID(),
+            'reservationitems_id' => $item->getID(),
+            'users_id' => $requester_id,
+            'begin' => '2026-03-05 09:00:00',
+            'end' => '2026-03-05 10:00:00',
+            'status' => TicketReservationRequest::STATUS_WAITING,
+        ]);
+
+        $this->assertTrue($request->approve($requester_id, 'ok'));
+        $reservations_id = (int) $request->fields['reservations_id'];
+        $this->assertGreaterThan(0, $reservations_id);
+
+        // Deleting the request must not leave its reservation behind.
+        $this->assertTrue($request->delete(['id' => $request->getID()], true));
+
+        $reservation = new Reservation();
+        $this->assertFalse($reservation->getFromDB($reservations_id));
     }
 
     public function testApproveFailsAndDoesNotMutateStatusWhenSlotIsNoLongerAvailable(): void

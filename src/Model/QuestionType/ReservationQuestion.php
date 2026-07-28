@@ -39,6 +39,7 @@ use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use InvalidArgumentException;
 use Override;
 
@@ -160,10 +161,17 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
         }
 
         try {
-            return ReservationQuestionAnswer::fromArray($answer)->toArray();
+            $parsed = ReservationQuestionAnswer::fromArray($answer);
         } catch (InvalidArgumentException) {
             return null;
         }
+
+        // Drop incoherent timeframes (end before begin, etc.) rather than store them.
+        if (!$parsed->isValidRange()) {
+            return null;
+        }
+
+        return $parsed->toArray();
     }
 
     #[Override]
@@ -179,7 +187,12 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
             return '';
         }
 
-        return sprintf('%s → %s', $parsed->getBegin(), $parsed->getEnd());
+        $slot = sprintf('%s → %s', $parsed->getBegin(), $parsed->getEnd());
+        $equipment_name = TicketReservationRequest::getReservableItemName($parsed->getReservationItemsId());
+
+        return $equipment_name !== ''
+            ? sprintf('%s (%s)', $equipment_name, $slot)
+            : $slot;
     }
 
     #[Override]

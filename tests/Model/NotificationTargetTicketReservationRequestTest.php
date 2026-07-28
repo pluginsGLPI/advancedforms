@@ -77,21 +77,23 @@ final class NotificationTargetTicketReservationRequestTest extends DbTestCase
         }
     }
 
-    public function testAdditionalTargetsIncludeTechniciansOnlyForCreatedEvent(): void
+    public function testAdditionalTargetsOfferOnlyTheRequester(): void
     {
         $this->login();
 
+        // This itemtype carries no technician fields, so only the requester is a
+        // resolvable target; item-technician targets would warn and never resolve.
         $author_key = Notification::USER_TYPE . '_' . Notification::AUTHOR;
         $tech_key = Notification::USER_TYPE . '_' . Notification::ITEM_TECH_IN_CHARGE;
         $tech_group_key = Notification::USER_TYPE . '_' . Notification::ITEM_TECH_GROUP_IN_CHARGE;
 
-        $target_created = new NotificationTargetTicketReservationRequest();
-        $target_created->addAdditionalTargets('reservation_request_created');
-        $this->assertArrayHasKey($author_key, $target_created->notification_targets);
-        $this->assertArrayHasKey($tech_key, $target_created->notification_targets);
-        $this->assertArrayHasKey($tech_group_key, $target_created->notification_targets);
-
-        foreach (['reservation_request_approved', 'reservation_request_refused', 'reservation_request_slot_unavailable'] as $event) {
+        $events = [
+            'reservation_request_created',
+            'reservation_request_approved',
+            'reservation_request_refused',
+            'reservation_request_slot_unavailable',
+        ];
+        foreach ($events as $event) {
             $target = new NotificationTargetTicketReservationRequest();
             $target->addAdditionalTargets($event);
             $this->assertArrayHasKey($author_key, $target->notification_targets, "requester missing for event $event");

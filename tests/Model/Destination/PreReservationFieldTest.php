@@ -183,6 +183,42 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
     }
 
+    public function testInvalidTimeRangeCreatesNoRequest(): void
+    {
+        // End before begin: the answer must be rejected server-side.
+        [$ticket] = $this->submitReservationForm(
+            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            true,
+            begin: '2026-04-10 11:00:00',
+            end: '2026-04-10 09:00:00',
+        );
+
+        $request = new TicketReservationRequest();
+        $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
+    }
+
+    public function testInactiveReservableItemCreatesNoRequest(): void
+    {
+        $computer = $this->createItem('Computer', [
+            'name' => 'prereservationfield-inactive-computer',
+            'entities_id' => $this->getTestRootEntity(true),
+        ]);
+        $inactive_item = $this->createItem(ReservationItem::class, [
+            'itemtype' => 'Computer',
+            'items_id' => $computer->getID(),
+            'is_active' => 0,
+        ]);
+
+        [$ticket] = $this->submitReservationForm(
+            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            false,
+            item: $inactive_item,
+        );
+
+        $request = new TicketReservationRequest();
+        $this->assertCount(0, $request->find(['tickets_id' => $ticket->getID()]));
+    }
+
     /** @return array{0: Ticket, 1: ReservationItem} */
     private function submitReservationForm(
         PreReservationFieldStrategy $strategy,
