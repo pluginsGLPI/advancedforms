@@ -33,6 +33,8 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Form\QuestionType\QuestionTypeShortText;
+use Glpi\Form\QuestionType\QuestionTypeNumber;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 
@@ -50,8 +52,8 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
     {
         $original = new TableQuestionConfig(
             columns: [
-                ['name' => 'Source IP', 'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeShortText', 'required' => true,  'itemtype' => '', 'pattern' => '/^172\\.23\\./'],
-                ['name' => 'Port',      'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeNumber',    'required' => false, 'itemtype' => '', 'pattern' => ''],
+                ['name' => 'Source IP', 'question_type' => QuestionTypeShortText::class, 'required' => true,  'itemtype' => '', 'pattern' => '/^172\\.23\\./'],
+                ['name' => 'Port',      'question_type' => QuestionTypeNumber::class,    'required' => false, 'itemtype' => '', 'pattern' => ''],
             ],
             min_rows: 2,
             max_rows: 20,
@@ -67,7 +69,7 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
     {
         $config = TableQuestionConfig::jsonDeserialize([
             'columns' => [
-                ['name' => 'Source IP', 'question_type' => 'Glpi\\Form\\QuestionType\\QuestionTypeShortText', 'required' => true],
+                ['name' => 'Source IP', 'question_type' => QuestionTypeShortText::class, 'required' => true],
             ],
         ]);
 

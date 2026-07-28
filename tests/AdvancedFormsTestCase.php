@@ -72,11 +72,6 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         ]);
     }
 
-    public function tearDown(): void
-    {
-        parent::tearDown();
-    }
-
     protected function enableConfigurableItem(
         ConfigurableItemInterface|string $item,
     ): void {
@@ -91,6 +86,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         foreach ($items as $item) {
             $this->setConfigurableItemConfig($item, true);
         }
+
         InitManager::getInstance()->init();
     }
 
@@ -108,6 +104,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         foreach ($items as $item) {
             $this->setConfigurableItemConfig($item, false);
         }
+
         InitManager::getInstance()->init();
     }
 
@@ -169,6 +166,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
                 $reflection_property = $reflection_class->getProperty('instance');
                 $reflection_property->setValue(null, null);
             }
+
             if ($reflection_class->hasProperty('_instances')) {
                 $reflection_property = $reflection_class->getProperty('_instances');
                 $reflection_property->setValue(null, []);

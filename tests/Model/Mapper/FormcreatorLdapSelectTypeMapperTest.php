@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
+use DBmysql;
 use AuthLDAP;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
@@ -46,7 +47,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 {
     public function testLdapSelectTypeMigrationWhenEnabledWithValidAuthLDAP(): void
     {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Arrange: create a valid AuthLDAP
@@ -73,7 +74,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 
     private function testLdapSelectTypeMigrationWhenEnabled(int $authldap_id, ?int $expected_authldap_id): void
     {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Arrange: enable ldap select question type and add some formcreator data
@@ -107,6 +108,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
         if (!$config instanceof LdapQuestionConfig) {
             throw new LogicException();
         }
+
         $this->assertEquals($expected_authldap_id ?? $authldap_id, $config->getAuthLdapId());
         $this->assertEquals(456, $config->getLdapAttributeId());
         $this->assertEquals(
@@ -117,7 +119,7 @@ final class FormcreatorLdapSelectTypeMapperTest extends MapperTestCase
 
     public function testLdapSelectTypeMigrationWhenDisabled(): void
     {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Arrange: add some formcreator data

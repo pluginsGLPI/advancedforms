@@ -46,6 +46,7 @@ final class InstallManagerTest extends AdvancedFormsTestCase
         foreach (self::provideQuestionTypes() as $type) {
             $config_values[$type[0]->getConfigKey()] = 1;
         }
+
         Config::setConfigurationValues('advancedforms', $config_values);
 
         // Act: uninstall plugin

@@ -33,6 +33,20 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use State;
+use ITILCategory;
+use TaskCategory;
+use Glpi\Form\Category;
+use SoftwareLicenseType;
+use DocumentCategory;
+use BusinessCriticity;
+use KnowbaseItemCategory;
+use IPNetwork;
+use SoftwareCategory;
+use WebhookCategory;
+use Dropdown;
+use Glpi\Form\Form;
+use Glpi\Controller\Form\RendererController;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdownExtraDataConfig;
 use Glpi\Tests\FormBuilder;
@@ -84,7 +98,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
     #[Override]
     protected function getDefaultExtraDataForQuestionType(
         QuestionTypeInterface $type,
-    ): ?string {
+    ): string {
         return json_encode(new QuestionTypeItemDropdownExtraDataConfig(
             itemtype: Location::class,
         ));
@@ -125,31 +139,31 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $expected = [
             'Common' => [
                 Location::class,
-                \State::class,
+                State::class,
             ],
             'Assistance' => [
-                \ITILCategory::class,
-                \TaskCategory::class,
-                \Glpi\Form\Category::class,
+                ITILCategory::class,
+                TaskCategory::class,
+                Category::class,
             ],
             'Types' => [
-                \SoftwareLicenseType::class,
+                SoftwareLicenseType::class,
             ],
             'Management' => [
-                \DocumentCategory::class,
-                \BusinessCriticity::class,
+                DocumentCategory::class,
+                BusinessCriticity::class,
             ],
             'Tools' => [
-                \KnowbaseItemCategory::class,
+                KnowbaseItemCategory::class,
             ],
             'Internet' => [
-                \IPNetwork::class,
+                IPNetwork::class,
             ],
             'Software' => [
-                \SoftwareCategory::class,
+                SoftwareCategory::class,
             ],
             'Others' => [
-                \WebhookCategory::class,
+                WebhookCategory::class,
             ],
         ];
         $question_type = new TreeCascadeDropdownQuestion();
@@ -200,7 +214,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'entities_id'  => $entity_id,
         ]);
 
-        $grandchild = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Grandchild Location',
             'locations_id' => $child->getID(),
             'entities_id'  => $entity_id,
@@ -316,7 +330,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'entities_id'  => $entity_id,
         ]);
 
-        $subtree_child = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Subtree Child',
             'locations_id' => $subtree_root->getID(),
             'entities_id'  => $entity_id,
@@ -368,7 +382,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'entities_id'  => $entity_id,
         ]);
 
-        $child = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Root Child',
             'locations_id' => $subtree_root->getID(),
             'entities_id'  => $entity_id,
@@ -420,13 +434,13 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'entities_id'  => $entity_id,
         ]);
 
-        $root_b = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Location B',
             'locations_id' => 0,
             'entities_id'  => $entity_id,
         ]);
 
-        $child_a1 = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Location A1',
             'locations_id' => $root_a->getID(),
             'entities_id'  => $entity_id,
@@ -523,7 +537,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'locations_id' => $level1->getID(),
             'entities_id'  => $entity_id,
         ]);
-        $level3 = $this->createItem(Location::class, [
+        $this->createItem(Location::class, [
             'name'         => 'Level3',
             'locations_id' => $level2->getID(),
             'entities_id'  => $entity_id,
@@ -536,6 +550,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
 
         $builder = new FormBuilder("Depth limit test");
         $builder->addQuestion("Location", TreeCascadeDropdownQuestion::class, '', $extra_data);
+
         $form = $this->createForm($builder);
 
         $questions = $form->getQuestions();
@@ -591,6 +606,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
 
         $builder = new FormBuilder("Depth selectable test");
         $builder->addQuestion("Location", TreeCascadeDropdownQuestion::class, '', $extra_data);
+
         $form = $this->createForm($builder);
 
         $questions = $form->getQuestions();
@@ -626,7 +642,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $test1_class = $test1_definition->getDropdownClassName();
         $test2_class = $test2_definition->getDropdownClassName();
 
-        \Dropdown::resetItemtypesStaticCache();
+        Dropdown::resetItemtypesStaticCache();
 
         $this->createItem($test1_class, [
             'name'        => 'Item from Test1',
@@ -677,7 +693,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $test1_class = $test1_definition->getDropdownClassName();
         $test2_class = $test2_definition->getDropdownClassName();
 
-        \Dropdown::resetItemtypesStaticCache();
+        Dropdown::resetItemtypesStaticCache();
 
         $foreign_key = $test1_class::getForeignKeyField();
 
@@ -743,7 +759,7 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $test1_class = $test1_definition->getDropdownClassName();
         $test2_class = $test2_definition->getDropdownClassName();
 
-        \Dropdown::resetItemtypesStaticCache();
+        Dropdown::resetItemtypesStaticCache();
 
         $foreign_key = $test1_class::getForeignKeyField();
 
@@ -799,12 +815,12 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Test 2 Option', $all_option_texts);
     }
 
-    private function renderHelpdeskForm(\Glpi\Form\Form $form): Crawler
+    private function renderHelpdeskForm(Form $form): Crawler
     {
         $this->login();
-        $controller = new \Glpi\Controller\Form\RendererController();
+        $controller = new RendererController();
         $response = $controller->__invoke(
-            \Symfony\Component\HttpFoundation\Request::create(
+            Request::create(
                 '',
                 'GET',
                 ['id' => $form->getID()],

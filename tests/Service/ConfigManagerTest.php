@@ -56,7 +56,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         // Assert: the input should be checked
         $testid = Toolbox::slugify($item::class);
         $html_disabled = (new Crawler($html_disabled))
-            ->filter("[data-testid=\"feature-$testid\"]")
+            ->filter(sprintf('[data-testid="feature-%s"]', $testid))
             ->filter('input[data-testid="feature-toggle"]')
             ->getNode(0)
         ;
@@ -78,7 +78,7 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
         // Assert: the input should not be checked
         $testid = Toolbox::slugify($item::class);
         $html_disabled = (new Crawler($html_disabled))
-            ->filter("[data-testid=\"feature-$testid\"]")
+            ->filter(sprintf('[data-testid="feature-%s"]', $testid))
             ->filter('input[data-testid="feature-toggle"]')
             ->getNode(0);
         $this->assertInstanceOf(DOMElement::class, $html_disabled);

@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\Mapper;
 
+use DBmysql;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
@@ -43,7 +44,7 @@ final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
 {
     public function testHostnameTypeMigrationWhenEnabled(): void
     {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Arrange: enable ip question type and add some fomrcreator data
@@ -71,7 +72,7 @@ final class FormcreatorHostnameTypeMapperTest extends MapperTestCase
 
     public function testHostnameTypeMigrationWhenDisabled(): void
     {
-        /** @var \DBmysql $DB */
+        /** @var DBmysql $DB */
         global $DB;
 
         // Arrange: add some fomrcreator data
