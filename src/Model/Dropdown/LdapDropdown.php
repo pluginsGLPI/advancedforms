@@ -144,10 +144,11 @@ final class LdapDropdown extends CommonGLPI
 
         // Insert search text into filter if specified
         if ($search_text !== '') {
+            $escaped_search_text = ldap_escape($search_text, '', LDAP_ESCAPE_FILTER);
             $ldap_filter = sprintf(
                 "(& %s (%s))",
                 $config->getLdapFilter(),
-                $attribute . '=*' . $search_text . '*',
+                $attribute . '=*' . $escaped_search_text . '*',
             );
         } else {
             $ldap_filter = $config->getLdapFilter();

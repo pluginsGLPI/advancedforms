@@ -119,6 +119,13 @@ TWIG;
     }
 
     #[Override]
+    public function prepareEndUserAnswer(Question $question, mixed $answer): mixed
+    {
+        // Ignore the submitted value: this field must never be attacker-controlled.
+        return NetworkHelper::getRemoteIpAddress();
+    }
+
+    #[Override]
     public static function getConfigKey(): string
     {
         return "enable_question_type_ip_address";
