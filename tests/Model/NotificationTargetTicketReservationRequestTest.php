@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model;
 
+use ReservationItem;
 use Glpi\Tests\DbTestCase;
 use GlpiPlugin\Advancedforms\Model\NotificationTargetTicketReservationRequest;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
@@ -96,9 +97,9 @@ final class NotificationTargetTicketReservationRequestTest extends DbTestCase
         foreach ($events as $event) {
             $target = new NotificationTargetTicketReservationRequest();
             $target->addAdditionalTargets($event);
-            $this->assertArrayHasKey($author_key, $target->notification_targets, "requester missing for event $event");
-            $this->assertArrayNotHasKey($tech_key, $target->notification_targets, "technician unexpectedly present for event $event");
-            $this->assertArrayNotHasKey($tech_group_key, $target->notification_targets, "tech group unexpectedly present for event $event");
+            $this->assertArrayHasKey($author_key, $target->notification_targets, 'requester missing for event ' . $event);
+            $this->assertArrayNotHasKey($tech_key, $target->notification_targets, 'technician unexpectedly present for event ' . $event);
+            $this->assertArrayNotHasKey($tech_group_key, $target->notification_targets, 'tech group unexpectedly present for event ' . $event);
         }
     }
 
@@ -163,7 +164,7 @@ final class NotificationTargetTicketReservationRequestTest extends DbTestCase
         $this->assertSame($ticket->getID(), $resolved_object->getID());
     }
 
-    private function getReservableItem(): \ReservationItem
+    private function getReservableItem(): ReservationItem
     {
         $computer = $this->createItem('Computer', ['name' => 'test-computer', 'entities_id' => 0]);
         return $this->createItem('ReservationItem', [

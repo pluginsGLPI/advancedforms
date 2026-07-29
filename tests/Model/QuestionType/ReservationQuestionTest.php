@@ -97,6 +97,7 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->enableConfigurableItem($type);
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
         $questions_id = $this->getQuestionId($form, "My question");
         $question = new Question();
@@ -121,6 +122,7 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->enableConfigurableItem($type);
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
         $questions_id = $this->getQuestionId($form, "My question");
         $question = new Question();
@@ -150,6 +152,7 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->enableConfigurableItem($type);
         $builder = new FormBuilder("My form");
         $builder->addQuestion("My question", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
         $questions_id = $this->getQuestionId($form, "My question");
         $question = new Question();
@@ -248,6 +251,7 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
 
         $builder = new FormBuilder("Reservation validation form");
         $builder->addQuestion("Reservation", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
 
         $question = new Question();

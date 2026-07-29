@@ -60,7 +60,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $this->assertSame(TicketReservationRequest::class, $timeline[$key]['type']);
         $this->assertTrue($timeline[$key]['item']['is_content_safe']);
@@ -96,7 +96,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $content = $timeline[$key]['item']['content'];
 
@@ -128,7 +128,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $current_ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $this->assertStringNotContainsString(
             'data-reservation-request-action="approve"',
@@ -159,7 +159,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $content = $timeline[$key]['item']['content'];
         $this->assertStringContainsString('confirmed automatically', $content);
@@ -193,8 +193,8 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key_1 = "TicketReservationRequest_{$request_1->getID()}";
-        $key_2 = "TicketReservationRequest_{$request_2->getID()}";
+        $key_1 = 'TicketReservationRequest_' . $request_1->getID();
+        $key_2 = 'TicketReservationRequest_' . $request_2->getID();
         $this->assertNotSame($key_1, $key_2);
         $this->assertArrayHasKey($key_1, $timeline);
         $this->assertArrayHasKey($key_2, $timeline);
@@ -218,7 +218,7 @@ final class TimelineManagerTest extends DbTestCase
 
         $requests = [];
         $hour = 9;
-        foreach ($expectations as $status => $_) {
+        foreach (array_keys($expectations) as $status) {
             $requests[$status] = $this->createItem(TicketReservationRequest::class, [
                 'tickets_id' => $ticket->getID(),
                 'reservationitems_id' => $item->getID(),
@@ -239,7 +239,7 @@ final class TimelineManagerTest extends DbTestCase
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
         foreach ($expectations as $status => [$badge_color, $label]) {
-            $key = "TicketReservationRequest_{$requests[$status]->getID()}";
+            $key = 'TicketReservationRequest_' . $requests[$status]->getID();
             $this->assertArrayHasKey($key, $timeline);
             $content = $timeline[$key]['item']['content'];
             $this->assertStringContainsString('badge bg-' . $badge_color, $content);
@@ -268,7 +268,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $content = $timeline[$key]['item']['content'];
         $this->assertStringContainsString(
@@ -298,7 +298,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $this->assertStringContainsString(
             'Not available for this timeframe, please pick another slot.',
@@ -324,7 +324,7 @@ final class TimelineManagerTest extends DbTestCase
         $timeline = [];
         TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
 
-        $key = "TicketReservationRequest_{$request->getID()}";
+        $key = 'TicketReservationRequest_' . $request->getID();
         $this->assertArrayHasKey($key, $timeline);
         $content = $timeline[$key]['item']['content'];
         $this->assertStringContainsString('test-computer', $content);

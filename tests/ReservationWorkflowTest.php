@@ -288,6 +288,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         } catch (AccessDeniedHttpException) {
             $denied = true;
         }
+
         $this->assertTrue($denied, 'Expected an AccessDeniedHttpException to be thrown.');
 
         // The denial must be a real gate: the request itself stays untouched.
@@ -320,6 +321,7 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
 
         $builder = new FormBuilder("Reservation workflow form");
         $builder->addQuestion("Reservation", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
 
         $question_id = $this->getQuestionId($form, "Reservation");

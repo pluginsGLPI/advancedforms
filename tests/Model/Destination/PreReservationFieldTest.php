@@ -235,6 +235,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
 
         $builder = new FormBuilder("Reservation form");
         $builder->addQuestion("Reservation", ReservationQuestion::class);
+
         $form = $this->createForm($builder);
 
         $question_id = $strategy === PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION

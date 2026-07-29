@@ -86,7 +86,7 @@ final class InstallManagerTest extends AdvancedFormsTestCase
             $notification = new Notification();
             $this->assertTrue(
                 $notification->getFromDBByCrit(['itemtype' => $itemtype, 'event' => $event]),
-                "Missing seeded notification for event {$event}",
+                'Missing seeded notification for event ' . $event,
             );
             $this->assertSame(1, (int) $notification->fields['is_active']);
         }
