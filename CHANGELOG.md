@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Fixed compatible versions of GLPI that were wrong.
-
 ## [1.2.0] - 2026-07-28
 
 ### Add
