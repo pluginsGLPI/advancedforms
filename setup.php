@@ -40,11 +40,11 @@ define('PLUGIN_ADVANCEDFORMS_VERSION', '1.2.0');
 
 // Minimal GLPI version, inclusive
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
-define("PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION", "11.7.0");
+define("PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION", "11.0.7");
 
 // Maximum GLPI version, exclusive
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
-define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.8.99");
+define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.0.99");
 
 /**
  * Init hooks of the plugin.
