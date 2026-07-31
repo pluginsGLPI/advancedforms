@@ -553,11 +553,22 @@ final class TableQuestion extends AbstractQuestionType implements
 
         global $DB;
 
+        $where = ['id' => $ids];
+
+        // GLPI 11 custom dropdown classes can share the same database table.
+        // Their system SQL criteria restrict rows to the current dropdown definition.
+        if (method_exists($itemtype, 'getSystemSQLCriteria')) {
+            $system_criteria = $itemtype::getSystemSQLCriteria();
+            if (is_array($system_criteria) && $system_criteria !== []) {
+                $where[] = $system_criteria;
+            }
+        }
+
         $map = [];
         foreach ($DB->request([
             'SELECT' => ['id', 'name'],
             'FROM'   => $item->getTable(),
-            'WHERE'  => ['id' => $ids],
+            'WHERE'  => $where,
         ]) as $row) {
             if (!is_array($row)) {
                 continue;
@@ -949,6 +960,15 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         $where = [];
+
+        // GLPI 11 custom dropdown classes can share the same database table.
+        // Their system SQL criteria restrict rows to the current dropdown definition.
+        if (method_exists($itemtype, 'getSystemSQLCriteria')) {
+            $system_criteria = $itemtype::getSystemSQLCriteria();
+            if (is_array($system_criteria) && $system_criteria !== []) {
+                $where[] = $system_criteria;
+            }
+        }
 
         if ($item->maybeDeleted()) {
             $where['is_deleted'] = 0;
