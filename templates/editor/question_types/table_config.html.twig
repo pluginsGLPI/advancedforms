@@ -71,6 +71,8 @@
                     class="mb-3"
                     data-af-table-columns-container="{{ rand }}"
                     data-af-short-answer-fqcns="{{ short_answer_fqcns_json|e('html_attr') }}"
+                    data-af-subtype-options="{{ subtype_options_json|e('html_attr') }}"
+                    data-af-fields-by-block="{{ fields_by_block_json|e('html_attr') }}"
                 >
                     {% for index, col in config.getColumns() %}
                         <div class="mb-2" data-af-table-column>
@@ -120,6 +122,30 @@
                                         </select>
                                     </div>
                                 {% endfor %}
+                                <div class="align-items-center gap-2 flex-shrink-0 d-none" data-af-subtype-row>
+                                                                <select
+                                                                    class="form-select form-select-sm"
+                                                                    style="width: 220px"
+                                                                    name="extra_data[columns][{{ index }}][{{ COL_SUBTYPE }}]"
+                                                                    data-af-subtype-select
+                                                                    disabled
+                                                                >
+                                                                    <option value="">{{ __('Select a block', 'fields') }}</option>
+                                                                    {% for value, label in subtype_options[col[COL_QUESTION_TYPE]]|default({}) %}
+                                                                        <option value="{{ value }}" {{ col[COL_SUBTYPE] == value ~ '' ? 'selected' : '' }}>{{ label }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                                <select
+                                                                    class="form-select form-select-sm"
+                                                                    style="width: 220px"
+                                                                    name="extra_data[columns][{{ index }}][{{ COL_FIELD_ID }}]"
+                                                                    data-af-fields-field-select
+                                                                    data-af-current-value="{{ col[COL_FIELD_ID] }}"
+                                                                    disabled
+                                                                >
+                                                                    <option value="">{{ __('Select a field', 'fields') }}</option>
+                                                                </select>
+                                                            </div>
                                 <label
                                     class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
                                     data-bs-toggle="tooltip"
@@ -146,6 +172,7 @@
                                     data-af-table-column-remove
                                 ></i>
                             </div>
+                            
                             <div class="mt-1" data-af-pattern-wrapper style="display: none">
                                 <input
                                     class="form-control form-control-sm"
@@ -207,6 +234,26 @@
                                     </select>
                                 </div>
                             {% endfor %}
+                            <div class="align-items-center gap-2 flex-shrink-0 d-none" data-af-subtype-row>
+                                                        <select
+                                                            class="form-select form-select-sm"
+                                                            style="width: 220px"
+                                                            name="extra_data[columns][__INDEX__][{{ COL_SUBTYPE }}]"
+                                                            data-af-subtype-select
+                                                            disabled
+                                                        >
+                                                            <option value="">{{ __('Select a block', 'fields') }}</option>
+                                                        </select>
+                                                        <select
+                                                            class="form-select form-select-sm"
+                                                            style="width: 220px"
+                                                            name="extra_data[columns][__INDEX__][{{ COL_FIELD_ID }}]"
+                                                            data-af-fields-field-select
+                                                            disabled
+                                                        >
+                                                            <option value="">{{ __('Select a field', 'fields') }}</option>
+                                                        </select>
+                                                    </div>
                             <label
                                 class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
                                 data-bs-toggle="tooltip"
@@ -232,6 +279,7 @@
                                 data-af-table-column-remove
                             ></i>
                         </div>
+                        
                         <div class="mt-1" data-af-pattern-wrapper style="display: none">
                             <input
                                 class="form-control form-control-sm"

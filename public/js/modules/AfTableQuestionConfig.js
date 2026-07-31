@@ -58,6 +58,7 @@ export class AfTableQuestionConfig {
             container.querySelectorAll('[data-af-table-column]').forEach(row => {
                 AfTableQuestionConfig.#bindItemtypeVisibility(row);
                 AfTableQuestionConfig.#bindPatternVisibility(row);
+                AfTableQuestionConfig.#bindSubtypeVisibility(row);
             });
 
             if (addBtn && template) {
@@ -84,6 +85,7 @@ export class AfTableQuestionConfig {
         AfTableQuestionConfig.#initNewColumnSelect(newSelect, container.dataset.afTableColumnsContainer);
         AfTableQuestionConfig.#bindItemtypeVisibility(newRow);
         AfTableQuestionConfig.#bindPatternVisibility(newRow);
+        AfTableQuestionConfig.#bindSubtypeVisibility(newRow);
     }
 
     static #initNewColumnSelect(select, rand) {
@@ -162,6 +164,71 @@ export class AfTableQuestionConfig {
             window.$(typeSelect).on('change', update);
         } else {
             typeSelect.addEventListener('change', update);
+        }
+        update();
+    }
+
+
+    static #bindSubtypeVisibility(columnRow) {
+        const typeSelect = columnRow.querySelector('select[name*="[question_type]"]');
+        const subtypeRow = columnRow.querySelector('[data-af-subtype-row]');
+        const subtypeSelect = columnRow.querySelector('[data-af-subtype-select]');
+        const fieldSelect = columnRow.querySelector('[data-af-fields-field-select]');
+        if (!typeSelect || !subtypeRow || !subtypeSelect || !fieldSelect) { return; }
+
+        const container = columnRow.closest('[data-af-table-columns-container]');
+        let subtypeOptions = {};
+        let fieldsByBlock = {};
+        try { subtypeOptions = JSON.parse(container?.dataset.afSubtypeOptions ?? '{}'); } catch { subtypeOptions = {}; }
+        try { fieldsByBlock = JSON.parse(container?.dataset.afFieldsByBlock ?? '{}'); } catch { fieldsByBlock = {}; }
+
+        const populate = (select, options, selectedValue, placeholder) => {
+            select.replaceChildren();
+            const empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = placeholder;
+            select.appendChild(empty);
+            Object.entries(options || {}).forEach(([value, label]) => {
+                const option = document.createElement('option');
+                option.value = String(value);
+                option.textContent = String(label);
+                option.selected = String(value) === String(selectedValue ?? '');
+                select.appendChild(option);
+            });
+        };
+
+        const updateFields = () => {
+            const isFields = typeSelect.value.endsWith('PluginFieldsQuestionType');
+            const current = fieldSelect.dataset.afCurrentValue || fieldSelect.value;
+            const options = isFields ? (fieldsByBlock[String(subtypeSelect.value)] || {}) : {};
+            populate(fieldSelect, options, current, 'Select a field');
+            fieldSelect.disabled = !isFields || !subtypeSelect.value;
+            fieldSelect.classList.toggle('d-none', !isFields);
+            fieldSelect.dataset.afCurrentValue = '';
+        };
+
+        const update = () => {
+            const isFields = typeSelect.value.endsWith('PluginFieldsQuestionType');
+            const options = isFields ? (subtypeOptions.PluginFieldsQuestionType || {}) : {};
+            const oldValue = subtypeSelect.value;
+            populate(subtypeSelect, options, oldValue, 'Select a block');
+            const show = isFields && Object.keys(options).length > 0;
+            subtypeRow.classList.toggle('d-none', !show);
+            subtypeRow.classList.toggle('d-flex', show);
+            subtypeSelect.disabled = !show;
+            if (!show) {
+                fieldSelect.disabled = true;
+                fieldSelect.classList.add('d-none');
+            }
+            updateFields();
+        };
+
+        if (window.$) {
+            window.$(typeSelect).on('change', update);
+            window.$(subtypeSelect).on('change', updateFields);
+        } else {
+            typeSelect.addEventListener('change', update);
+            subtypeSelect.addEventListener('change', updateFields);
         }
         update();
     }

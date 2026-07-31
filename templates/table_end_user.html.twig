@@ -75,7 +75,28 @@
                     {% for col_index, col in columns %}
                         {% set cell = column_cell_map[col_index] %}
                         <td class="align-middle">
-                            {% if cell.mode == 'checkbox' %}
+                            {% if cell.mode == 'plugin_fields' %}
+                                {% set is_dropdown = cell.field.type starts with 'dropdown' %}
+                                {% set field_name = input_base ~ '[' ~ row_index ~ '][col_' ~ col_index ~ ']' ~ (is_dropdown ? '[items_id]' : '') %}
+                                {% if is_dropdown %}
+                                    <input type="hidden" name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}][itemtype]" value="{{ cell.itemtype }}">
+                                {% endif %}
+                                {{ call('PluginFieldsField::prepareHtmlFields', [
+                                    [cell.field],
+                                    fields_item,
+                                    true,
+                                    true,
+                                    false,
+                                    {
+                                        'input_name'     : field_name,
+                                        'full_width'     : not (cell.field.type starts with 'dropdown' or cell.field.type == 'glpi_item'),
+                                        'no_label'       : true,
+                                        'mb'             : '',
+                                        'add_field_class': 'glpi-fields-plugin-question-type-glpi-item-field',
+                                        'comments'       : false
+                                    }
+                                ])|raw }}
+                            {% elseif cell.mode == 'checkbox' %}
                                 <div class="d-flex justify-content-center">
                                     <input
                                         type="checkbox"
@@ -133,7 +154,28 @@
             {% for col_index, col in columns %}
                 {% set cell = column_cell_map[col_index] %}
                 <td class="align-middle">
-                    {% if cell.mode == 'checkbox' %}
+                    {% if cell.mode == 'plugin_fields' %}
+                        {% set is_dropdown = cell.field.type starts with 'dropdown' %}
+                        {% set field_name = input_base ~ '[__ROW__][col_' ~ col_index ~ ']' ~ (is_dropdown ? '[items_id]' : '') %}
+                        {% if is_dropdown %}
+                            <input type="hidden" name="{{ input_base }}[__ROW__][col_{{ col_index }}][itemtype]" value="{{ cell.itemtype }}">
+                        {% endif %}
+                        {{ call('PluginFieldsField::prepareHtmlFields', [
+                            [cell.field],
+                            fields_item,
+                            true,
+                            true,
+                            false,
+                            {
+                                'input_name'     : field_name,
+                                'full_width'     : not (cell.field.type starts with 'dropdown' or cell.field.type == 'glpi_item'),
+                                'no_label'       : true,
+                                'mb'             : '',
+                                'add_field_class': 'glpi-fields-plugin-question-type-glpi-item-field',
+                                'comments'       : false
+                            }
+                        ])|raw }}
+                    {% elseif cell.mode == 'checkbox' %}
                         <div class="d-flex justify-content-center">
                             <input
                                 type="checkbox"

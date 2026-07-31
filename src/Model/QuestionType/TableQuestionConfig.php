@@ -55,6 +55,10 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     public const COL_PATTERN       = 'pattern';
 
+    public const COL_SUBTYPE        = 'subtype';
+
+    public const COL_FIELD_ID       = 'field_id';
+
     /**
      * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
      */
@@ -81,6 +85,8 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
                 self::COL_REQUIRED      => (bool) ($col[self::COL_REQUIRED] ?? false),
                 self::COL_ITEMTYPE      => (string) ($col[self::COL_ITEMTYPE] ?? ''),
                 self::COL_PATTERN       => (string) ($col[self::COL_PATTERN] ?? ''),
+                self::COL_SUBTYPE        => (string) ($col[self::COL_SUBTYPE] ?? ''),
+                self::COL_FIELD_ID       => (string) ($col[self::COL_FIELD_ID] ?? ''),
             ],
             array_filter($data[self::COLUMNS] ?? [], is_array(...)),
         ));
