@@ -50,4 +50,11 @@
             'init'               : question is not null ? true : false,
         }
     ) }}
+
+    <div class="alert alert-info mt-2 mb-0">
+        <div>
+            {{ __('Whether a technician must approve the reservation before it is confirmed is configured on the destination that uses this question, under', 'advancedforms') }}
+            <code>{{ destination_label }} &gt; {{ timeline_category_label }} &gt; {{ pre_reservation_label }}</code>.
+        </div>
+    </div>
 </div>

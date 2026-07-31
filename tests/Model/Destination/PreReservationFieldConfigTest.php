@@ -45,21 +45,21 @@ class PreReservationFieldConfigTest extends TestCase
         $rebuilt = PreReservationFieldConfig::jsonDeserialize($config->jsonSerialize());
 
         $this->assertSame(PreReservationFieldStrategy::NO_PRERESERVATION, $rebuilt->getStrategies()[0]);
-        $this->assertNull($rebuilt->getQuestionId());
+        $this->assertNull($rebuilt->getSpecificQuestionId());
         $this->assertTrue($rebuilt->isApprovalRequired());
     }
 
     public function testJsonRoundTripFromSpecificQuestion(): void
     {
         $config = new PreReservationFieldConfig(
-            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
-            question_id: 42,
+            PreReservationFieldStrategy::SPECIFIC_ANSWER,
+            specific_question_id: 42,
             require_approval: false,
         );
         $rebuilt = PreReservationFieldConfig::jsonDeserialize($config->jsonSerialize());
 
-        $this->assertSame(PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION, $rebuilt->getStrategies()[0]);
-        $this->assertSame(42, $rebuilt->getQuestionId());
+        $this->assertSame(PreReservationFieldStrategy::SPECIFIC_ANSWER, $rebuilt->getStrategies()[0]);
+        $this->assertSame(42, $rebuilt->getSpecificQuestionId());
         $this->assertFalse($rebuilt->isApprovalRequired());
     }
 }

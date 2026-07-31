@@ -54,7 +54,7 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
     {
         $this->login();
 
-        $computer = $this->createItem('Computer', ['name' => 'test-reservable-computer', 'entities_id' => 0]);
+        $computer = $this->createItem('Computer', ['name' => 'test-reservable-computer', 'entities_id' => $this->getTestRootEntity(true)]);
         $res_item = $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),
@@ -62,7 +62,7 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
         ]);
 
         // Item of an itemtype not in the allowed list must not be returned
-        $monitor = $this->createItem('Monitor', ['name' => 'test-reservable-monitor', 'entities_id' => 0]);
+        $monitor = $this->createItem('Monitor', ['name' => 'test-reservable-monitor', 'entities_id' => $this->getTestRootEntity(true)]);
         $this->createItem('ReservationItem', [
             'itemtype' => 'Monitor',
             'items_id' => $monitor->getID(),
@@ -90,7 +90,7 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
     {
         $this->login();
 
-        $computer = $this->createItem('Computer', ['name' => 'test-inactive-computer', 'entities_id' => 0]);
+        $computer = $this->createItem('Computer', ['name' => 'test-inactive-computer', 'entities_id' => $this->getTestRootEntity(true)]);
         $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),
@@ -116,7 +116,7 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
         $CFG_GLPI['reservation_types'] = ['Computer'];
 
         try {
-            $computer = $this->createItem('Computer', ['name' => 'test-fallback-computer', 'entities_id' => 0]);
+            $computer = $this->createItem('Computer', ['name' => 'test-fallback-computer', 'entities_id' => $this->getTestRootEntity(true)]);
             $res_item = $this->createItem('ReservationItem', [
                 'itemtype' => 'Computer',
                 'items_id' => $computer->getID(),
@@ -145,14 +145,14 @@ final class ReservableItemsControllerTest extends AdvancedFormsTestCase
     {
         $this->login();
 
-        $computer1 = $this->createItem('Computer', ['name' => 'alpha-computer', 'entities_id' => 0]);
+        $computer1 = $this->createItem('Computer', ['name' => 'alpha-computer', 'entities_id' => $this->getTestRootEntity(true)]);
         $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer1->getID(),
             'is_active' => 1,
         ]);
 
-        $computer2 = $this->createItem('Computer', ['name' => 'beta-computer', 'entities_id' => 0]);
+        $computer2 = $this->createItem('Computer', ['name' => 'beta-computer', 'entities_id' => $this->getTestRootEntity(true)]);
         $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer2->getID(),

@@ -42,8 +42,8 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
-use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 
 final class ConfigManager

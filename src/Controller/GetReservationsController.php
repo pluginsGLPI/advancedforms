@@ -33,7 +33,6 @@
 
 namespace GlpiPlugin\Advancedforms\Controller;
 
-use Glpi\Exception\Http\BadRequestHttpException;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
 use Reservation;
@@ -55,17 +54,18 @@ final class GetReservationsController extends AbstractReservationWidgetControlle
         $this->checkReservationAccess();
 
         $reservationitems_id = $request->request->getInt('reservationitems_id');
-        if ($reservationitems_id <= 0) {
-            throw new BadRequestHttpException();
-        }
+        $this->getAccessibleReservationItem($reservationitems_id);
 
         $begin = $request->request->getString('begin', '');
         $end = $request->request->getString('end', '');
 
-        $where = ['reservationitems_id' => $reservationitems_id];
-        if ($begin !== '') {
-            $where['end'] = ['>', $begin];
-        }
+        // No lower bound given by the caller: only return current/future slots,
+        // never the item's whole reservation history.
+        $now = $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s');
+        $where = [
+            'reservationitems_id' => $reservationitems_id,
+            'end' => ['>', $begin !== '' ? $begin : $now],
+        ];
 
         if ($end !== '') {
             $where['begin'] = ['<', $end];
@@ -75,6 +75,8 @@ final class GetReservationsController extends AbstractReservationWidgetControlle
         $rows = $DB->request([
             'FROM' => Reservation::getTable(),
             'WHERE' => $where,
+            'ORDER' => 'begin ASC',
+            'LIMIT' => 100,
         ]);
 
         $results = [];
@@ -85,12 +87,10 @@ final class GetReservationsController extends AbstractReservationWidgetControlle
 
             $begin_value = $row['begin'] ?? null;
             $end_value = $row['end'] ?? null;
-            $users_id_value = $row['users_id'] ?? null;
 
             $results[] = [
                 'begin' => is_scalar($begin_value) ? (string) $begin_value : '',
                 'end' => is_scalar($end_value) ? (string) $end_value : '',
-                'users_id' => is_numeric($users_id_value) ? (int) $users_id_value : 0,
             ];
         }
 

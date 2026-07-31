@@ -31,22 +31,7 @@
 
 {% import 'components/form/fields_macros.html.twig' as fields %}
 
-<div data-glpi-itildestination-field-config-display-condition="{{ CONFIG_FROM_SPECIFIC_QUESTION }}">
-    {{ fields.dropdownArrayField(
-        question_extra_field.input_name,
-        question_extra_field.value,
-        question_extra_field.possible_values,
-        "",
-        options|merge({
-            field_class: '',
-            mb: '',
-            no_label: true,
-            display_emptychoice: true,
-            emptylabel: question_extra_field.empty_label,
-            aria_label: question_extra_field.empty_label,
-        })
-    ) }}
-
+{% macro require_approval_toggle(require_approval_extra_field) %}
     <label class="col form-check form-switch mt-3 mb-0">
         <input
             name="{{ require_approval_extra_field.input_name }}"
@@ -62,4 +47,35 @@
         >
         <span class="form-check-label">{{ __('Require technician approval', 'advancedforms') }}</span>
     </label>
+{% endmacro %}
+
+<div data-glpi-itildestination-field-config-display-condition="{{ CONFIG_SPECIFIC_ANSWER }}">
+    {{ fields.dropdownArrayField(
+        question_extra_field.input_name,
+        question_extra_field.value,
+        question_extra_field.possible_values,
+        "",
+        options|merge({
+            field_class: '',
+            mb: '',
+            no_label: true,
+            display_emptychoice: true,
+            emptylabel: question_extra_field.empty_label,
+            aria_label: question_extra_field.empty_label,
+        })
+    ) }}
+
+    {{ _self.require_approval_toggle(require_approval_extra_field) }}
+</div>
+
+{# Same toggle as above: relevant to every strategy that actually creates a
+   pre-reservation, not only "specific answer". The display-condition
+   mechanism only matches a single value, so the field is duplicated per
+   strategy rather than shown unconditionally (irrelevant for "No pre-reservation"). #}
+<div data-glpi-itildestination-field-config-display-condition="{{ CONFIG_LAST_VALID_ANSWER }}">
+    {{ _self.require_approval_toggle(require_approval_extra_field) }}
+</div>
+
+<div data-glpi-itildestination-field-config-display-condition="{{ CONFIG_ALL_VALID_ANSWERS }}">
+    {{ _self.require_approval_toggle(require_approval_extra_field) }}
 </div>

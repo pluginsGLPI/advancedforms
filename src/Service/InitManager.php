@@ -46,6 +46,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Plugin;
+use Ticket;
 
 final class InitManager
 {
@@ -58,6 +59,7 @@ final class InitManager
         $this->registerDestinationFields();
         $this->registerTimelineHooks();
         $this->registerNotifications();
+        $this->registerPurgeHooks();
     }
 
     private function registerNotifications(): void
@@ -144,5 +146,16 @@ final class InitManager
 
         // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
         $PLUGIN_HOOKS[Hooks::TIMELINE_ITEMS]['advancedforms'] = TimelineManager::addTimelineItems(...);
+    }
+
+    /** Cleans up reservation requests (and the Reservation they created) when their Ticket is purged. */
+    private function registerPurgeHooks(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['advancedforms'] = [
+            Ticket::class => TicketReservationRequest::purgeForTicket(...),
+        ];
     }
 }

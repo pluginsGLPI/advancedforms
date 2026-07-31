@@ -38,25 +38,25 @@ use Glpi\Form\Destination\ConfigFieldWithStrategiesInterface;
 use Glpi\Form\Destination\HasFieldWithQuestionId;
 use Override;
 
-#[HasFieldWithQuestionId(self::QUESTION_ID)]
+#[HasFieldWithQuestionId(self::SPECIFIC_QUESTION_ID)]
 final readonly class PreReservationFieldConfig implements JsonFieldInterface, ConfigFieldWithStrategiesInterface
 {
     public const STRATEGY = 'strategy';
 
-    public const QUESTION_ID = 'question_id';
+    public const SPECIFIC_QUESTION_ID = 'specific_question_id';
 
     public const REQUIRE_APPROVAL = 'require_approval';
 
     public function __construct(
         private PreReservationFieldStrategy $strategy,
-        private ?int $question_id = null,
+        private ?int $specific_question_id = null,
         private bool $require_approval = true,
     ) {}
 
     /**
      * @param array{
      *      strategy?: string,
-     *      question_id?: ?int,
+     *      specific_question_id?: ?int,
      *      require_approval?: bool
      * } $data
      */
@@ -70,7 +70,7 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
 
         return new self(
             strategy: $strategy,
-            question_id: $data[self::QUESTION_ID] ?? null,
+            specific_question_id: $data[self::SPECIFIC_QUESTION_ID] ?? null,
             require_approval: $data[self::REQUIRE_APPROVAL] ?? true,
         );
     }
@@ -78,7 +78,7 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
     /**
      * @return array{
      *      strategy: string,
-     *      question_id: ?int,
+     *      specific_question_id: ?int,
      *      require_approval: bool
      * }
      */
@@ -87,7 +87,7 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
     {
         return [
             self::STRATEGY => $this->strategy->value,
-            self::QUESTION_ID => $this->question_id,
+            self::SPECIFIC_QUESTION_ID => $this->specific_question_id,
             self::REQUIRE_APPROVAL => $this->require_approval,
         ];
     }
@@ -105,9 +105,9 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
         return [$this->strategy];
     }
 
-    public function getQuestionId(): ?int
+    public function getSpecificQuestionId(): ?int
     {
-        return $this->question_id;
+        return $this->specific_question_id;
     }
 
     public function isApprovalRequired(): bool

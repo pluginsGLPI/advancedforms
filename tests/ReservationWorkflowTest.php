@@ -327,8 +327,8 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         $question_id = $this->getQuestionId($form, "Reservation");
 
         $config = new PreReservationFieldConfig(
-            strategy: PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
-            question_id: $question_id,
+            strategy: PreReservationFieldStrategy::SPECIFIC_ANSWER,
+            specific_question_id: $question_id,
             require_approval: $require_approval,
         );
 

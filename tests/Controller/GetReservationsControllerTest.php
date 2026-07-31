@@ -67,11 +67,16 @@ final class GetReservationsControllerTest extends AdvancedFormsTestCase
         $this->login();
         $item = $this->getReservableItem();
 
+        // Without a lower bound, only current/future slots are returned: use a
+        // future date rather than a fixed past one.
+        $begin = date('Y-m-d H:i:s', strtotime('+1 day 09:00:00'));
+        $end = date('Y-m-d H:i:s', strtotime('+1 day 11:00:00'));
+
         $reservation = new Reservation();
         $this->assertGreaterThan(0, $reservation->add([
             'reservationitems_id' => $item->getID(),
-            'begin' => '2026-02-01 09:00:00',
-            'end' => '2026-02-01 11:00:00',
+            'begin' => $begin,
+            'end' => $end,
             'users_id' => Session::getLoginUserID(),
             'comment' => 'this should not leak',
         ]));
@@ -85,9 +90,9 @@ final class GetReservationsControllerTest extends AdvancedFormsTestCase
         $data = json_decode((string) $response->getContent(), true);
         $this->assertIsArray($data);
         $this->assertCount(1, $data);
-        $this->assertSame('2026-02-01 09:00:00', $data[0]['begin']);
-        $this->assertSame('2026-02-01 11:00:00', $data[0]['end']);
-        $this->assertSame(Session::getLoginUserID(), $data[0]['users_id']);
+        $this->assertSame($begin, $data[0]['begin']);
+        $this->assertSame($end, $data[0]['end']);
+        $this->assertArrayNotHasKey('users_id', $data[0]);
         $this->assertArrayNotHasKey('comment', $data[0]);
     }
 
@@ -143,7 +148,10 @@ final class GetReservationsControllerTest extends AdvancedFormsTestCase
 
     private function getReservableItem(): ReservationItem
     {
-        $computer = $this->createItem('Computer', ['name' => 'test-computer-resa', 'entities_id' => 0]);
+        $computer = $this->createItem('Computer', [
+            'name' => 'test-computer-resa',
+            'entities_id' => $this->getTestRootEntity(true),
+        ]);
         return $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),

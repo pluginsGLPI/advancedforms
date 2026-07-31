@@ -42,6 +42,7 @@ use GlpiPlugin\Advancedforms\Model\Destination\PreReservationFieldStrategy;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Psr\Log\LogLevel;
 use Reservation;
 use ReservationItem;
 use Session;
@@ -59,7 +60,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
 
     public function testWithApprovalCreatesWaitingRequestOnly(): void
     {
-        [$ticket, $item] = $this->submitReservationForm(PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION, true);
+        [$ticket, $item] = $this->submitReservationForm(PreReservationFieldStrategy::SPECIFIC_ANSWER, true);
 
         $request = new TicketReservationRequest();
         $rows = $request->find(['tickets_id' => $ticket->getID()]);
@@ -79,7 +80,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
 
     public function testDirectModeSlotFreeAutoApproves(): void
     {
-        [$ticket, $item] = $this->submitReservationForm(PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION, false);
+        [$ticket, $item] = $this->submitReservationForm(PreReservationFieldStrategy::SPECIFIC_ANSWER, false);
 
         $request = new TicketReservationRequest();
         $rows = $request->find(['tickets_id' => $ticket->getID()]);
@@ -107,7 +108,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         ]));
 
         [$ticket] = $this->submitReservationForm(
-            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            PreReservationFieldStrategy::SPECIFIC_ANSWER,
             false,
             item: $item,
             begin: '2026-04-01 10:00:00',
@@ -126,7 +127,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
     public function testUnansweredQuestionCreatesNoRequestAndDoesNotCrash(): void
     {
         [$ticket] = $this->submitReservationForm(
-            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            PreReservationFieldStrategy::SPECIFIC_ANSWER,
             true,
             answer_question: false,
         );
@@ -157,8 +158,8 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $question_id = $this->getQuestionId($form, "Not a reservation");
 
         $config = new PreReservationFieldConfig(
-            strategy: PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
-            question_id: $question_id,
+            strategy: PreReservationFieldStrategy::SPECIFIC_ANSWER,
+            specific_question_id: $question_id,
             require_approval: true,
         );
 
@@ -187,7 +188,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
     {
         // End before begin: the answer must be rejected server-side.
         [$ticket] = $this->submitReservationForm(
-            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            PreReservationFieldStrategy::SPECIFIC_ANSWER,
             true,
             begin: '2026-04-10 11:00:00',
             end: '2026-04-10 09:00:00',
@@ -210,9 +211,16 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         ]);
 
         [$ticket] = $this->submitReservationForm(
-            PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION,
+            PreReservationFieldStrategy::SPECIFIC_ANSWER,
             false,
             item: $inactive_item,
+        );
+
+        // The disallowed item is logged so admins aren't left guessing why no
+        // reservation was created; consume it so tearDown() doesn't fail on it.
+        $this->hasPhpLogRecordThatContains(
+            sprintf('item #%d is not allowed', $inactive_item->getID()),
+            LogLevel::WARNING,
         );
 
         $request = new TicketReservationRequest();
@@ -238,13 +246,13 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
 
         $form = $this->createForm($builder);
 
-        $question_id = $strategy === PreReservationFieldStrategy::FROM_SPECIFIC_QUESTION
+        $question_id = $strategy === PreReservationFieldStrategy::SPECIFIC_ANSWER
             ? $this->getQuestionId($form, "Reservation")
             : null;
 
         $config = new PreReservationFieldConfig(
             strategy: $strategy,
-            question_id: $question_id,
+            specific_question_id: $question_id,
             require_approval: $require_approval,
         );
 

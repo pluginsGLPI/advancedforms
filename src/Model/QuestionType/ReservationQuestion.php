@@ -35,12 +35,15 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\DBAL\JsonFieldInterface;
+use Glpi\Form\Destination\CommonITILField\Category;
+use Glpi\Form\Destination\FormDestination;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use Glpi\Form\QuestionType\QuestionTypeValidationInterface;
 use Glpi\Form\ValidationResult;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use InvalidArgumentException;
 use Override;
@@ -121,10 +124,13 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
         return $twig->render(
             '@advancedforms/editor/question_types/reservation_config.html.twig',
             [
-                'question'          => $question,
-                'extra_data'        => $config,
-                'reservation_types' => $reservation_types,
-                'ALLOWED_ITEMTYPES' => ReservationQuestionConfig::ALLOWED_ITEMTYPES,
+                'question'                => $question,
+                'extra_data'              => $config,
+                'reservation_types'       => $reservation_types,
+                'ALLOWED_ITEMTYPES'       => ReservationQuestionConfig::ALLOWED_ITEMTYPES,
+                'destination_label'       => FormDestination::getTypeName(2),
+                'timeline_category_label' => Category::TIMELINE->getLabel(),
+                'pre_reservation_label'   => (new PreReservationField())->getLabel(),
             ],
         );
     }

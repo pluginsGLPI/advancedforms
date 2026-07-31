@@ -88,7 +88,7 @@ final class ReservableItemsController extends AbstractReservationWidgetControlle
         $where = [
             'itemtype' => $itemtype,
             'is_active' => 1,
-        ];
+        ] + getEntitiesRestrictCriteria(ReservationItem::getTable(), 'entities_id', '', true);
 
         if ($search !== '') {
             $where['items_id'] = new QuerySubQuery([

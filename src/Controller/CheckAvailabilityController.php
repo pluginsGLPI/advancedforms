@@ -58,9 +58,11 @@ final class CheckAvailabilityController extends AbstractReservationWidgetControl
         $begin = $request->request->getString('begin');
         $end = $request->request->getString('end');
 
-        if ($reservationitems_id <= 0 || $begin === '' || $end === '') {
+        if ($begin === '' || $end === '') {
             throw new BadRequestHttpException();
         }
+
+        $this->getAccessibleReservationItem($reservationitems_id);
 
         return new JsonResponse([
             'available' => TicketReservationRequest::isSlotFree($reservationitems_id, $begin, $end),

@@ -39,6 +39,7 @@ use NotificationEvent;
 use Override;
 use Reservation;
 use ReservationItem;
+use Session;
 use Ticket;
 
 use function getItemForItemtype;
@@ -267,7 +268,36 @@ final class TicketReservationRequest extends CommonDBChild
             return false;
         }
 
-        return $ticket->canUpdateItem();
+        if (!$ticket->canUpdateItem()) {
+            return false;
+        }
+
+        // Approving/refusing creates (or would create) a Reservation for this
+        // request's own requester, not for whoever answers it. Mirror core's
+        // rule in Reservation::handleAddForm(): creating a reservation for
+        // someone else requires CREATE, not just RESERVEANITEM.
+        if (
+            $this->getIntField('users_id') !== (int) Session::getLoginUserID()
+            && !Session::haveRight(Reservation::$rightname, CREATE)
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Removes every pending/accepted request tied to a purged Ticket, along with any Reservation it created. */
+    public static function purgeForTicket(Ticket $ticket): void
+    {
+        $request = new self();
+        foreach ($request->find(['tickets_id' => $ticket->getID()]) as $row) {
+            if (!is_array($row) || !isset($row['id']) || !is_numeric($row['id'])) {
+                continue;
+            }
+
+            $item = new self();
+            $item->delete(['id' => (int) $row['id']], true);
+        }
     }
 
     private function getIntField(string $field): int

@@ -72,7 +72,7 @@
     <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
 </div>
 <script type="module">
-    import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js';
+    import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
     $(function() {
         new ReservationQuestionWidget(
             document.querySelector('[data-reservation-question-widget][data-input-name="{{ input_name|e('js') }}"]')

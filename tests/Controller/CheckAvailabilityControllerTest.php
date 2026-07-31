@@ -128,7 +128,10 @@ final class CheckAvailabilityControllerTest extends AdvancedFormsTestCase
 
     private function getReservableItem(): ReservationItem
     {
-        $computer = $this->createItem('Computer', ['name' => 'test-computer', 'entities_id' => 0]);
+        $computer = $this->createItem('Computer', [
+            'name' => 'test-computer',
+            'entities_id' => $this->getTestRootEntity(true),
+        ]);
         return $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),
