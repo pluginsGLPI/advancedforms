@@ -43,6 +43,7 @@ use Dropdown;
 use GLPIMailer;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
+use Glpi\Form\Form;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\AbstractQuestionTypeActors;
 use Glpi\Form\QuestionType\AbstractQuestionTypeSelectable;
@@ -170,12 +171,16 @@ final class TableQuestion extends AbstractQuestionType implements
                 $type     = $col[TableQuestionConfig::COL_QUESTION_TYPE] ?? '';
                 $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
                 $pattern  = $col[TableQuestionConfig::COL_PATTERN] ?? '';
+                $subtype  = $col[TableQuestionConfig::COL_SUBTYPE] ?? '';
+                $field_id = $col[TableQuestionConfig::COL_FIELD_ID] ?? '';
                 return [
                     TableQuestionConfig::COL_NAME          => is_scalar($name) ? (string) $name : '',
                     TableQuestionConfig::COL_QUESTION_TYPE => is_scalar($type) ? (string) $type : '',
                     TableQuestionConfig::COL_REQUIRED      => (bool) ($col[TableQuestionConfig::COL_REQUIRED] ?? false),
                     TableQuestionConfig::COL_ITEMTYPE      => is_scalar($itemtype) ? (string) $itemtype : '',
                     TableQuestionConfig::COL_PATTERN       => is_scalar($pattern) ? (string) $pattern : '',
+                    TableQuestionConfig::COL_SUBTYPE        => is_scalar($subtype) ? (string) $subtype : '',
+                    TableQuestionConfig::COL_FIELD_ID       => is_scalar($field_id) ? (string) $field_id : '',
                 ];
             },
             array_filter((array) ($input[TableQuestionConfig::COLUMNS] ?? []), is_array(...)),
@@ -270,7 +275,7 @@ final class TableQuestion extends AbstractQuestionType implements
 
             foreach ($required_columns as $index => $name) {
                 $value = $row['col_' . $index] ?? '';
-                if (!is_scalar($value) || (string) $value === '') {
+                if (!$this->cellHasValue($value)) {
                     $result->addError($question, sprintf(
                         __('Row %1$s: the column "%2$s" is required.', 'advancedforms'),
                         $row_number,
@@ -350,12 +355,26 @@ final class TableQuestion extends AbstractQuestionType implements
     private function rowHasValue(array $row): bool
     {
         foreach ($row as $value) {
-            if ($value !== '' && $value !== null) {
+            if ($this->cellHasValue($value)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function cellHasValue(mixed $value): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $nested) {
+                if ($this->cellHasValue($nested)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return $value !== '' && $value !== null;
     }
 
     #[Override]
@@ -553,11 +572,22 @@ final class TableQuestion extends AbstractQuestionType implements
 
         global $DB;
 
+        $where = ['id' => $ids];
+
+        // GLPI 11 custom dropdown classes can share the same database table.
+        // Their system SQL criteria restrict rows to the current dropdown definition.
+        if (method_exists($itemtype, 'getSystemSQLCriteria')) {
+            $system_criteria = $itemtype::getSystemSQLCriteria();
+            if (is_array($system_criteria) && $system_criteria !== []) {
+                $where[] = $system_criteria;
+            }
+        }
+
         $map = [];
         foreach ($DB->request([
             'SELECT' => ['id', 'name'],
             'FROM'   => $item->getTable(),
-            'WHERE'  => ['id' => $ids],
+            'WHERE'  => $where,
         ]) as $row) {
             if (!is_array($row)) {
                 continue;
@@ -709,6 +739,51 @@ final class TableQuestion extends AbstractQuestionType implements
             ),
         ];
 
+        // Generic first-level subtype metadata exposed by GLPI question types.
+        $subtype_options = [];
+        foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
+            $subtypes = $type->getSubTypes();
+            if ($subtypes !== []) {
+                $subtype_options[$type::class] = $subtypes;
+            }
+        }
+
+        // Fields adds a second level (field inside block). Load active DOM
+        // blocks directly because getSubTypes() may be empty in this context.
+        $fields_by_block = [];
+        if (
+            class_exists('PluginFieldsQuestionType')
+            && class_exists('PluginFieldsContainer')
+        ) {
+            $container = new \PluginFieldsContainer();
+            $blocks = $container->find([
+                'is_active' => 1,
+                'type'      => 'dom',
+            ], 'name');
+
+            $fields_blocks = [];
+            foreach ($blocks as $block_id => $block_data) {
+                $block_id = (int) $block_id;
+                if ($block_id <= 0) {
+                    continue;
+                }
+
+                $fields = \PluginFieldsQuestionType::getFieldsFromBlock($block_id);
+                if (!is_array($fields) || $fields === []) {
+                    continue;
+                }
+
+                $fields_blocks[(string) $block_id] = (string) (
+                    $block_data['label']
+                    ?? $block_data['name']
+                    ?? ('Block #' . $block_id)
+                );
+                $fields_by_block[(string) $block_id] = $fields;
+            }
+
+            $subtype_options['PluginFieldsQuestionType'] = $fields_blocks;
+        }
+
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
             '@advancedforms/editor/question_types/table_config.html.twig',
@@ -723,11 +798,16 @@ final class TableQuestion extends AbstractQuestionType implements
                 'COL_REQUIRED'             => TableQuestionConfig::COL_REQUIRED,
                 'COL_ITEMTYPE'             => TableQuestionConfig::COL_ITEMTYPE,
                 'COL_PATTERN'              => TableQuestionConfig::COL_PATTERN,
+                'COL_SUBTYPE'              => TableQuestionConfig::COL_SUBTYPE,
+                'COL_FIELD_ID'             => TableQuestionConfig::COL_FIELD_ID,
                 'MIN_ROWS'                 => TableQuestionConfig::MIN_ROWS,
                 'MAX_ROWS'                 => TableQuestionConfig::MAX_ROWS,
                 'itemtype_options'         => $itemtype_options,
                 'short_answer_fqcns'       => $short_answer_fqcns,
                 'short_answer_fqcns_json'  => json_encode($short_answer_fqcns),
+                'subtype_options'           => $subtype_options,
+                'subtype_options_json'      => json_encode($subtype_options),
+                'fields_by_block_json'      => json_encode($fields_by_block),
             ],
         );
     }
@@ -752,7 +832,29 @@ final class TableQuestion extends AbstractQuestionType implements
             $type     = $type_instances[$fqcn] ?? null;
             $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
 
-            if (is_a($fqcn, AbstractQuestionTypeActors::class, true)) {
+            if ($fqcn === 'PluginFieldsQuestionType' && class_exists('PluginFieldsField')) {
+                $field_id = (int) ($col[TableQuestionConfig::COL_FIELD_ID] ?? 0);
+                $field = $field_id > 0 ? \PluginFieldsField::getById($field_id) : false;
+                if ($field) {
+                    $field_data = $field->fields;
+                    $fields_itemtype = null;
+                    $field_type = (string) ($field_data['type'] ?? '');
+                    if (str_starts_with($field_type, 'dropdown')) {
+                        if ($field_type === 'dropdown') {
+                            $fields_itemtype = \PluginFieldsDropdown::getClassname((string) $field_data['name']);
+                        } elseif (str_starts_with($field_type, 'dropdown-')) {
+                            $fields_itemtype = substr($field_type, strlen('dropdown-'));
+                        }
+                    }
+                    $cell_map[$index] = [
+                        'mode'     => 'plugin_fields',
+                        'field'    => $field_data,
+                        'itemtype' => $fields_itemtype,
+                    ];
+                } else {
+                    $cell_map[$index] = ['mode' => 'input', 'input_type' => 'text'];
+                }
+            } elseif (is_a($fqcn, AbstractQuestionTypeActors::class, true)) {
                 $user_options     ??= $this->buildUserOptions();
                 $cell_map[$index]  = ['mode' => 'select', 'options' => $user_options];
             } elseif (is_a($fqcn, QuestionTypeUserDevice::class, true)) {
@@ -783,6 +885,7 @@ final class TableQuestion extends AbstractQuestionType implements
                 'config'           => $config,
                 'column_cell_map'  => $cell_map,
                 'ajax_limit_count' => $this->ajaxLimitCount(),
+                'fields_item'      => new Form(),
             ],
         );
     }
@@ -949,6 +1052,15 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         $where = [];
+
+        // GLPI 11 custom dropdown classes can share the same database table.
+        // Their system SQL criteria restrict rows to the current dropdown definition.
+        if (method_exists($itemtype, 'getSystemSQLCriteria')) {
+            $system_criteria = $itemtype::getSystemSQLCriteria();
+            if (is_array($system_criteria) && $system_criteria !== []) {
+                $where[] = $system_criteria;
+            }
+        }
 
         if ($item->maybeDeleted()) {
             $where['is_deleted'] = 0;
