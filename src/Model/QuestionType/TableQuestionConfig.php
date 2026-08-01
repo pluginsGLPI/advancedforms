@@ -55,8 +55,10 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     public const COL_PATTERN       = 'pattern';
 
+    public const COL_EXTRA_DATA     = 'question_extra_data';
+
     /**
-     * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
+     * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string, question_extra_data: array<mixed>}> $columns
      */
     public function __construct(
         private array $columns  = [],
@@ -66,7 +68,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     /**
      * @param array{
-     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string}>,
+     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string, question_extra_data?: array<mixed>}>,
      *   min_rows?: int,
      *   max_rows?: int
      * } $data
@@ -81,6 +83,9 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
                 self::COL_REQUIRED      => (bool) ($col[self::COL_REQUIRED] ?? false),
                 self::COL_ITEMTYPE      => (string) ($col[self::COL_ITEMTYPE] ?? ''),
                 self::COL_PATTERN       => (string) ($col[self::COL_PATTERN] ?? ''),
+                self::COL_EXTRA_DATA    => is_array($col[self::COL_EXTRA_DATA] ?? null)
+                    ? $col[self::COL_EXTRA_DATA]
+                    : [],
             ],
             array_filter($data[self::COLUMNS] ?? [], is_array(...)),
         ));
@@ -97,7 +102,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 
     /**
      * @return array{
-     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}>,
+     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string, question_extra_data: array<mixed>}>,
      *   min_rows: int,
      *   max_rows: int
      * }
@@ -112,7 +117,7 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
         ];
     }
 
-    /** @return array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> */
+    /** @return array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string, question_extra_data: array<mixed>}> */
     public function getColumns(): array
     {
         return $this->columns;
