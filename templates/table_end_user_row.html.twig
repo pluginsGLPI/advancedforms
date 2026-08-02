@@ -1,0 +1,56 @@
+{% set input_base = question.getEndUserInputName() %}
+{% set columns = config.getColumns() %}
+<tr data-af-table-row>
+    {% for col_index, col in columns %}
+        {% set cell = column_cell_map[col_index] %}
+        <td class="align-middle">
+            {% if cell.mode == 'embedded' %}
+                {{ cell.html|raw }}
+            {% elseif cell.mode == 'checkbox' %}
+                <div class="d-flex justify-content-center">
+                    <input
+                        type="checkbox"
+                        value="1"
+                        class="form-check-input mt-0"
+                        name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                        {% if col.required %} required {% endif %}
+                    >
+                </div>
+            {% elseif cell.mode == 'select' %}
+                {% set sel_html %}
+                    {% do call('Dropdown::showFromArray', [
+                        input_base ~ '[' ~ row_index ~ '][col_' ~ col_index ~ ']',
+                        cell.options,
+                        {
+                            'class'              : 'form-select form-select-sm',
+                            'width'              : '100%',
+                            'display_emptychoice': false,
+                        }
+                    ]) %}
+                {% endset %}
+                {{ sel_html|raw }}
+            {% else %}
+                <input
+                    class="form-control form-control-sm"
+                    type="{{ cell.input_type }}"
+                    name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                    placeholder="{{ col.name }}"
+                    {% if col.required %} required {% endif %}
+                    {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
+                    {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
+                >
+            {% endif %}
+        </td>
+    {% endfor %}
+    <td class="text-center align-middle">
+        <i
+            role="button"
+            class="ti ti-trash cursor-pointer text-danger"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="{{ __('Remove row', 'advancedforms') }}"
+            aria-label="{{ __('Remove row', 'advancedforms') }}"
+            data-af-table-remove-row
+        ></i>
+    </td>
+</tr>
