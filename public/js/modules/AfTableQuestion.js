@@ -34,7 +34,6 @@ export class AfTableQuestion {
 
     #table;
     #body;
-    #template;
     #addBtn;
     #minRows;
     #maxRows;
@@ -42,12 +41,11 @@ export class AfTableQuestion {
     constructor(tableElement) {
         this.#table    = tableElement;
         this.#body     = tableElement.querySelector('[data-af-table-body]');
-        this.#template = tableElement.querySelector('[data-af-table-row-template]');
         this.#addBtn   = tableElement.querySelector('[data-af-table-add-row]');
         this.#minRows  = parseInt(tableElement.dataset.afMinRows, 10) || 1;
         this.#maxRows  = parseInt(tableElement.dataset.afMaxRows, 10) || 50;
 
-        if (!this.#body || !this.#template || !this.#addBtn) {
+        if (!this.#body || !this.#addBtn) {
             return;
         }
 
@@ -232,18 +230,62 @@ export class AfTableQuestion {
         control.closest('td')?.querySelector('[data-af-cell-error]')?.remove();
     }
 
-    addRow() {
+    async addRow() {
         const rowCount = this.#rowCount();
-        if (rowCount >= this.#maxRows) {
+        if (rowCount >= this.#maxRows || this.#addBtn.getAttribute('aria-busy') === 'true') {
             return;
         }
-        const clone = this.#template.content.cloneNode(true);
-        clone.querySelectorAll('[name]').forEach(el => {
-            el.name = el.name.replace('__ROW__', rowCount);
+
+        const questionId = parseInt(this.#table.dataset.afQuestionId, 10) || 0;
+        if (questionId <= 0) {
+            return;
+        }
+
+        this.#addBtn.setAttribute('aria-busy', 'true');
+        this.#addBtn.classList.add('opacity-25', 'pe-none');
+
+        try {
+            const url = new URL(`${CFG_GLPI.root_doc}/plugins/advancedforms/TableQuestionRow`, window.location.origin);
+            url.searchParams.set('questions_id', String(questionId));
+            url.searchParams.set('row_index', String(rowCount));
+            url.searchParams.set('render_identity', `dynamic-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+
+            const response = await fetch(url, { credentials: 'same-origin' });
+            if (!response.ok) {
+                return;
+            }
+
+            const html = await response.text();
+            if (html.trim() === '') {
+                return;
+            }
+
+            this.#appendServerRenderedRow(html);
+            this.#initSelectsInRow(this.#body.lastElementChild);
+        } finally {
+            this.#addBtn.removeAttribute('aria-busy');
+            this.#updateButtonStates();
+        }
+    }
+
+    #appendServerRenderedRow(html) {
+        if (window.$) {
+            const nodes = window.$.parseHTML(html, document, true);
+            window.$(this.#body).append(nodes);
+            return;
+        }
+
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        template.content.querySelectorAll('script').forEach(oldScript => {
+            const script = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attribute => {
+                script.setAttribute(attribute.name, attribute.value);
+            });
+            script.textContent = oldScript.textContent;
+            oldScript.replaceWith(script);
         });
-        this.#body.appendChild(clone);
-        this.#initSelectsInRow(this.#body.lastElementChild);
-        this.#updateButtonStates();
+        this.#body.appendChild(template.content);
     }
 
     #initSelectsInRow(row) {

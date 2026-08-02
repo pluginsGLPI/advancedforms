@@ -58,6 +58,7 @@ export class AfTableQuestionConfig {
             container.querySelectorAll('[data-af-table-column]').forEach(row => {
                 AfTableQuestionConfig.#bindItemtypeVisibility(row);
                 AfTableQuestionConfig.#bindPatternVisibility(row);
+                AfTableQuestionConfig.#bindEmbeddedQuestionConfig(row);
             });
 
             if (addBtn && template) {
@@ -84,6 +85,7 @@ export class AfTableQuestionConfig {
         AfTableQuestionConfig.#initNewColumnSelect(newSelect, container.dataset.afTableColumnsContainer);
         AfTableQuestionConfig.#bindItemtypeVisibility(newRow);
         AfTableQuestionConfig.#bindPatternVisibility(newRow);
+        AfTableQuestionConfig.#bindEmbeddedQuestionConfig(newRow, true);
     }
 
     static #initNewColumnSelect(select, rand) {
@@ -164,6 +166,184 @@ export class AfTableQuestionConfig {
             typeSelect.addEventListener('change', update);
         }
         update();
+    }
+
+    static #bindEmbeddedQuestionConfig(columnRow, loadImmediately = false) {
+        const typeSelect = columnRow.querySelector('select[name*="[question_type]"]');
+        const target = columnRow.querySelector('[data-af-column-question-config-container]');
+        if (!typeSelect || !target) { return; }
+
+        const setLayoutState = () => {
+            const hasConfig = target.querySelector('[name]') !== null;
+            target.classList.toggle('d-none', !hasConfig);
+            columnRow.classList.toggle('af-has-embedded-config', hasConfig);
+        };
+
+        const cancelPendingRequest = () => {
+            target.dataset.afEmbeddedRequestId = String(
+                Number(target.dataset.afEmbeddedRequestId || 0) + 1,
+            );
+        };
+
+        const clearConfig = () => {
+            cancelPendingRequest();
+            target.replaceChildren();
+            target.classList.add('d-none');
+            columnRow.classList.remove('af-has-embedded-config');
+        };
+
+        const reload = async ({ keepBlock = false } = {}) => {
+            const container = columnRow.closest('[data-af-table-columns-container]');
+            const rows = Array.from(container?.querySelectorAll('[data-af-table-column]') ?? []);
+            const columnIndex = Math.max(0, rows.indexOf(columnRow));
+            const requestId = String(Number(target.dataset.afEmbeddedRequestId || 0) + 1);
+            target.dataset.afEmbeddedRequestId = requestId;
+
+            const payload = new FormData();
+            payload.append('type', typeSelect.value);
+            payload.append('column_index', String(columnIndex));
+
+            if (keepBlock) {
+                const block = target.querySelector('[name$="[block_id]"]');
+                if (block) {
+                    payload.append('question_extra_data[block_id]', block.value);
+                }
+            }
+
+            target.setAttribute('aria-busy', 'true');
+            try {
+                let html;
+
+                if (window.$?.ajax) {
+                    // GLPI configures jQuery globally to add the current CSRF
+                    // token to POST requests. Native fetch does not receive that
+                    // configuration and is rejected by the firewall with 403.
+                    html = await window.$.ajax({
+                        url: `${CFG_GLPI.root_doc}/plugins/advancedforms/TableColumnQuestionConfig`,
+                        method: 'POST',
+                        data: payload,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'html',
+                    });
+                } else {
+                    const response = await fetch(
+                        `${CFG_GLPI.root_doc}/plugins/advancedforms/TableColumnQuestionConfig`,
+                        {
+                            method: 'POST',
+                            body: payload,
+                            credentials: 'same-origin',
+                        },
+                    );
+
+                    if (!response.ok) {
+                        clearConfig();
+                        return;
+                    }
+
+                    html = await response.text();
+                }
+
+                if (target.dataset.afEmbeddedRequestId !== requestId) { return; }
+
+                target.innerHTML = html;
+                setLayoutState();
+                AfTableQuestionConfig.#bindEmbeddedQuestionConfig(columnRow);
+            } catch {
+                clearConfig();
+            } finally {
+                if (target.dataset.afEmbeddedRequestId === requestId) {
+                    target.removeAttribute('aria-busy');
+                }
+            }
+        };
+
+        const triggerAutosave = control => {
+            if (!control) { return; }
+            control.dataset.afEmbeddedCommit = '1';
+            if (window.$) {
+                window.$(control).trigger('change');
+            } else {
+                control.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
+        const onTypeChange = async event => {
+            if (typeSelect.dataset.afEmbeddedCommit === '1') {
+                delete typeSelect.dataset.afEmbeddedCommit;
+                return;
+            }
+
+            const container = columnRow.closest('[data-af-table-columns-container]');
+            const columnIndex = Array.from(
+                container?.querySelectorAll('[data-af-table-column]') ?? [],
+            ).indexOf(columnRow);
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            clearConfig();
+            await reload();
+
+            // GLPI may replace the complete question editor during autosave.
+            // Start observing before triggering autosave so the replacement
+            // cannot happen between those two operations.
+            const questionEditor = columnRow.closest(
+                '[data-glpi-form-editor-question]',
+            ) ?? container;
+
+            if (!questionEditor) {
+                triggerAutosave(typeSelect);
+                return;
+            }
+
+            const selectedType = typeSelect.value;
+            const observer = new MutationObserver(() => {
+                const currentContainer = questionEditor.querySelector(
+                    '[data-af-table-columns-container]',
+                );
+                const currentRows = Array.from(
+                    currentContainer?.querySelectorAll('[data-af-table-column]') ?? [],
+                );
+                const currentRow = currentRows[columnIndex];
+                if (!currentRow || currentRow === columnRow) {
+                    return;
+                }
+
+                const currentType = currentRow.querySelector(
+                    'select[name*="[question_type]"]',
+                );
+                if (!currentType || currentType.value !== selectedType) {
+                    return;
+                }
+
+                observer.disconnect();
+                AfTableQuestionConfig.#bindEmbeddedQuestionConfig(currentRow, true);
+            });
+
+            observer.observe(questionEditor, {
+                childList: true,
+                subtree: true,
+            });
+
+            triggerAutosave(typeSelect);
+
+            // Avoid leaving an observer alive if autosave fails or is cancelled.
+            window.setTimeout(() => observer.disconnect(), 10000);
+        };
+
+        const $type = window.$ ? window.$(typeSelect) : null;
+        if ($type) {
+            $type.off('.afEmbeddedType');
+            $type.on('change.afEmbeddedType', onTypeChange);
+        } else if (!typeSelect.dataset.afEmbeddedNativeBound) {
+            typeSelect.dataset.afEmbeddedNativeBound = '1';
+            typeSelect.addEventListener('change', onTypeChange, { capture: true });
+        }
+
+        setLayoutState();
+        if (loadImmediately && typeSelect.value && !target.querySelector('[name]')) {
+            void reload();
+        }
     }
 
     static #initItemtypeSelect(select, rand) {
