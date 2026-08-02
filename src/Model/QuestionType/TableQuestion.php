@@ -49,6 +49,7 @@ use Glpi\Form\QuestionType\AbstractQuestionTypeSelectable;
 use Glpi\Form\QuestionType\AbstractQuestionTypeShortAnswer;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Form\QuestionType\QuestionTypeEmbeddableInterface;
 use Glpi\Form\QuestionType\QuestionTypeItem;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use Glpi\Form\QuestionType\QuestionTypeRequestType;
@@ -133,6 +134,17 @@ final class TableQuestion extends AbstractQuestionType implements
                 return false;
             }
 
+            $column_extra_data = $col[TableQuestionConfig::COL_EXTRA_DATA] ?? [];
+            if (!is_array($column_extra_data)) {
+                return false;
+            }
+
+            $question_type = $this->getQuestionTypeInstance($fqcn);
+
+            if ($column_extra_data !== [] && (!$question_type || !$question_type->validateExtraDataInput($column_extra_data))) {
+                return false;
+            }
+
             $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
             if (!is_string($pattern)) {
                 return false;
@@ -164,18 +176,32 @@ final class TableQuestion extends AbstractQuestionType implements
     public function prepareExtraData(array $input): array
     {
         $columns = array_values(array_map(
-            static function (mixed $col): array {
+            function (mixed $col): array {
                 $col      = is_array($col) ? $col : [];
                 $name     = $col[TableQuestionConfig::COL_NAME] ?? '';
                 $type     = $col[TableQuestionConfig::COL_QUESTION_TYPE] ?? '';
                 $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
                 $pattern  = $col[TableQuestionConfig::COL_PATTERN] ?? '';
+                $extra_data = is_array($col[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                    ? $col[TableQuestionConfig::COL_EXTRA_DATA]
+                    : [];
+                $fqcn = is_scalar($type) ? (string) $type : '';
+                $question_type = $this->getQuestionTypeInstance($fqcn);
+                if ($question_type && $extra_data !== []) {
+                    if ($question_type->validateExtraDataInput($extra_data)) {
+                        $extra_data = $question_type->prepareExtraData($extra_data);
+                    } else {
+                        $extra_data = [];
+                    }
+                }
+
                 return [
                     TableQuestionConfig::COL_NAME          => is_scalar($name) ? (string) $name : '',
-                    TableQuestionConfig::COL_QUESTION_TYPE => is_scalar($type) ? (string) $type : '',
+                    TableQuestionConfig::COL_QUESTION_TYPE => $fqcn,
                     TableQuestionConfig::COL_REQUIRED      => (bool) ($col[TableQuestionConfig::COL_REQUIRED] ?? false),
                     TableQuestionConfig::COL_ITEMTYPE      => is_scalar($itemtype) ? (string) $itemtype : '',
                     TableQuestionConfig::COL_PATTERN       => is_scalar($pattern) ? (string) $pattern : '',
+                    TableQuestionConfig::COL_EXTRA_DATA    => $extra_data,
                 ];
             },
             array_filter((array) ($input[TableQuestionConfig::COLUMNS] ?? []), is_array(...)),
@@ -270,7 +296,7 @@ final class TableQuestion extends AbstractQuestionType implements
 
             foreach ($required_columns as $index => $name) {
                 $value = $row['col_' . $index] ?? '';
-                if (!is_scalar($value) || (string) $value === '') {
+                if (!$this->cellHasValue($value)) {
                     $result->addError($question, sprintf(
                         __('Row %1$s: the column "%2$s" is required.', 'advancedforms'),
                         $row_number,
@@ -350,12 +376,26 @@ final class TableQuestion extends AbstractQuestionType implements
     private function rowHasValue(array $row): bool
     {
         foreach ($row as $value) {
-            if ($value !== '' && $value !== null) {
+            if ($this->cellHasValue($value)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function cellHasValue(mixed $value): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $nested) {
+                if ($this->cellHasValue($nested)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return $value !== '' && $value !== null;
     }
 
     #[Override]
@@ -372,13 +412,26 @@ final class TableQuestion extends AbstractQuestionType implements
             }
 
             foreach ($row as $cell) {
-                if (is_scalar($cell) && (string) $cell !== '') {
-                    $flat[] = (string) $cell;
-                }
+                $this->flattenCellValue($cell, $flat);
             }
         }
 
         return $flat;
+    }
+
+    /** @param list<string> $flat */
+    private function flattenCellValue(mixed $value, array &$flat): void
+    {
+        if (is_array($value)) {
+            foreach ($value as $nested) {
+                $this->flattenCellValue($nested, $flat);
+            }
+            return;
+        }
+
+        if (is_scalar($value) && (string) $value !== '') {
+            $flat[] = (string) $value;
+        }
     }
 
     #[Override]
@@ -446,8 +499,17 @@ final class TableQuestion extends AbstractQuestionType implements
         $display_rows = [];
         foreach ($rows as $row) {
             $cells = [];
-            foreach (array_keys($columns) as $index) {
-                $raw     = $row['col_' . $index] ?? '';
+            foreach ($columns as $index => $column) {
+                $raw = $row['col_' . $index] ?? '';
+                $extra_data = is_array($column[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                    ? $column[TableQuestionConfig::COL_EXTRA_DATA]
+                    : [];
+
+                if ($extra_data !== []) {
+                    $cells[] = $this->formatEmbeddedCellValue($raw, $column, $index);
+                    continue;
+                }
+
                 $value   = is_scalar($raw) ? (string) $raw : '';
                 $cells[] = $value === '' ? '' : ($label_maps[$index][$value] ?? $value);
             }
@@ -456,6 +518,29 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         return $display_rows;
+    }
+
+    private function formatEmbeddedCellValue(mixed $value, array $column, int $index): string
+    {
+        if (!$this->cellHasValue($value)) {
+            return '';
+        }
+
+        $fqcn = (string) ($column[TableQuestionConfig::COL_QUESTION_TYPE] ?? '');
+        $type = $this->getQuestionTypeInstance($fqcn);
+        if (!$type instanceof QuestionTypeInterface) {
+            return is_scalar($value) ? (string) $value : json_encode($value);
+        }
+
+        $question = $this->buildEmbeddedQuestion(
+            $fqcn,
+            is_array($column[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                ? $column[TableQuestionConfig::COL_EXTRA_DATA]
+                : [],
+            'display-' . $index,
+        );
+
+        return $type->formatRawAnswer($value, $question);
     }
 
     /**
@@ -720,6 +805,17 @@ final class TableQuestion extends AbstractQuestionType implements
             ),
         ];
 
+        $column_configs = [];
+        foreach ($config->getColumns() as $index => $column) {
+            $column_configs[$index] = $this->renderEmbeddedQuestionConfiguration(
+                (string) ($column[TableQuestionConfig::COL_QUESTION_TYPE] ?? ''),
+                $index,
+                is_array($column[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                    ? $column[TableQuestionConfig::COL_EXTRA_DATA]
+                    : [],
+            );
+        }
+
         $twig = TemplateRenderer::getInstance();
         return $twig->render(
             '@advancedforms/editor/question_types/table_config.html.twig',
@@ -734,11 +830,13 @@ final class TableQuestion extends AbstractQuestionType implements
                 'COL_REQUIRED'             => TableQuestionConfig::COL_REQUIRED,
                 'COL_ITEMTYPE'             => TableQuestionConfig::COL_ITEMTYPE,
                 'COL_PATTERN'              => TableQuestionConfig::COL_PATTERN,
+                'COL_EXTRA_DATA'           => TableQuestionConfig::COL_EXTRA_DATA,
                 'MIN_ROWS'                 => TableQuestionConfig::MIN_ROWS,
                 'MAX_ROWS'                 => TableQuestionConfig::MAX_ROWS,
                 'itemtype_options'         => $itemtype_options,
                 'short_answer_fqcns'       => $short_answer_fqcns,
                 'short_answer_fqcns_json'  => json_encode($short_answer_fqcns),
+                'column_configs'           => $column_configs,
             ],
         );
     }
@@ -747,28 +845,93 @@ final class TableQuestion extends AbstractQuestionType implements
     public function renderEndUserTemplate(Question $question): string
     {
         $config = $this->loadConfig($question);
+        $initial_rows = [];
+        for ($row_index = 0; $row_index < $config->getMinRows(); $row_index++) {
+            $initial_rows[] = $this->renderEndUserRow($question, $row_index);
+        }
 
+        return TemplateRenderer::getInstance()->render(
+            '@advancedforms/table_end_user.html.twig',
+            [
+                'question'         => $question,
+                'config'           => $config,
+                'initial_rows'     => $initial_rows,
+                'ajax_limit_count' => $this->ajaxLimitCount(),
+            ],
+        );
+    }
+
+    public function renderEndUserRow(
+        Question $question,
+        int $row_index,
+        string $render_identity = '',
+    ): string
+    {
+        $config = $this->loadConfig($question);
+        if ($row_index < 0 || $row_index >= $config->getMaxRows()) {
+            return '';
+        }
+
+        $render_identity = $render_identity !== '' ? $render_identity : 'initial-' . $row_index;
+        $cell_map = $this->buildEndUserCellMap($question, $config, $row_index, $render_identity);
+
+        return TemplateRenderer::getInstance()->render(
+            '@advancedforms/table_end_user_row.html.twig',
+            [
+                'question'        => $question,
+                'config'          => $config,
+                'row_index'       => $row_index,
+                'column_cell_map' => $cell_map,
+            ],
+        );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function buildEndUserCellMap(
+        Question $question,
+        TableQuestionConfig $config,
+        int $row_index,
+        string $render_identity,
+    ): array {
         $type_instances = [];
         foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
             $type_instances[$type::class] = $type;
         }
 
-        $cell_map           = [];
-        $user_options       = null;
-        $device_options     = null;
-        $glpi_item_options  = []; // keyed by itemtype FQCN to avoid duplicate DB queries
+        $cell_map          = [];
+        $input_base        = $question->getEndUserInputName();
+        $user_options      = null;
+        $device_options    = null;
+        $glpi_item_options = [];
 
         foreach ($config->getColumns() as $index => $col) {
             $fqcn     = $col[TableQuestionConfig::COL_QUESTION_TYPE];
             $type     = $type_instances[$fqcn] ?? null;
             $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
+            $column_extra_data = is_array($col[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                ? $col[TableQuestionConfig::COL_EXTRA_DATA]
+                : [];
 
-            if (is_a($fqcn, AbstractQuestionTypeActors::class, true)) {
-                $user_options     ??= $this->buildUserOptions();
-                $cell_map[$index]  = ['mode' => 'select', 'options' => $user_options];
+            if (
+                $column_extra_data !== []
+                && $type instanceof QuestionTypeInterface
+                && !$this->usesNativeTableColumnRendering($fqcn, $type)
+            ) {
+                $cell_map[$index] = [
+                    'mode' => 'embedded',
+                    'html' => $this->renderEmbeddedEndUserControl(
+                        $fqcn,
+                        $col,
+                        sprintf('%s[%d][col_%d]', $input_base, $row_index, $index),
+                        sprintf('%s-%d', $render_identity, $index),
+                    ),
+                ];
+            } elseif (is_a($fqcn, AbstractQuestionTypeActors::class, true)) {
+                $user_options    ??= $this->buildUserOptions();
+                $cell_map[$index] = ['mode' => 'select', 'options' => $user_options];
             } elseif (is_a($fqcn, QuestionTypeUserDevice::class, true)) {
-                $device_options   ??= $this->buildUserDeviceOptions();
-                $cell_map[$index]  = ['mode' => 'select', 'options' => $device_options];
+                $device_options  ??= $this->buildUserDeviceOptions();
+                $cell_map[$index] = ['mode' => 'select', 'options' => $device_options];
             } elseif (is_a($fqcn, QuestionTypeItem::class, true)) {
                 if ($itemtype !== '' && class_exists($itemtype)) {
                     $glpi_item_options[$itemtype] ??= $this->buildGlpiItemtypeOptions($itemtype);
@@ -777,7 +940,7 @@ final class TableQuestion extends AbstractQuestionType implements
                     $cell_map[$index] = ['mode' => 'input', 'input_type' => 'text'];
                 }
             } else {
-                $cell_map[$index]  = $this->getCellInfo($fqcn, $type);
+                $cell_map[$index] = $this->getCellInfo($fqcn, $type);
             }
 
             $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
@@ -786,16 +949,7 @@ final class TableQuestion extends AbstractQuestionType implements
             }
         }
 
-        $twig = TemplateRenderer::getInstance();
-        return $twig->render(
-            '@advancedforms/table_end_user.html.twig',
-            [
-                'question'         => $question,
-                'config'           => $config,
-                'column_cell_map'  => $cell_map,
-                'ajax_limit_count' => $this->ajaxLimitCount(),
-            ],
-        );
+        return $cell_map;
     }
 
     /**
@@ -1003,6 +1157,105 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         return $options;
+    }
+
+    public function renderEmbeddedQuestionConfiguration(
+        string $fqcn,
+        int $column_index,
+        array $extra_data = [],
+    ): string {
+        $type = $this->getQuestionTypeInstance($fqcn);
+        if (
+            !$type instanceof QuestionTypeEmbeddableInterface
+            || $this->usesNativeTableColumnRendering($fqcn, $type)
+        ) {
+            return '';
+        }
+
+        if ($extra_data !== [] && !$type->validateExtraDataInput($extra_data)) {
+            $extra_data = [];
+        }
+
+        try {
+            $question = $this->buildEmbeddedQuestion($fqcn, $extra_data, $column_index);
+            $extra_data_prefix = sprintf(
+                'extra_data[columns][%d][%s]',
+                $column_index,
+                TableQuestionConfig::COL_EXTRA_DATA,
+            );
+
+            return $type->renderEmbeddedAdministrationTemplate(
+                $question,
+                $extra_data_prefix,
+            );
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    private function usesNativeTableColumnRendering(
+        string $fqcn,
+        QuestionTypeInterface $type,
+    ): bool {
+        return is_a($fqcn, AbstractQuestionTypeActors::class, true)
+            || is_a($fqcn, QuestionTypeUserDevice::class, true)
+            || is_a($fqcn, QuestionTypeItem::class, true)
+            || is_a($fqcn, AbstractQuestionTypeSelectable::class, true)
+            || $type instanceof AbstractQuestionTypeShortAnswer;
+    }
+
+    private function getQuestionTypeInstance(string $fqcn): ?QuestionTypeInterface
+    {
+        foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
+            if (ltrim($type::class, '\\') === ltrim($fqcn, '\\')) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    private function buildEmbeddedQuestion(
+        string $fqcn,
+        array $extra_data,
+        int|string $identity,
+    ): Question {
+        $question = new Question();
+        $question->fields = [
+            'id'            => 0,
+            'uuid'          => 'advancedforms-table-' . $identity,
+            'type'          => $fqcn,
+            'extra_data'    => json_encode($extra_data),
+            'default_value' => null,
+            'is_mandatory'  => 0,
+        ];
+
+        return $question;
+    }
+
+    private function renderEmbeddedEndUserControl(
+        string $fqcn,
+        array $column,
+        string $target_name,
+        int|string $identity,
+    ): string {
+        $type = $this->getQuestionTypeInstance($fqcn);
+        if (!$type instanceof QuestionTypeEmbeddableInterface) {
+            return '';
+        }
+
+        $question = $this->buildEmbeddedQuestion(
+            $fqcn,
+            is_array($column[TableQuestionConfig::COL_EXTRA_DATA] ?? null)
+                ? $column[TableQuestionConfig::COL_EXTRA_DATA]
+                : [],
+            $identity,
+        );
+
+        return $type->renderEmbeddedEndUserTemplate(
+            $question,
+            $target_name,
+        );
     }
 
     private function loadConfig(Question $question): TableQuestionConfig
