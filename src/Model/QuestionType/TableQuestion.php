@@ -40,7 +40,6 @@ use Glpi\Form\QuestionType\QuestionTypeDropdown;
 use Glpi\Form\QuestionType\QuestionTypeUrgency;
 use CommonItilObject_Item;
 use Dropdown;
-use GLPIMailer;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
@@ -55,22 +54,22 @@ use Glpi\Form\QuestionType\QuestionTypeRequestType;
 use Glpi\Form\QuestionType\QuestionTypeUserDevice;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Form\Condition\ConditionHandler\EmptyConditionHandler;
+use Glpi\Form\Condition\ConditionHandler\RegexConditionHandler;
 use Glpi\Form\Condition\ConditionHandler\VisibilityConditionHandler;
 use Glpi\Form\Condition\ConditionValueTransformerInterface;
 use Glpi\Form\QuestionType\QuestionTypeValidationInterface;
 use Glpi\Form\QuestionType\RawAnswerIsHtmlInterface;
 use Glpi\Form\ValidationResult;
 use Glpi\DBAL\JsonFieldInterface;
+use GlpiPlugin\Advancedforms\Model\Condition\TableRowCountConditionHandler;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use Override;
-use Safe\Exceptions\PcreException;
 use Session;
 use User;
 
 use function Safe\json_decode;
 use function Safe\json_encode;
-use function Safe\preg_match;
 
 final class TableQuestion extends AbstractQuestionType implements
     ConfigurableItemInterface,
@@ -138,25 +137,15 @@ final class TableQuestion extends AbstractQuestionType implements
                 return false;
             }
 
-            if ($pattern !== '') {
-                // Only `/…/flags`: matches the JS and HTML `pattern` attribute delimiter stripping.
-                if (preg_match('/^\/.*\/[a-z]*$/s', $pattern) !== 1) {
-                    return false;
-                }
-
-                try {
-                    @preg_match($pattern, ''); // malformed regex logs a PHP warning, silence it
-                } catch (PcreException) {
-                    return false;
-                }
+            // Same notion of a usable pattern as the one enforced at validation
+            // time, so a configuration that is accepted here is never silently
+            // ignored later.
+            if ($pattern !== '' && !TableColumnRule::isUsablePattern($pattern)) {
+                return false;
             }
         }
 
-        $min_raw = $input[TableQuestionConfig::MIN_ROWS] ?? 1;
-        $max_raw = $input[TableQuestionConfig::MAX_ROWS] ?? 50;
-        $min = is_numeric($min_raw) ? (int) $min_raw : 1;
-        $max = is_numeric($max_raw) ? (int) $max_raw : 50;
-        return $min >= 1 && $max >= $min && $max <= 50;
+        return true;
     }
 
     /** @param array<mixed> $input */
@@ -181,15 +170,8 @@ final class TableQuestion extends AbstractQuestionType implements
             array_filter((array) ($input[TableQuestionConfig::COLUMNS] ?? []), is_array(...)),
         ));
 
-        $min_raw = $input[TableQuestionConfig::MIN_ROWS] ?? 1;
-        $max_raw = $input[TableQuestionConfig::MAX_ROWS] ?? 50;
-        $min = max(1, is_numeric($min_raw) ? (int) $min_raw : 1);
-        $max = min(50, max($min, is_numeric($max_raw) ? (int) $max_raw : 50));
-
         return [
-            TableQuestionConfig::COLUMNS  => $columns,
-            TableQuestionConfig::MIN_ROWS => $min,
-            TableQuestionConfig::MAX_ROWS => $max,
+            TableQuestionConfig::COLUMNS => $columns,
         ];
     }
 
@@ -219,39 +201,8 @@ final class TableQuestion extends AbstractQuestionType implements
             return $result;
         }
 
-        $type_instances = [];
-        foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
-            $type_instances[$type::class] = $type;
-        }
-
-        $required_columns = [];
-        $pattern_columns  = [];
-        $native_columns   = [];
-        foreach ($this->loadConfig($question)->getColumns() as $index => $col) {
-            if ($col[TableQuestionConfig::COL_REQUIRED]) {
-                $required_columns[$index] = $col[TableQuestionConfig::COL_NAME];
-            }
-
-            $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
-            $fqcn    = $col[TableQuestionConfig::COL_QUESTION_TYPE];
-            if ($pattern !== '' && is_a($fqcn, AbstractQuestionTypeShortAnswer::class, true)) {
-                $pattern_columns[$index] = [$col[TableQuestionConfig::COL_NAME], $pattern];
-                continue;
-            }
-
-            // Text columns rely on the (optional) pattern above; Email/Number
-            // enforce their own native format server-side, since core does not
-            // expose them as a portable regex.
-            $native_type = $type_instances[$fqcn] ?? null;
-            if ($native_type instanceof AbstractQuestionTypeShortAnswer) {
-                $input_type = $native_type->getInputType();
-                if ($input_type === 'email' || $input_type === 'number') {
-                    $native_columns[$index] = [$col[TableQuestionConfig::COL_NAME], $input_type];
-                }
-            }
-        }
-
-        if ($required_columns === [] && $pattern_columns === [] && $native_columns === []) {
+        $rules = $this->buildColumnRules($question);
+        if ($rules === []) {
             return $result;
         }
 
@@ -268,54 +219,10 @@ final class TableQuestion extends AbstractQuestionType implements
                 continue;
             }
 
-            foreach ($required_columns as $index => $name) {
-                $value = $row['col_' . $index] ?? '';
-                if (!is_scalar($value) || (string) $value === '') {
-                    $result->addError($question, sprintf(
-                        __('Row %1$s: the column "%2$s" is required.', 'advancedforms'),
-                        $row_number,
-                        $name,
-                    ));
-                }
-            }
-
-            foreach ($pattern_columns as $index => [$name, $pattern]) {
-                $value = $row['col_' . $index] ?? '';
-                if (!is_scalar($value) || (string) $value === '') {
-                    continue;
-                }
-
-                try {
-                    $matches_pattern = preg_match($pattern, (string) $value) === 1;
-                } catch (PcreException) {
-                    continue; // malformed stored pattern: don't block submission on it
-                }
-
-                if (!$matches_pattern) {
-                    $result->addError($question, sprintf(
-                        __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
-                        $row_number,
-                        $name,
-                    ));
-                }
-            }
-
-            foreach ($native_columns as $index => [$name, $input_type]) {
-                $value = $row['col_' . $index] ?? '';
-                if (!is_scalar($value) || (string) $value === '') {
-                    continue;
-                }
-
-                $is_valid = $input_type === 'email'
-                    ? GLPIMailer::validateAddress((string) $value)
-                    : is_numeric($value);
-
-                if (!$is_valid) {
-                    $result->addError($question, sprintf(
-                        __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
-                        $row_number,
-                        $name,
-                    ));
+            foreach ($rules as $index => $rule) {
+                $error = $this->validateCell($question, $rule, $row['col_' . $index] ?? '', $row_number);
+                if ($error !== null) {
+                    $result->addError($question, $error);
                 }
             }
         }
@@ -323,25 +230,91 @@ final class TableQuestion extends AbstractQuestionType implements
         return $result;
     }
 
-    #[Override]
-    public function getConditionHandlers(?JsonFieldInterface $question_config): array
+    /**
+     * Collects the columns that carry at least one rule, keyed by column index.
+     *
+     * @return array<int, TableColumnRule>
+     */
+    private function buildColumnRules(Question $question): array
     {
-        // No regex handler here: it targets the whole value, not a column. See validateAnswer().
-        return [
-            new VisibilityConditionHandler(),
-            new EmptyConditionHandler($this, $question_config),
-        ];
+        $type_instances = [];
+        foreach (QuestionTypesManager::getInstance()->getQuestionTypes() as $type) {
+            $type_instances[$type::class] = $type;
+        }
+
+        $rules = [];
+        foreach ($this->loadConfig($question)->getColumns() as $index => $col) {
+            $type = $type_instances[$col[TableQuestionConfig::COL_QUESTION_TYPE]] ?? null;
+            $rule = TableColumnRule::fromColumn($col, $type);
+            if ($rule instanceof TableColumnRule) {
+                $rules[(int) $index] = $rule;
+            }
+        }
+
+        return $rules;
     }
 
     /**
-     * Strips `/regex/flags` down to `regex` for the HTML `pattern` attribute, which
-     * takes no delimiters or flags. JS and server-side validation apply the real check.
+     * Applies a column's rules to a single cell and returns the error to report,
+     * or null when the cell is acceptable. At most one message is produced per
+     * cell: telling the user that a value is both badly formatted and not a valid
+     * e-mail address helps nobody.
      */
-    private function stripRegexDelimiters(string $pattern): string
-    {
-        preg_match('/^\/(.*)\/[a-z]*$/s', $pattern, $matches);
+    private function validateCell(
+        Question $question,
+        TableColumnRule $rule,
+        mixed $value,
+        int $row_number,
+    ): ?string {
+        if (!is_scalar($value) || (string) $value === '') {
+            if (!$rule->required) {
+                return null;
+            }
 
-        return $matches[1] ?? $pattern;
+            return sprintf(
+                __('Row %1$s: the column "%2$s" is required.', 'advancedforms'),
+                $row_number,
+                $rule->name,
+            );
+        }
+
+        $value = (string) $value;
+
+        // The column's own question type knows its format best, so let it speak
+        // first: its message is more specific than a generic format complaint.
+        $native_message = $rule->validateNatively($question, $value);
+        if ($native_message !== null) {
+            return sprintf(
+                __('Row %1$s: the column "%2$s" is invalid: %3$s', 'advancedforms'),
+                $row_number,
+                $rule->name,
+                $native_message,
+            );
+        }
+
+        if (!$rule->matchesPattern($value)) {
+            return sprintf(
+                __('Row %1$s: the column "%2$s" does not match the expected format.', 'advancedforms'),
+                $row_number,
+                $rule->name,
+            );
+        }
+
+        return null;
+    }
+
+    #[Override]
+    public function getConditionHandlers(?JsonFieldInterface $question_config): array
+    {
+        return [
+            new VisibilityConditionHandler(),
+            new EmptyConditionHandler($this, $question_config),
+            // Targets every cell of the table at once, as a complement to the
+            // per-column patterns enforced by validateAnswer().
+            new RegexConditionHandler($this, $question_config),
+            // Row bounds, declared as conditions instead of a hardcoded limit.
+            new TableRowCountConditionHandler(),
+        ];
     }
 
     /**
@@ -723,8 +696,6 @@ final class TableQuestion extends AbstractQuestionType implements
                 'COL_REQUIRED'             => TableQuestionConfig::COL_REQUIRED,
                 'COL_ITEMTYPE'             => TableQuestionConfig::COL_ITEMTYPE,
                 'COL_PATTERN'              => TableQuestionConfig::COL_PATTERN,
-                'MIN_ROWS'                 => TableQuestionConfig::MIN_ROWS,
-                'MAX_ROWS'                 => TableQuestionConfig::MAX_ROWS,
                 'itemtype_options'         => $itemtype_options,
                 'short_answer_fqcns'       => $short_answer_fqcns,
                 'short_answer_fqcns_json'  => json_encode($short_answer_fqcns),
@@ -768,10 +739,22 @@ final class TableQuestion extends AbstractQuestionType implements
             } else {
                 $cell_map[$index]  = $this->getCellInfo($fqcn, $type);
             }
+        }
 
-            $pattern = $col[TableQuestionConfig::COL_PATTERN] ?? '';
-            if ($pattern !== '' && ($cell_map[$index]['mode'] ?? '') === 'input') {
-                $cell_map[$index]['pattern'] = $this->stripRegexDelimiters($pattern);
+        // Built from the very same rules validateAnswer() uses, and keyed like
+        // the submitted field names. Both points matter: deriving these lists
+        // separately, with numeric keys, is what once let a column inherit its
+        // neighbour's pattern.
+        $required_cols = [];
+        $pattern_cols  = [];
+        foreach ($this->buildColumnRules($question) as $index => $rule) {
+            $key = 'col_' . $index;
+            if ($rule->required) {
+                $required_cols[] = $key;
+            }
+
+            if ($rule->pattern !== '') {
+                $pattern_cols[$key] = $rule->pattern;
             }
         }
 
@@ -779,10 +762,12 @@ final class TableQuestion extends AbstractQuestionType implements
         return $twig->render(
             '@advancedforms/table_end_user.html.twig',
             [
-                'question'         => $question,
-                'config'           => $config,
-                'column_cell_map'  => $cell_map,
-                'ajax_limit_count' => $this->ajaxLimitCount(),
+                'question'          => $question,
+                'config'            => $config,
+                'column_cell_map'   => $cell_map,
+                'ajax_limit_count'  => $this->ajaxLimitCount(),
+                'required_cols'     => $required_cols,
+                'pattern_cols_json' => json_encode($pattern_cols, JSON_FORCE_OBJECT),
             ],
         );
     }

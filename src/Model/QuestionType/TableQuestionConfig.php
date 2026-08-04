@@ -40,10 +40,6 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
 {
     public const COLUMNS          = 'columns';
 
-    public const MIN_ROWS         = 'min_rows';
-
-    public const MAX_ROWS         = 'max_rows';
-
     // Column sub-keys
     public const COL_NAME          = 'name';
 
@@ -59,16 +55,16 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
      * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
      */
     public function __construct(
-        private array $columns  = [],
-        private int   $min_rows = 1,
-        private int   $max_rows = 50,
+        private array $columns = [],
     ) {}
 
     /**
+     * Row bounds used to live here as `min_rows` / `max_rows`. They are now
+     * declared as native validation conditions, so those keys are ignored when
+     * they are found in data written by version 1.2.0.
+     *
      * @param array{
-     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string}>,
-     *   min_rows?: int,
-     *   max_rows?: int
+     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string}>
      * } $data
      */
     #[Override]
@@ -85,30 +81,19 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
             array_filter($data[self::COLUMNS] ?? [], is_array(...)),
         ));
 
-        $min_rows = min(50, max(1, (int) ($data[self::MIN_ROWS] ?? 1)));
-        $max_rows = min(50, max($min_rows, (int) ($data[self::MAX_ROWS] ?? 50)));
-
-        return new self(
-            columns: $columns,
-            min_rows: $min_rows,
-            max_rows: $max_rows,
-        );
+        return new self(columns: $columns);
     }
 
     /**
      * @return array{
-     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}>,
-     *   min_rows: int,
-     *   max_rows: int
+     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}>
      * }
      */
     #[Override]
     public function jsonSerialize(): array
     {
         return [
-            self::COLUMNS  => $this->columns,
-            self::MIN_ROWS => $this->min_rows,
-            self::MAX_ROWS => $this->max_rows,
+            self::COLUMNS => $this->columns,
         ];
     }
 
@@ -116,15 +101,5 @@ final readonly class TableQuestionConfig implements JsonFieldInterface
     public function getColumns(): array
     {
         return $this->columns;
-    }
-
-    public function getMinRows(): int
-    {
-        return $this->min_rows;
-    }
-
-    public function getMaxRows(): int
-    {
-        return $this->max_rows;
     }
 }

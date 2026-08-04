@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the `Table` question's column validation: each column is now checked against its own pattern only, values the pattern accepts are no longer rejected, the column type's own format check still applies, and errors are listed once below the table
+
 ## [1.2.0] - 2026-07-28
 
 ### Add

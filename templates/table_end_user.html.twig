@@ -29,32 +29,20 @@
  # -------------------------------------------------------------------------
  #}
 
+{# `required_cols` and `pattern_cols_json` are built by the PHP renderer, from the
+ # same rules the server validates against. They must not be recomputed here: the
+ # Twig `merge` filter renumbers integer keys, which used to shift a pattern onto
+ # the neighbouring column. #}
 {% set rand_eu    = random() %}
 {% set input_base = question.getEndUserInputName() %}
-{% set min_rows   = config.getMinRows() %}
-{% set max_rows   = config.getMaxRows() %}
 {% set columns    = config.getColumns() %}
-
-{% set required_cols = [] %}
-{% for col_index, col in columns %}
-    {% if col.required %}{% set required_cols = required_cols|merge([col_index]) %}{% endif %}
-{% endfor %}
-
-{% set pattern_cols = {} %}
-{% for col_index, col in columns %}
-    {% if col.pattern is defined and col.pattern != '' %}
-        {% set pattern_cols = pattern_cols|merge({(col_index): col.pattern}) %}
-    {% endif %}
-{% endfor %}
 
 <div
     data-af-table-question="{{ rand_eu }}"
-    data-af-min-rows="{{ min_rows }}"
-    data-af-max-rows="{{ max_rows }}"
     data-af-s2-limit="{{ ajax_limit_count }}"
     data-af-required-cols="{{ required_cols|join(',') }}"
     data-af-required-msg="{{ __('Please fill in all required columns.', 'advancedforms') }}"
-    data-af-pattern-cols="{{ pattern_cols|json_encode|e('html_attr') }}"
+    data-af-pattern-cols="{{ pattern_cols_json|e('html_attr') }}"
     data-af-pattern-msg="{{ __('This value does not match the expected format.', 'advancedforms') }}"
 >
     <table class="table table-bordered table-sm mb-2">
@@ -70,60 +58,61 @@
             </tr>
         </thead>
         <tbody data-af-table-body>
-            {% for row_index in 0..(min_rows - 1) %}
-                <tr data-af-table-row>
-                    {% for col_index, col in columns %}
-                        {% set cell = column_cell_map[col_index] %}
-                        <td class="align-middle">
-                            {% if cell.mode == 'checkbox' %}
-                                <div class="d-flex justify-content-center">
-                                    <input
-                                        type="checkbox"
-                                        value="1"
-                                        class="form-check-input mt-0"
-                                        name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
-                                        {% if col.required %} required {% endif %}
-                                    >
-                                </div>
-                            {% elseif cell.mode == 'select' %}
-                                {% set sel_html %}
-                                    {% do call('Dropdown::showFromArray', [
-                                        input_base ~ '[' ~ row_index ~ '][col_' ~ col_index ~ ']',
-                                        cell.options,
-                                        {
-                                            'class'              : 'form-select form-select-sm',
-                                            'width'              : '100%',
-                                            'display_emptychoice': false,
-                                        }
-                                    ]) %}
-                                {% endset %}
-                                {{ sel_html|raw }}
-                            {% else %}
+            {# A single row to start with: how many rows are acceptable is now a
+             # validation condition, not a rendering concern. Its remove button
+             # starts disabled, since it is also the last one. #}
+            {% set row_index = 0 %}
+            <tr data-af-table-row>
+                {% for col_index, col in columns %}
+                    {% set cell = column_cell_map[col_index] %}
+                    <td class="align-middle">
+                        {% if cell.mode == 'checkbox' %}
+                            <div class="d-flex justify-content-center">
                                 <input
-                                    class="form-control form-control-sm"
-                                    type="{{ cell.input_type }}"
+                                    type="checkbox"
+                                    value="1"
+                                    class="form-check-input mt-0"
                                     name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
-                                    placeholder="{{ col.name }}"
                                     {% if col.required %} required {% endif %}
-                                    {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
-                                    {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
                                 >
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                    <td class="text-center align-middle">
-                        <i
-                            role="button"
-                            class="ti ti-trash cursor-pointer text-danger{% if min_rows >= max_rows %} opacity-25 pe-none{% endif %}"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="{{ __('Remove row', 'advancedforms') }}"
-                            aria-label="{{ __('Remove row', 'advancedforms') }}"
-                            data-af-table-remove-row
-                        ></i>
+                            </div>
+                        {% elseif cell.mode == 'select' %}
+                            {% set sel_html %}
+                                {% do call('Dropdown::showFromArray', [
+                                    input_base ~ '[' ~ row_index ~ '][col_' ~ col_index ~ ']',
+                                    cell.options,
+                                    {
+                                        'class'              : 'form-select form-select-sm',
+                                        'width'              : '100%',
+                                        'display_emptychoice': false,
+                                    }
+                                ]) %}
+                            {% endset %}
+                            {{ sel_html|raw }}
+                        {% else %}
+                            <input
+                                class="form-control form-control-sm"
+                                type="{{ cell.input_type }}"
+                                name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                                placeholder="{{ col.name }}"
+                                {% if col.required %} required {% endif %}
+                                {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
+                            >
+                        {% endif %}
                     </td>
-                </tr>
-            {% endfor %}
+                {% endfor %}
+                <td class="text-center align-middle">
+                    <i
+                        role="button"
+                        class="ti ti-trash cursor-pointer text-danger opacity-25 pe-none"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="{{ __('Remove row', 'advancedforms') }}"
+                        aria-label="{{ __('Remove row', 'advancedforms') }}"
+                        data-af-table-remove-row
+                    ></i>
+                </td>
+            </tr>
         </tbody>
     </table>
 
@@ -161,7 +150,6 @@
                             name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
                             placeholder="{{ col.name }}"
                             {% if col.required %} required {% endif %}
-                            {% if cell.pattern is defined and cell.pattern != '' %} pattern="{{ cell.pattern }}" {% endif %}
                             {% for attr_name, attr_value in cell.attributes|default({}) %} {{ attr_name }}="{{ attr_value }}" {% endfor %}
                         >
                     {% endif %}
@@ -181,9 +169,14 @@
         </tr>
     </template>
 
+    {# Core reports one error per question but appends a copy next to every input
+     # it finds, which for a table means one per cell. AfTableQuestion relocates
+     # the distinct messages here. #}
+    <div data-af-table-errors class="mb-2"></div>
+
     <i
         role="button"
-        class="ti ti-plus cursor-pointer{% if min_rows >= max_rows %} opacity-25 pe-none{% endif %}"
+        class="ti ti-plus cursor-pointer"
         data-bs-toggle="tooltip"
         data-bs-placement="top"
         title="{{ __('Add a row', 'advancedforms') }}"
@@ -193,7 +186,7 @@
 </div>
 
 <script type="module">
-    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
+    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js';
     const el = document.querySelector('[data-af-table-question="{{ rand_eu|e('js') }}"]');
     if (el) { new AfTableQuestion(el); }
 </script>
