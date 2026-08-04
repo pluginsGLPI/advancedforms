@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix string condition operators (equals, contains, length) not being available on hidden questions
+
 ## [1.2.0] - 2026-07-28
 
 ### Add

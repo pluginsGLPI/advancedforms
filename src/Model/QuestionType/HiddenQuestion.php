@@ -34,6 +34,9 @@
 namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\DBAL\JsonFieldInterface;
+use Glpi\Form\Condition\ConditionHandler\StringConditionHandler;
+use Glpi\Form\Condition\UsedAsCriteriaInterface;
 use Glpi\Form\Migration\FormQuestionDataConverterInterface;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\AbstractQuestionType;
@@ -46,7 +49,10 @@ use Override;
  * Legacy question type from the formcreator plugin
  * Original source: https://github.com/pluginsGLPI/formcreator/blob/2.13.10/inc/field/hiddenfield.class.php
  */
-final class HiddenQuestion extends AbstractQuestionType implements ConfigurableItemInterface, LegacyQuestionTypeInterface
+final class HiddenQuestion extends AbstractQuestionType implements
+    ConfigurableItemInterface,
+    LegacyQuestionTypeInterface,
+    UsedAsCriteriaInterface
 {
     #[Override]
     public function getCategory(): QuestionTypeCategoryInterface
@@ -156,5 +162,12 @@ TWIG;
     public function getMapperClass(): FormQuestionDataConverterInterface
     {
         return new FormcreatorHiddenTypeMapper();
+    }
+
+    #[Override]
+    public function getConditionHandlers(
+        ?JsonFieldInterface $question_config,
+    ): array {
+        return array_merge(parent::getConditionHandlers($question_config), [new StringConditionHandler()]);
     }
 }
