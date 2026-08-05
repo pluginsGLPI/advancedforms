@@ -108,6 +108,11 @@ export class AfTableQuestion {
 
     /** @param {Element[]} injected */
     #relocateServerErrors(injected) {
+        // Core empties the whole question before injecting a new round, so the
+        // list is already clear here; do it explicitly anyway, as #validateTable
+        // deliberately leaves this container alone.
+        this.#errors.replaceChildren();
+
         const seen = [];
         injected.forEach(node => {
             const message = (node.textContent ?? '').trim();
@@ -117,8 +122,8 @@ export class AfTableQuestion {
             node.remove();
         });
 
-        // Flag the cells the browser can judge on its own. Done before appending,
-        // as this also clears the previous round's messages from the list.
+        // Flag the cells the browser can judge on its own; the detail stays in
+        // the list below the table.
         AfTableQuestion.#validateTable(this.#table, false);
 
         seen.forEach((node, index) => {
@@ -167,8 +172,13 @@ export class AfTableQuestion {
 
         // Core only clears its own server-rendered errors when a new request
         // round-trips; if we block the submit below, that never happens, leaving
-        // stale messages from a previous attempt next to our fresh ones.
-        table.querySelectorAll('.invalid-tooltip').forEach(el => el.remove());
+        // stale messages from a previous attempt next to our fresh ones. The
+        // ones already relocated below the table are spared: they are the only
+        // rendering left for a rule the browser cannot judge on its own, and
+        // blocking the submit means no round-trip will bring them back.
+        table.querySelectorAll('.invalid-tooltip').forEach(el => {
+            if (!el.closest('[data-af-table-errors]')) { el.remove(); }
+        });
 
         const message = text => (withMessages ? text : '');
 

@@ -191,11 +191,12 @@ final class TableRowCountConditionTest extends AdvancedFormsTestCase
     }
 
     /**
-     * A table with no filled row is treated as unanswered by AnswersHandler,
-     * which skips validation conditions entirely. Requiring a minimum number of
-     * rows therefore also needs the question to be mandatory.
+     * AnswersHandler skips the validation conditions of a question it received
+     * no answer for. A table only reaches that state when the browser posts
+     * nothing at all for it, which the next test rules out for any column that
+     * is not a lone checkbox.
      */
-    public function testAnEmptyTableSkipsRowCountValidation(): void
+    public function testAnAbsentAnswerSkipsRowCountValidation(): void
     {
         $form = $this->formWithRowCountValidation(
             ValidationStrategy::VALID_IF,
@@ -204,6 +205,21 @@ final class TableRowCountConditionTest extends AdvancedFormsTestCase
         );
 
         $this->assertTrue($this->validate($form, [])->isValid());
+    }
+
+    /**
+     * An untouched table still posts its rendered row, with empty cells, so a
+     * minimum row count is enforced without the question having to be mandatory.
+     */
+    public function testAnUntouchedTableStillFailsAMinimumRowCount(): void
+    {
+        $form = $this->formWithRowCountValidation(
+            ValidationStrategy::VALID_IF,
+            ValueOperator::LENGTH_GREATER_THAN_OR_EQUALS,
+            '2',
+        );
+
+        $this->assertFalse($this->validate($form, [['col_0' => '']])->isValid());
     }
 
     public function testRowCountDrivesVisibilityOfAnotherQuestion(): void

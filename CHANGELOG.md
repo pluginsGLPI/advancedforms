@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking**: the `Table` question's `Min rows` / `Max rows` settings are removed. Row bounds are now declared as validation conditions on the question (`Length is greater than…` / `Length is less than…`, applied to the number of filled rows), and are also usable as visibility criteria. Bounds configured in 1.2.0 are ignored and must be redeclared
+
 ### Fixed
 
 - Fixed the `Table` question's column validation: each column is now checked against its own pattern only, values the pattern accepts are no longer rejected, the column type's own format check still applies, and errors are listed once below the table
