@@ -33,6 +33,8 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Dropdown\DropdownDefinition;
+use Glpi\Dropdown\DropdownDefinitionManager;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
 use Glpi\Form\QuestionType\QuestionTypeFile;
@@ -45,6 +47,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use ReflectionMethod;
 
 final class TableQuestionTest extends AdvancedFormsTestCase
 {
@@ -247,4 +250,89 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         $result = $this->type->transformConditionValueForComparisons($answer, null);
         $this->assertSame(['10.0.0.1'], $result);
     }
+
+    public function testCustomDropdownOptionsAreRestrictedToConfiguredDefinition(): void
+    {
+        [$itemtype, $allowed_id, $other_id] = $this->createCustomDropdownFixture(
+            'af_table_options',
+        );
+
+        $method = new ReflectionMethod(
+            TableQuestion::class,
+            'buildGlpiItemtypeOptions',
+        );
+
+        $options = $method->invoke($this->type, $itemtype);
+
+        $this->assertIsArray($options);
+        $this->assertArrayHasKey((string) $allowed_id, $options);
+        $this->assertSame('Allowed option', $options[(string) $allowed_id]);
+        $this->assertArrayNotHasKey((string) $other_id, $options);
+    }
+
+    public function testCustomDropdownStoredValuesAreRestrictedToConfiguredDefinition(): void
+    {
+        [$itemtype, $allowed_id, $other_id] = $this->createCustomDropdownFixture(
+            'af_table_values',
+        );
+
+        $method = new ReflectionMethod(
+            TableQuestion::class,
+            'resolveItemNames',
+        );
+
+        $values = $method->invoke(
+            $this->type,
+            $itemtype,
+            [(string) $allowed_id, (string) $other_id],
+        );
+
+        $this->assertIsArray($values);
+        $this->assertArrayHasKey((string) $allowed_id, $values);
+        $this->assertSame('Allowed option', $values[(string) $allowed_id]);
+        $this->assertArrayNotHasKey((string) $other_id, $values);
+    }
+
+    /**
+     * @return array{class-string, int, int}
+     */
+    private function createCustomDropdownFixture(string $system_name): array
+    {
+        $allowed_definition = $this->createItem(DropdownDefinition::class, [
+            'system_name' => $system_name . '_allowed',
+            'label'       => 'Allowed dropdown',
+            'is_active'   => 1,
+        ]);
+
+        $other_definition = $this->createItem(DropdownDefinition::class, [
+            'system_name' => $system_name . '_other',
+            'label'       => 'Other dropdown',
+            'is_active'   => 1,
+        ]);
+
+        // Refresh definitions so GLPI can autoload both concrete
+        // Glpi\CustomDropdown classes created above.
+        DropdownDefinitionManager::getInstance()->bootDefinitions();
+
+        $allowed_itemtype = $allowed_definition->getDropdownClassName();
+        $other_itemtype   = $other_definition->getDropdownClassName();
+
+        $this->assertTrue(class_exists($allowed_itemtype));
+        $this->assertTrue(class_exists($other_itemtype));
+
+        $allowed_item = $this->createItem($allowed_itemtype, [
+            'name' => 'Allowed option',
+        ]);
+
+        $other_item = $this->createItem($other_itemtype, [
+            'name' => 'Other option',
+        ]);
+
+        return [
+            $allowed_itemtype,
+            (int) $allowed_item->getID(),
+            (int) $other_item->getID(),
+        ];
+    }
+
 }

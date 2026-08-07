@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed Custom Dropdown filtering in table questions to only display values from the configured dropdown definition
+
 ## [1.2.0] - 2026-07-28
 
 ### Add
