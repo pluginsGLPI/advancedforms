@@ -56,6 +56,29 @@
     >
         <i class="ti ti-settings"></i>
     </button>
+    <style data-af-dynamic-embedded-layout>
+        [data-af-column-question-config-container].d-none {
+            display: none !important;
+        }
+
+        [data-af-table-column].af-has-embedded-config > .d-flex > input.form-control {
+            flex: 0 1 280px !important;
+            width: 280px !important;
+            min-width: 180px !important;
+        }
+
+        [data-af-table-column].af-has-embedded-config [data-af-column-question-config-container] {
+            flex: 0 0 auto !important;
+            width: auto !important;
+            min-width: 0 !important;
+        }
+
+        [data-af-table-column].af-has-embedded-config [data-af-column-question-config-container] > * {
+            flex: 0 0 auto !important;
+            width: auto !important;
+        }
+    </style>
+
     <div
         style="width: 52rem"
         class="dropdown-menu dropdown-menu-end dropdown-menu-card animate__animated animate__zoomIn"
@@ -120,6 +143,9 @@
                                         </select>
                                     </div>
                                 {% endfor %}
+                                <div class="d-flex align-items-center" data-af-column-question-config-container>
+                                    {{ column_configs[index]|default('')|raw }}
+                                </div>
                                 <label
                                     class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
                                     data-bs-toggle="tooltip"
@@ -207,6 +233,7 @@
                                     </select>
                                 </div>
                             {% endfor %}
+                            <div class="d-flex align-items-center" data-af-column-question-config-container></div>
                             <label
                                 class="af-required-toggle cursor-pointer mb-0 flex-shrink-0"
                                 data-bs-toggle="tooltip"
