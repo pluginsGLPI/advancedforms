@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Fixed Custom Dropdown filtering in table questions to only display values from the configured dropdown definition
+- Fix string condition operators (equals, contains, length) not being available on hidden questions
 
 ## [1.2.0] - 2026-07-28
 

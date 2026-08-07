@@ -34,7 +34,6 @@
 namespace GlpiPlugin\Advancedforms\Tests;
 
 use AuthLDAP;
-use Config;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -46,13 +45,11 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestionConfig;
 use GlpiPlugin\Advancedforms\Service\ConfigManager;
-use GlpiPlugin\Advancedforms\Service\InitManager;
-use InvalidArgumentException;
-use ReflectionClass;
 
 abstract class AdvancedFormsTestCase extends DbTestCase
 {
     use FormTesterTrait;
+    use ConfigurableItemsTrait;
 
     /** @return array<array{ConfigurableItemInterface&QuestionTypeInterface}> */
     final public static function provideQuestionTypes(): array
@@ -70,42 +67,6 @@ abstract class AdvancedFormsTestCase extends DbTestCase
             QuestionTypesManager::class,
             TypesConversionMapper::class,
         ]);
-    }
-
-    protected function enableConfigurableItem(
-        ConfigurableItemInterface|string $item,
-    ): void {
-        $this->setConfigurableItemConfig($item, true);
-        InitManager::getInstance()->init();
-    }
-
-    /** @var array<ConfigurableItemInterface|string> $items */
-    protected function enableConfigurableItems(
-        array $items,
-    ): void {
-        foreach ($items as $item) {
-            $this->setConfigurableItemConfig($item, true);
-        }
-
-        InitManager::getInstance()->init();
-    }
-
-    protected function disableConfigurableItem(
-        ConfigurableItemInterface|string $item,
-    ): void {
-        $this->setConfigurableItemConfig($item, false);
-        InitManager::getInstance()->init();
-    }
-
-    /** @var array<ConfigurableItemInterface|string> $items */
-    protected function disableConfigurableItems(
-        array $items,
-    ): void {
-        foreach ($items as $item) {
-            $this->setConfigurableItemConfig($item, false);
-        }
-
-        InitManager::getInstance()->init();
     }
 
     protected function setupAuthLdap(): AuthLDAP
@@ -140,37 +101,5 @@ abstract class AdvancedFormsTestCase extends DbTestCase
             )),
         );
         return $this->createForm($builder);
-    }
-
-    private function setConfigurableItemConfig(
-        ConfigurableItemInterface|string $item,
-        bool $enabled,
-    ): void {
-        if (
-            is_string($item)
-            && !is_a($item, ConfigurableItemInterface::class, true)
-        ) {
-            throw new InvalidArgumentException();
-        }
-
-        Config::setConfigurationValues('advancedforms', [
-            $item::getConfigKey() => (int) $enabled,
-        ]);
-    }
-
-    private function deleteSingletonInstance(array $classes)
-    {
-        foreach ($classes as $class) {
-            $reflection_class = new ReflectionClass($class);
-            if ($reflection_class->hasProperty('instance')) {
-                $reflection_property = $reflection_class->getProperty('instance');
-                $reflection_property->setValue(null, null);
-            }
-
-            if ($reflection_class->hasProperty('_instances')) {
-                $reflection_property = $reflection_class->getProperty('_instances');
-                $reflection_property->setValue(null, []);
-            }
-        }
     }
 }
