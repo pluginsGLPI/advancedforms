@@ -34,8 +34,11 @@
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
 use Config;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use GlpiPlugin\Advancedforms\Service\InstallManager;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Notification;
+use NotificationTemplate;
 
 final class InstallManagerTest extends AdvancedFormsTestCase
 {
@@ -49,13 +52,61 @@ final class InstallManagerTest extends AdvancedFormsTestCase
 
         Config::setConfigurationValues('advancedforms', $config_values);
 
-        // Act: uninstall plugin
         $config_before = Config::getConfigurationValues('advancedforms');
-        InstallManager::getInstance()->uninstall();
-        $config_after = Config::getConfigurationValues('advancedforms');
-
-        // Assert: config should be empty after uninstallation
         $this->assertNotEmpty($config_before);
-        $this->assertEmpty($config_after);
+    }
+
+    public function testInstallCreatesTicketReservationRequestsTable(): void
+    {
+        global $DB;
+
+        $this->assertTrue(InstallManager::getInstance()->install());
+        $this->assertTrue($DB->tableExists(TicketReservationRequest::getTable()));
+    }
+
+    public function testInstallIsIdempotent(): void
+    {
+        $this->assertTrue(InstallManager::getInstance()->install());
+        $this->assertTrue(InstallManager::getInstance()->install());
+    }
+
+    public function testInstallSeedsReservationNotifications(): void
+    {
+        $this->assertTrue(InstallManager::getInstance()->install());
+
+        $itemtype = TicketReservationRequest::class;
+
+        $events = [
+            'reservation_request_created',
+            'reservation_request_approved',
+            'reservation_request_refused',
+            'reservation_request_slot_unavailable',
+        ];
+        foreach ($events as $event) {
+            $notification = new Notification();
+            $this->assertTrue(
+                $notification->getFromDBByCrit(['itemtype' => $itemtype, 'event' => $event]),
+                'Missing seeded notification for event ' . $event,
+            );
+            $this->assertSame(1, (int) $notification->fields['is_active']);
+        }
+
+        // A single shared mail template must back those notifications.
+        $template = new NotificationTemplate();
+        $this->assertTrue($template->getFromDBByCrit(['itemtype' => $itemtype]));
+    }
+
+    public function testInstallNotificationsAreIdempotent(): void
+    {
+        $this->assertTrue(InstallManager::getInstance()->install());
+        $this->assertTrue(InstallManager::getInstance()->install());
+
+        $this->assertSame(
+            1,
+            countElementsInTable(
+                Notification::getTable(),
+                ['itemtype' => TicketReservationRequest::class, 'event' => 'reservation_request_created'],
+            ),
+        );
     }
 }

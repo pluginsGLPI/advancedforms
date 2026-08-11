@@ -1,0 +1,81 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% import 'components/form/fields_macros.html.twig' as fields %}
+
+<div class="reservation-question-widget"
+     data-reservation-question-widget
+     data-input-name="{{ input_name }}"
+     data-allowed-itemtypes="{{ allowed_itemtypes|json_encode }}"
+>
+    <select class="form-select" data-reservation-question-item-select>
+        <option value=""></option>
+    </select>
+
+    <div class="reservation-question-dates row g-2 mt-2 d-none" data-reservation-question-dates>
+        <div class="col-12 col-sm-6">
+            {{ fields.datetimeField(
+                input_name ~ '[begin]',
+                '',
+                __('Start date', 'advancedforms'),
+                {
+                    is_horizontal: false,
+                    full_width: true,
+                    additional_attributes: {'data-reservation-question-begin-picker': ''},
+                }
+            ) }}
+        </div>
+        <div class="col-12 col-sm-6">
+            {{ fields.datetimeField(
+                input_name ~ '[end]',
+                '',
+                __('End date', 'advancedforms'),
+                {
+                    is_horizontal: false,
+                    full_width: true,
+                    additional_attributes: {'data-reservation-question-end-picker': ''},
+                }
+            ) }}
+        </div>
+        <div class="col-12 mt-1 small" data-reservation-question-availability></div>
+        <div class="col-12 mt-1" data-reservation-question-reservations></div>
+    </div>
+
+    <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
+</div>
+<script type="module">
+    import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
+    $(function() {
+        new ReservationQuestionWidget(
+            document.querySelector('[data-reservation-question-widget][data-input-name="{{ input_name|e('js') }}"]')
+        );
+    });
+</script>
