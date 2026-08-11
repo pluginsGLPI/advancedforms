@@ -74,3 +74,22 @@
 [data-af-table-question] td:has(select.is-invalid) .select2-container--default .select2-selection {
     border-color: var(--tblr-form-invalid-border-color) !important;
 }
+
+/* The core renderer appends a question's error message next to every input it
+ * finds, so a table receives one copy per cell. AfTableQuestion moves the
+ * distinct messages into [data-af-table-errors]; hide the copies still sitting
+ * in the cells so they never flash. The class is set by the module itself: if it
+ * fails to load, core's own rendering stays visible rather than silently gone. */
+.af-table-errors-managed td > .invalid-tooltip {
+    display: none;
+}
+[data-af-table-errors]:empty {
+    display: none;
+}
+[data-af-table-errors] .invalid-tooltip {
+    position: static;
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin-top: 0;
+}

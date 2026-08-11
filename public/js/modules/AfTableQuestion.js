@@ -36,20 +36,20 @@ export class AfTableQuestion {
     #body;
     #template;
     #addBtn;
-    #minRows;
-    #maxRows;
+    #errors;
 
     constructor(tableElement) {
         this.#table    = tableElement;
         this.#body     = tableElement.querySelector('[data-af-table-body]');
         this.#template = tableElement.querySelector('[data-af-table-row-template]');
         this.#addBtn   = tableElement.querySelector('[data-af-table-add-row]');
-        this.#minRows  = parseInt(tableElement.dataset.afMinRows, 10) || 1;
-        this.#maxRows  = parseInt(tableElement.dataset.afMaxRows, 10) || 50;
+        this.#errors   = tableElement.querySelector('[data-af-table-errors]');
 
         if (!this.#body || !this.#template || !this.#addBtn) {
             return;
         }
+
+        this.#watchServerErrors();
 
         this.#addBtn.addEventListener('click', () => this.addRow());
         this.#body.addEventListener('click', e => {
@@ -70,6 +70,69 @@ export class AfTableQuestion {
         this.#updateButtonStates();
 
         AfTableQuestion.#registerSubmitGuard();
+    }
+
+    /**
+     * The core renderer reports validation errors per question, but attaches each
+     * message next to every input it finds inside that question. A table has one
+     * input per cell, so a single error ends up repeated in every cell, and every
+     * cell gets flagged whether or not it is at fault.
+     *
+     * Watch for those injections, keep one copy of each distinct message in a list
+     * below the table, and let the client-side rules decide which cells to flag.
+     * The relocated nodes keep their class so the renderer still clears them on
+     * the next round.
+     */
+    #watchServerErrors() {
+        if (!this.#errors) { return; }
+
+        // Only hide the in-cell copies once we know we can relocate them: without
+        // this class, a module that failed to load leaves core's output visible.
+        this.#table.classList.add('af-table-errors-managed');
+
+        new MutationObserver(mutations => {
+            const injected = [];
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType !== Node.ELEMENT_NODE) { return; }
+                    if (!node.classList.contains('invalid-tooltip')) { return; }
+                    // Ignore the ones we just moved ourselves.
+                    if (this.#errors.contains(node)) { return; }
+                    injected.push(node);
+                });
+            });
+
+            if (injected.length) { this.#relocateServerErrors(injected); }
+        }).observe(this.#table, { childList: true, subtree: true });
+    }
+
+    /** @param {Element[]} injected */
+    #relocateServerErrors(injected) {
+        // Core empties the whole question before injecting a new round, so the
+        // list is already clear here; do it explicitly anyway, as #validateTable
+        // deliberately leaves this container alone.
+        this.#errors.replaceChildren();
+
+        const seen = [];
+        injected.forEach(node => {
+            const message = (node.textContent ?? '').trim();
+            if (message !== '' && !seen.some(kept => kept.textContent.trim() === message)) {
+                seen.push(node);
+            }
+            node.remove();
+        });
+
+        // Flag the cells the browser can judge on its own; the detail stays in
+        // the list below the table.
+        AfTableQuestion.#validateTable(this.#table, false);
+
+        seen.forEach((node, index) => {
+            // Core gives every copy the same id; keep it on the first one only so
+            // the inputs' aria-errormessage still resolves to a unique element.
+            if (index > 0) { node.removeAttribute('id'); }
+            node.classList.add('d-block');
+            this.#errors.appendChild(node);
+        });
     }
 
     static #registerSubmitGuard() {
@@ -98,17 +161,30 @@ export class AfTableQuestion {
     }
 
     /**
+     * @param {Element} table
+     * @param {boolean} withMessages Flag the cells only, when the detail already
+     *                               sits in the server error list below the table.
      * @returns {Element|null} the first invalid control of the table, or null.
      */
-    static #validateTable(table) {
+    static #validateTable(table, withMessages = true) {
         // Skip tables hidden by step-by-step navigation or conditional sections.
         if (table.offsetParent === null) { return null; }
 
         // Core only clears its own server-rendered errors when a new request
         // round-trips; if we block the submit below, that never happens, leaving
-        // stale messages from a previous attempt next to our fresh ones.
-        table.querySelectorAll('.invalid-tooltip').forEach(el => el.remove());
+        // stale messages from a previous attempt next to our fresh ones. The
+        // ones already relocated below the table are spared: they are the only
+        // rendering left for a rule the browser cannot judge on its own, and
+        // blocking the submit means no round-trip will bring them back.
+        table.querySelectorAll('.invalid-tooltip').forEach(el => {
+            if (!el.closest('[data-af-table-errors]')) { el.remove(); }
+        });
 
+        const message = text => (withMessages ? text : '');
+
+        // Both payloads are keyed by the "col_N" token found in the field names,
+        // and are built server-side from the rules the server itself validates
+        // against, so a column can never pick up its neighbour's rule.
         const requiredCols = (table.dataset.afRequiredCols ?? '')
             .split(',')
             .filter(value => value !== '');
@@ -120,9 +196,9 @@ export class AfTableQuestion {
             patternCols = {};
         }
         const patternRegexes = {};
-        Object.entries(patternCols).forEach(([colIndex, pattern]) => {
+        Object.entries(patternCols).forEach(([colKey, pattern]) => {
             const regex = AfTableQuestion.#toRegExp(pattern);
-            if (regex) { patternRegexes[colIndex] = regex; }
+            if (regex) { patternRegexes[colKey] = regex; }
         });
 
         let firstInvalid = null;
@@ -133,32 +209,32 @@ export class AfTableQuestion {
             const rowHasValue = controls.some(control => AfTableQuestion.#hasValue(control) || control.validity?.badInput);
 
             controls.forEach(control => {
-                const colIndex = AfTableQuestion.#columnIndex(control);
+                const colKey = AfTableQuestion.#columnKey(control);
 
                 if (control.validity?.badInput) {
-                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    AfTableQuestion.#setCellError(control, message(table.dataset.afPatternMsg ?? ''));
                     if (!firstInvalid) { firstInvalid = control; }
                     return;
                 }
 
                 const hasValue = AfTableQuestion.#hasValue(control);
 
-                if (rowHasValue && requiredCols.includes(colIndex) && !hasValue) {
-                    AfTableQuestion.#setCellError(control, table.dataset.afRequiredMsg ?? '');
+                if (rowHasValue && requiredCols.includes(colKey) && !hasValue) {
+                    AfTableQuestion.#setCellError(control, message(table.dataset.afRequiredMsg ?? ''));
                     if (!firstInvalid) { firstInvalid = control; }
                     return;
                 }
 
-                const regex = patternRegexes[colIndex];
+                const regex = patternRegexes[colKey];
                 if (hasValue && regex && !regex.test(control.value)) {
-                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    AfTableQuestion.#setCellError(control, message(table.dataset.afPatternMsg ?? ''));
                     if (!firstInvalid) { firstInvalid = control; }
                     return;
                 }
 
                 // Native constraint from the column's type (number, email...); "missing" is handled above.
                 if (hasValue && control.validity && !control.validity.valid && !control.validity.valueMissing) {
-                    AfTableQuestion.#setCellError(control, table.dataset.afPatternMsg ?? '');
+                    AfTableQuestion.#setCellError(control, message(table.dataset.afPatternMsg ?? ''));
                     if (!firstInvalid) { firstInvalid = control; }
                     return;
                 }
@@ -172,16 +248,25 @@ export class AfTableQuestion {
 
     /**
      * Parses a PHP-style `/regex/flags` string into a RegExp, or a bare pattern
-     * with no delimiters. Only JS-supported flags (gimsuy) are kept.
+     * with no delimiters.
      *
-     * @returns {RegExp|null} null if the pattern is empty or invalid.
+     * Only flags shared by PCRE and JS are accepted. A flag PCRE understands but
+     * JS does not (`x`, for one) makes this return null rather than be dropped,
+     * leaving the server as sole judge — which it is anyway. `g` and `y` do not
+     * exist in PCRE at all, and would make `test()` stateful across cells.
+     *
+     * @returns {RegExp|null} null if the pattern is empty or unusable here.
      */
     static #toRegExp(pattern) {
         if (typeof pattern !== 'string' || pattern === '') { return null; }
 
         const match = /^\/(.*)\/([a-z]*)$/s.exec(pattern);
         const body  = match ? match[1] : pattern;
-        const flags = (match ? match[2] : '').split('').filter(f => 'gimsuy'.includes(f)).join('');
+        const flags = match ? match[2] : '';
+
+        // Dropping a flag we cannot honour would silently evaluate a different
+        // regex than the server does, so give up instead and let it decide.
+        if (flags.split('').some(f => !'imsu'.includes(f))) { return null; }
 
         try {
             return new RegExp(body, flags);
@@ -204,17 +289,23 @@ export class AfTableQuestion {
         return (control.value ?? '').trim() !== '';
     }
 
-    /** Extracts the "col_N" index from a cell control name, as a string. */
-    static #columnIndex(control) {
-        const match = /\[col_(\d+)\]/.exec(control.name ?? '');
+    /** Extracts the "col_N" key from a cell control name. */
+    static #columnKey(control) {
+        const match = /\[(col_\d+)\]/.exec(control.name ?? '');
         return match ? match[1] : '';
     }
 
+    /** An empty message flags the cell without writing any text under it. */
     static #setCellError(control, message) {
         control.classList.add('is-invalid');
 
         const td = control.closest('td') ?? control.parentElement;
         if (!td) { return; }
+
+        if (message === '') {
+            td.querySelector('[data-af-cell-error]')?.remove();
+            return;
+        }
 
         let feedback = td.querySelector('[data-af-cell-error]');
         if (!feedback) {
@@ -234,9 +325,6 @@ export class AfTableQuestion {
 
     addRow() {
         const rowCount = this.#rowCount();
-        if (rowCount >= this.#maxRows) {
-            return;
-        }
         const clone = this.#template.content.cloneNode(true);
         clone.querySelectorAll('[name]').forEach(el => {
             el.name = el.name.replace('__ROW__', rowCount);
@@ -267,7 +355,9 @@ export class AfTableQuestion {
     }
 
     removeRow(rowElement) {
-        if (!rowElement || this.#rowCount() <= this.#minRows) {
+        // Keeping one row on screen is presentation only: acceptable row counts
+        // are enforced by the form's validation conditions.
+        if (!rowElement || this.#rowCount() <= 1) {
             return;
         }
         rowElement.remove();
@@ -284,16 +374,11 @@ export class AfTableQuestion {
     }
 
     #updateButtonStates() {
-        const count = this.#rowCount();
-        const atMax = count >= this.#maxRows;
-        const atMin = count <= this.#minRows;
-
-        this.#addBtn.classList.toggle('opacity-25', atMax);
-        this.#addBtn.classList.toggle('pe-none',    atMax);
+        const lastRow = this.#rowCount() <= 1;
 
         this.#body.querySelectorAll('[data-af-table-remove-row]').forEach(icon => {
-            icon.classList.toggle('opacity-25', atMin);
-            icon.classList.toggle('pe-none',    atMin);
+            icon.classList.toggle('opacity-25', lastRow);
+            icon.classList.toggle('pe-none',    lastRow);
         });
     }
 

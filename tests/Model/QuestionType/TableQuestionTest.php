@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Form\Condition\ValueOperator;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
 use Glpi\Form\QuestionType\QuestionTypeFile;
@@ -69,8 +70,6 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         $result = $this->type->prepareExtraData($input);
         $this->assertArrayHasKey(0, $result[TableQuestionConfig::COLUMNS]);
         $this->assertArrayHasKey(1, $result[TableQuestionConfig::COLUMNS]);
-        $this->assertSame(2, $result[TableQuestionConfig::MIN_ROWS]);
-        $this->assertSame(20, $result[TableQuestionConfig::MAX_ROWS]);
     }
 
     public function testPrepareExtraDataCoercesRequiredToBool(): void
@@ -170,44 +169,91 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         $this->assertSame(TableQuestionConfig::class, $this->type->getExtraDataConfigClass());
     }
 
-    public function testValidateExtraDataInputAcceptsMaxRows50(): void
+    public function testValidateExtraDataInputAcceptsASingleColumn(): void
     {
         $result = $this->type->validateExtraDataInput([
-            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
-            'min_rows' => 1,
-            'max_rows' => 50,
+            'columns' => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
         ]);
         $this->assertTrue($result);
     }
 
-    public function testValidateExtraDataInputRejectsMaxRowsAbove50(): void
+    public function testValidateExtraDataInputRejectsAColumnLessTable(): void
     {
-        $result = $this->type->validateExtraDataInput([
-            'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
-            'min_rows' => 1,
-            'max_rows' => 51,
-        ]);
-        $this->assertFalse($result);
+        $this->assertFalse($this->type->validateExtraDataInput(['columns' => []]));
     }
 
-    public function testValidateExtraDataInputRejectsCraftedLargeMaxRows(): void
+    /**
+     * Row bounds are now validation conditions; leftover keys from 1.2.0 must
+     * neither be rejected nor carried over.
+     */
+    public function testLegacyRowBoundsAreAccepted(): void
     {
         $result = $this->type->validateExtraDataInput([
             'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class]],
             'min_rows' => 1,
             'max_rows' => 99999,
         ]);
-        $this->assertFalse($result);
+        $this->assertTrue($result);
     }
 
-    public function testPrepareExtraDataClampsMaxRowsTo50(): void
+    public function testPrepareExtraDataDropsLegacyRowBounds(): void
     {
         $result = $this->type->prepareExtraData([
             'columns'  => [['name' => 'A', 'question_type' => QuestionTypeShortText::class, 'required' => false]],
             'min_rows' => 1,
             'max_rows' => 99999,
         ]);
-        $this->assertSame(50, $result[TableQuestionConfig::MAX_ROWS]);
+        $this->assertSame([TableQuestionConfig::COLUMNS], array_keys($result));
+    }
+
+    /**
+     * Engine::applyValueOperator() demands exactly one handler per operator and
+     * throws a LogicException otherwise — but only once an admin actually builds
+     * such a condition, so the clash has to be caught here.
+     */
+    public function testNoValueOperatorIsClaimedByTwoConditionHandlers(): void
+    {
+        $seen = [];
+        foreach ($this->type->getConditionHandlers(null) as $handler) {
+            foreach ($handler->getSupportedValueOperators() as $operator) {
+                $this->assertArrayNotHasKey(
+                    $operator->value,
+                    $seen,
+                    sprintf(
+                        'Operator "%s" is claimed by both %s and %s',
+                        $operator->value,
+                        $seen[$operator->value] ?? '',
+                        $handler::class,
+                    ),
+                );
+                $seen[$operator->value] = $handler::class;
+            }
+        }
+    }
+
+    public function testRowCountOperatorsAreAvailableAsConditionCriteria(): void
+    {
+        $operators = [];
+        foreach ($this->type->getConditionHandlers(null) as $handler) {
+            foreach ($handler->getSupportedValueOperators() as $operator) {
+                $operators[] = $operator;
+            }
+        }
+
+        $this->assertContains(ValueOperator::LENGTH_GREATER_THAN, $operators);
+        $this->assertContains(ValueOperator::LENGTH_LESS_THAN_OR_EQUALS, $operators);
+    }
+
+    public function testWholeTableRegexIsAvailableAsAConditionCriterion(): void
+    {
+        $operators = [];
+        foreach ($this->type->getConditionHandlers(null) as $handler) {
+            foreach ($handler->getSupportedValueOperators() as $operator) {
+                $operators[] = $operator;
+            }
+        }
+
+        $this->assertContains(ValueOperator::MATCH_REGEX, $operators);
     }
 
     public function testTransformConditionValueFlattensRowsToScalars(): void
