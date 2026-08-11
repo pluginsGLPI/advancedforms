@@ -31,75 +31,87 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Model\QuestionType;
+namespace GlpiPlugin\Advancedforms\Model\Destination;
 
 use Glpi\DBAL\JsonFieldInterface;
+use Glpi\Form\Destination\ConfigFieldWithStrategiesInterface;
+use Glpi\Form\Destination\HasFieldWithQuestionId;
 use Override;
 
-final readonly class TableQuestionConfig implements JsonFieldInterface
+#[HasFieldWithQuestionId(self::SPECIFIC_QUESTION_ID)]
+final readonly class PreReservationFieldConfig implements JsonFieldInterface, ConfigFieldWithStrategiesInterface
 {
-    public const COLUMNS          = 'columns';
+    public const STRATEGY = 'strategy';
 
-    // Column sub-keys
-    public const COL_NAME          = 'name';
+    public const SPECIFIC_QUESTION_ID = 'specific_question_id';
 
-    public const COL_QUESTION_TYPE = 'question_type';
+    public const REQUIRE_APPROVAL = 'require_approval';
 
-    public const COL_REQUIRED      = 'required';
-
-    public const COL_ITEMTYPE      = 'itemtype';
-
-    public const COL_PATTERN       = 'pattern';
-
-    /**
-     * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
-     */
     public function __construct(
-        private array $columns = [],
+        private PreReservationFieldStrategy $strategy,
+        private ?int $specific_question_id = null,
+        private bool $require_approval = true,
     ) {}
 
     /**
-     * Row bounds used to live here as `min_rows` / `max_rows`. They are now
-     * declared as native validation conditions, so those keys are ignored when
-     * they are found in data written by version 1.2.0.
-     *
      * @param array{
-     *   columns?: array<array{name?: string, question_type?: string, required?: bool, itemtype?: string, pattern?: string}>
+     *      strategy?: string,
+     *      specific_question_id?: ?int,
+     *      require_approval?: bool
      * } $data
      */
     #[Override]
     public static function jsonDeserialize(array $data): self
     {
-        $columns = array_values(array_map(
-            fn($col) => [
-                self::COL_NAME          => (string) ($col[self::COL_NAME] ?? ''),
-                self::COL_QUESTION_TYPE => (string) ($col[self::COL_QUESTION_TYPE] ?? ''),
-                self::COL_REQUIRED      => (bool) ($col[self::COL_REQUIRED] ?? false),
-                self::COL_ITEMTYPE      => (string) ($col[self::COL_ITEMTYPE] ?? ''),
-                self::COL_PATTERN       => (string) ($col[self::COL_PATTERN] ?? ''),
-            ],
-            array_filter($data[self::COLUMNS] ?? [], is_array(...)),
-        ));
+        $strategy = PreReservationFieldStrategy::tryFrom($data[self::STRATEGY] ?? "");
+        if ($strategy === null) {
+            $strategy = PreReservationFieldStrategy::NO_PRERESERVATION;
+        }
 
-        return new self(columns: $columns);
+        return new self(
+            strategy: $strategy,
+            specific_question_id: $data[self::SPECIFIC_QUESTION_ID] ?? null,
+            require_approval: $data[self::REQUIRE_APPROVAL] ?? true,
+        );
     }
 
     /**
      * @return array{
-     *   columns: array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}>
+     *      strategy: string,
+     *      specific_question_id: ?int,
+     *      require_approval: bool
      * }
      */
     #[Override]
     public function jsonSerialize(): array
     {
         return [
-            self::COLUMNS => $this->columns,
+            self::STRATEGY => $this->strategy->value,
+            self::SPECIFIC_QUESTION_ID => $this->specific_question_id,
+            self::REQUIRE_APPROVAL => $this->require_approval,
         ];
     }
 
-    /** @return array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> */
-    public function getColumns(): array
+    #[Override]
+    public static function getStrategiesInputName(): string
     {
-        return $this->columns;
+        return self::STRATEGY;
+    }
+
+    /** @return array<PreReservationFieldStrategy> */
+    #[Override]
+    public function getStrategies(): array
+    {
+        return [$this->strategy];
+    }
+
+    public function getSpecificQuestionId(): ?int
+    {
+        return $this->specific_question_id;
+    }
+
+    public function isApprovalRequired(): bool
+    {
+        return $this->require_approval;
     }
 }

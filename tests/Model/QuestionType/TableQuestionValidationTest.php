@@ -272,6 +272,35 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         ]));
     }
 
+    public function testPatternWithASharedFlagIsAccepted(): void
+    {
+        $this->assertTrue($this->type->validateExtraDataInput([
+            'columns' => [
+                $this->column('Env', QuestionTypeShortText::class, pattern: '/^prod$/i'),
+            ],
+        ]));
+    }
+
+    public function testPatternWithAJsOnlyFlagIsRejected(): void
+    {
+        // `g` is not a PCRE modifier, and it would make the client-side `test()`
+        // stateful from one cell to the next.
+        $this->assertFalse($this->type->validateExtraDataInput([
+            'columns' => [
+                $this->column('Env', QuestionTypeShortText::class, pattern: '/prod/g'),
+            ],
+        ]));
+    }
+
+    public function testPatternWithoutDelimitersIsRejected(): void
+    {
+        $this->assertFalse($this->type->validateExtraDataInput([
+            'columns' => [
+                $this->column('Env', QuestionTypeShortText::class, pattern: '^prod$'),
+            ],
+        ]));
+    }
+
     public function testPatternIsIgnoredOnNonShortAnswerColumn(): void
     {
         // Config UI never exposes pattern for non-short-answer columns; a hand-crafted one must be ignored.
@@ -381,6 +410,363 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         $this->assertFalse($result->isValid());
     }
 
+    public function testUnanchoredPatternMatchesAPrefix(): void
+    {
+        // The HTML `pattern` attribute would anchor this and reject the value.
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, pattern: '/^172\.23\./'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => '172.23.0.1']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testUnanchoredPatternMatchesAnywhereInTheValue(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Label', QuestionTypeShortText::class, pattern: '/PROD/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'srv-PROD-01']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testCaseInsensitiveFlagIsHonoured(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Env', QuestionTypeShortText::class, pattern: '/^prod$/i'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'PROD']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testCaseSensitivePatternStillRejectsWrongCase(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Env', QuestionTypeShortText::class, pattern: '/^prod$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'PROD']]);
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function testDotAllFlagIsHonoured(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Blob', QuestionTypeShortText::class, pattern: '/^a.b$/s'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => "a\nb"]]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testUnicodeValueIsMatchedWithTheUnicodeFlag(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('City', QuestionTypeShortText::class, pattern: '/^\p{L}+$/u'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'Besançon']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testMalformedStoredPatternDoesNotBlockSubmission(): void
+    {
+        // validateExtraDataInput() rejects these, so it has to be injected as
+        // already-stored data: a pattern that predates a rule change must never
+        // lock a user out of the form.
+        $question = $this->makeTableQuestionWithStoredConfig([
+            $this->column('Broken', QuestionTypeShortText::class, pattern: '/[/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'anything']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testUnknownStoredColumnTypeDoesNotBlockSubmission(): void
+    {
+        $question = $this->makeTableQuestionWithStoredConfig([
+            $this->column('Ghost', 'GlpiPlugin\\Removed\\QuestionType\\Gone'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'anything']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testMiddleColumnWithoutPatternIsNeverFlagged(): void
+    {
+        // Exact shape of the customer report: regex on the outer columns only.
+        $question = $this->makeTableQuestion([
+            $this->column('SRC IP', QuestionTypeShortText::class, pattern: '/^[0-9.]+$/'),
+            $this->column('description', QuestionTypeShortText::class),
+            $this->column('DST IP', QuestionTypeShortText::class, pattern: '/^[0-9.]+$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '10.0.0.1', 'col_1' => 'asdasd', 'col_2' => '10.0.0.2'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testPatternOnTheLastColumnOnlyLeavesTheFirstColumnFree(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Free text', QuestionTypeShortText::class),
+            $this->column('Digits', QuestionTypeShortText::class, pattern: '/^\d+$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'anything goes', 'col_1' => '42'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testPatternOnTheLastColumnOnlyStillFlagsThatColumn(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Free text', QuestionTypeShortText::class),
+            $this->column('Digits', QuestionTypeShortText::class, pattern: '/^\d+$/'),
+        ]);
+
+        $errors = $this->type->validateAnswer($question, [
+            ['col_0' => 'anything goes', 'col_1' => 'not digits'],
+        ])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('Digits', $errors[0]['message']);
+    }
+
+    public function testEveryColumnPatternIsEnforcedIndependently(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('A', QuestionTypeShortText::class, pattern: '/^a+$/'),
+            $this->column('B', QuestionTypeShortText::class, pattern: '/^b+$/'),
+            $this->column('C', QuestionTypeShortText::class, pattern: '/^c+$/'),
+        ]);
+
+        // Only the middle column is wrong.
+        $errors = $this->type->validateAnswer($question, [
+            ['col_0' => 'aaa', 'col_1' => 'xxx', 'col_2' => 'ccc'],
+        ])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('"B"', $errors[0]['message']);
+    }
+
+    public function testAllColumnPatternsCanFailAtOnce(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('A', QuestionTypeShortText::class, pattern: '/^a+$/'),
+            $this->column('B', QuestionTypeShortText::class, pattern: '/^b+$/'),
+            $this->column('C', QuestionTypeShortText::class, pattern: '/^c+$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'x', 'col_1' => 'y', 'col_2' => 'z'],
+        ]);
+
+        $this->assertCount(3, $result->getErrors());
+    }
+
+    public function testRequiredColumnWithPatternReportsOnlyTheMissingValue(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: true, pattern: '/^[0-9.]+$/'),
+            $this->column('Comment', QuestionTypeShortText::class),
+        ]);
+
+        $errors = $this->type->validateAnswer($question, [
+            ['col_0' => '', 'col_1' => 'a comment'],
+        ])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('required', $errors[0]['message']);
+    }
+
+    public function testRequiredColumnWithPatternReportsTheFormatWhenFilled(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Source IP', QuestionTypeShortText::class, required: true, pattern: '/^[0-9.]+$/'),
+        ]);
+
+        $errors = $this->type->validateAnswer($question, [['col_0' => 'nope']])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('format', $errors[0]['message']);
+    }
+
+    public function testPatternOnAnEmailColumnDoesNotDisableEmailValidation(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, pattern: '/@example\.com$/'),
+        ]);
+
+        // Satisfies the pattern, yet is not a valid address: only the native
+        // check can catch it.
+        $result = $this->type->validateAnswer($question, [['col_0' => 'bob bob@example.com']]);
+
+        $this->assertFalse($result->isValid(), 'A pattern must not shadow the native email check.');
+    }
+
+    public function testEmailColumnPatternRejectsAWrongDomain(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, pattern: '/@example\.com$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'bob@other.com']]);
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function testEmailColumnAcceptsAnAddressMatchingBothRules(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, pattern: '/@example\.com$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'bob@example.com']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testInvalidEmailIsReportedOnceWithTheNativeMessage(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Contact', QuestionTypeEmail::class, pattern: '/@example\.com$/'),
+        ]);
+
+        // Fails the native check and the pattern; the user gets one message, and
+        // the type-specific one is the most helpful of the two.
+        $errors = $this->type->validateAnswer($question, [['col_0' => 'not-an-email']])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('email', $errors[0]['message']);
+    }
+
+    public function testPatternOnANumberColumnDoesNotDisableNumberValidation(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Port', QuestionTypeNumber::class, pattern: '/^[0-9a-f]+$/'),
+        ]);
+
+        // Hexadecimal letters satisfy the pattern but are not a number.
+        $result = $this->type->validateAnswer($question, [['col_0' => 'abc']]);
+
+        $this->assertFalse($result->isValid(), 'A pattern must not shadow the native number check.');
+    }
+
+    public function testNumberColumnWithPatternRejectsAnOutOfShapeNumber(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Port', QuestionTypeNumber::class, pattern: '/^\d{1,4}$/'),
+        ]);
+
+        $this->assertFalse(
+            $this->type->validateAnswer($question, [['col_0' => '99999']])->isValid(),
+        );
+        $this->assertTrue(
+            $this->type->validateAnswer($question, [['col_0' => '8080']])->isValid(),
+        );
+    }
+
+    public function testErrorMessageCarriesTheSubmittedRowNumber(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Digits', QuestionTypeShortText::class, pattern: '/^\d+$/'),
+        ]);
+
+        $errors = $this->type->validateAnswer($question, [
+            ['col_0' => '1'],
+            ['col_0' => '2'],
+            ['col_0' => 'bad'],
+        ])->getErrors();
+
+        $this->assertCount(1, $errors);
+        $this->assertStringContainsString('3', $errors[0]['message']);
+    }
+
+    public function testEachFaultyRowIsReportedSeparately(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Digits', QuestionTypeShortText::class, pattern: '/^\d+$/'),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'bad'],
+            ['col_0' => '2'],
+            ['col_0' => 'worse'],
+        ]);
+
+        $this->assertCount(2, $result->getErrors());
+    }
+
+    public function testManyValidRowsProduceNoError(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Digits', QuestionTypeShortText::class, required: true, pattern: '/^\d+$/'),
+            $this->column('Comment', QuestionTypeShortText::class),
+        ]);
+
+        $rows = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $rows[] = ['col_0' => (string) $i, 'col_1' => 'row ' . $i];
+        }
+
+        $this->assertTrue($this->type->validateAnswer($question, $rows)->isValid());
+    }
+
+    public function testTableWithoutAnyRuleAcceptsAnything(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('A', QuestionTypeShortText::class),
+            $this->column('B', QuestionTypeShortText::class),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '!!!', 'col_1' => '???'],
+            ['col_0' => '',    'col_1' => ''],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testNoColumnConfiguredAcceptsAnyAnswer(): void
+    {
+        // A column-less table cannot be configured, but stored data could end up
+        // that way; validateAnswer() must not choke on it.
+        $question = $this->makeTableQuestionWithStoredConfig([]);
+
+        $result = $this->type->validateAnswer($question, [['col_0' => 'orphan value']]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testCellForAnUnknownColumnIsIgnored(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('A', QuestionTypeShortText::class, pattern: '/^a+$/'),
+        ]);
+
+        // col_9 has no matching column; it must not be validated against col_0.
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => 'aaa', 'col_9' => 'zzz'],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
     /**
      * @param array<array{name: string, question_type: string, required: bool, itemtype: string}> $columns
      */
@@ -399,11 +785,28 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         return Question::getById($this->getQuestionId($form, 'Table'));
     }
 
+    /**
+     * Builds a question whose stored configuration would be refused by
+     * validateExtraDataInput(), to exercise the tolerance of validateAnswer()
+     * towards data written by an older version.
+     *
+     * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
+     */
+    private function makeTableQuestionWithStoredConfig(array $columns): Question
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Placeholder', QuestionTypeShortText::class),
+        ]);
+        $question->fields['extra_data'] = json_encode(new TableQuestionConfig(columns: $columns));
+
+        return $question;
+    }
+
 
     /**
      * @return array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}
      */
-    private function column(string $name, string $fqcn, bool $required, string $pattern = ''): array
+    private function column(string $name, string $fqcn, bool $required = false, string $pattern = ''): array
     {
         return [
             TableQuestionConfig::COL_NAME          => $name,

@@ -44,8 +44,6 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
     {
         $config = new TableQuestionConfig();
         $this->assertSame([], $config->getColumns());
-        $this->assertSame(1, $config->getMinRows());
-        $this->assertSame(50, $config->getMaxRows());
     }
 
     public function testJsonRoundtrip(): void
@@ -55,14 +53,17 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
                 ['name' => 'Source IP', 'question_type' => QuestionTypeShortText::class, 'required' => true,  'itemtype' => '', 'pattern' => '/^172\\.23\\./'],
                 ['name' => 'Port',      'question_type' => QuestionTypeNumber::class,    'required' => false, 'itemtype' => '', 'pattern' => ''],
             ],
-            min_rows: 2,
-            max_rows: 20,
         );
         $serialized   = $original->jsonSerialize();
         $deserialized = TableQuestionConfig::jsonDeserialize($serialized);
         $this->assertSame($original->getColumns(), $deserialized->getColumns());
-        $this->assertSame($original->getMinRows(), $deserialized->getMinRows());
-        $this->assertSame($original->getMaxRows(), $deserialized->getMaxRows());
+    }
+
+    public function testSerializedFormCarriesNoRowBounds(): void
+    {
+        $serialized = (new TableQuestionConfig())->jsonSerialize();
+
+        $this->assertSame([TableQuestionConfig::COLUMNS], array_keys($serialized));
     }
 
     public function testColumnPatternDefaultsToEmptyStringWhenAbsent(): void
@@ -79,35 +80,29 @@ final class TableQuestionConfigTest extends AdvancedFormsTestCase
     public function testJsonDeserializeFiltersNonArrayColumns(): void
     {
         $config = TableQuestionConfig::jsonDeserialize([
-            'columns'  => ['not_array', ['name' => 'Valid', 'question_type' => 'SomeFqcn', 'required' => false]],
-            'min_rows' => 1,
-            'max_rows' => 50,
+            'columns' => ['not_array', ['name' => 'Valid', 'question_type' => 'SomeFqcn', 'required' => false]],
         ]);
         $this->assertCount(1, $config->getColumns());
         $this->assertSame('Valid', $config->getColumns()[0]['name']);
     }
 
-    public function testJsonDeserializeEnforcesMinRow(): void
+    /**
+     * Row bounds moved to native validation conditions. Configurations written by
+     * 1.2.0 still carry them, and must deserialize without complaint.
+     */
+    public function testLegacyRowBoundsAreIgnored(): void
     {
-        $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 0, 'max_rows' => 10]);
-        $this->assertSame(1, $config->getMinRows());
-    }
+        $config = TableQuestionConfig::jsonDeserialize([
+            'columns'  => [
+                ['name' => 'Source IP', 'question_type' => QuestionTypeShortText::class, 'required' => true],
+            ],
+            'min_rows' => 2,
+            'max_rows' => 20,
+        ]);
 
-    public function testJsonDeserializeEnforcesMaxRowNotZero(): void
-    {
-        $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 1, 'max_rows' => 0]);
-        $this->assertSame(1, $config->getMaxRows());
-    }
-
-    public function testJsonDeserializeEnforcesMaxRowNotLessThanMin(): void
-    {
-        $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 10, 'max_rows' => 5]);
-        $this->assertSame(10, $config->getMaxRows());
-    }
-
-    public function testJsonDeserializePreservesMaxRowAtCap(): void
-    {
-        $config = TableQuestionConfig::jsonDeserialize(['min_rows' => 1, 'max_rows' => 50]);
-        $this->assertSame(50, $config->getMaxRows());
+        $this->assertCount(1, $config->getColumns());
+        $this->assertSame('Source IP', $config->getColumns()[0][TableQuestionConfig::COL_NAME]);
+        $this->assertArrayNotHasKey('min_rows', $config->jsonSerialize());
+        $this->assertArrayNotHasKey('max_rows', $config->jsonSerialize());
     }
 }

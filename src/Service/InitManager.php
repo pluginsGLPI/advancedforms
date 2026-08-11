@@ -34,14 +34,19 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Form\Destination\FormDestinationManager;
+use Glpi\Form\Destination\FormDestinationTicket;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
+use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Plugin;
+use Ticket;
 
 final class InitManager
 {
@@ -51,6 +56,25 @@ final class InitManager
     {
         $this->registerConfiguration();
         $this->registerPluginTypes();
+        $this->registerDestinationFields();
+        $this->registerTimelineHooks();
+        $this->registerNotifications();
+        $this->registerPurgeHooks();
+    }
+
+    private function registerNotifications(): void
+    {
+        global $CFG_GLPI;
+
+        $itemtype = TicketReservationRequest::class;
+
+        // init() may run multiple times per process; avoid duplicate registration.
+        $registered = $CFG_GLPI['notificationtemplates_types'] ?? [];
+        if (is_array($registered) && in_array($itemtype, $registered, true)) {
+            return;
+        }
+
+        Plugin::registerClass($itemtype, ['notificationtemplates_types' => true]);
     }
 
     private function registerConfiguration(): void
@@ -95,5 +119,43 @@ final class InitManager
                 );
             }
         }
+    }
+
+    private function registerDestinationFields(): void
+    {
+        $destination_manager = FormDestinationManager::getInstance();
+
+        // init() may run multiple times per process; avoid double-registering the field.
+        $already_registered = array_filter(
+            $destination_manager->getPluginCommonITILConfigFields(FormDestinationTicket::class),
+            fn($field) => $field instanceof PreReservationField,
+        );
+        if ($already_registered !== []) {
+            return;
+        }
+
+        $destination_manager->registerPluginCommonITILConfigField(
+            FormDestinationTicket::class,
+            new PreReservationField(),
+        );
+    }
+
+    private function registerTimelineHooks(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::TIMELINE_ITEMS]['advancedforms'] = TimelineManager::addTimelineItems(...);
+    }
+
+    /** Cleans up reservation requests (and the Reservation they created) when their Ticket is purged. */
+    private function registerPurgeHooks(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['advancedforms'] = [
+            Ticket::class => TicketReservationRequest::purgeForTicket(...),
+        ];
     }
 }

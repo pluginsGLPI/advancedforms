@@ -67,8 +67,6 @@ final class TableQuestionIntegrationTest extends QuestionTypeTestCase
                     TableQuestionConfig::COL_REQUIRED      => false,
                 ],
             ],
-            min_rows: 1,
-            max_rows: 50,
         ));
     }
 
@@ -97,11 +95,12 @@ final class TableQuestionIntegrationTest extends QuestionTypeTestCase
         $container = $html->filter('[data-af-table-question]');
         $this->assertNotEmpty($container);
 
-        // Required columns must be exposed to the client validation layer.
-        // The default config marks the first column ("Source IP") as required.
-        $this->assertSame('0', $container->attr('data-af-required-cols'));
+        // Required columns must be exposed to the client validation layer, keyed
+        // like the submitted field names. The default config marks the first
+        // column ("Source IP") as required.
+        $this->assertSame('col_0', $container->attr('data-af-required-cols'));
 
-        // At least one input row rendered (min_rows = 1)
+        // At least one input row rendered
         $rows = $html->filter('[data-af-table-body] [data-af-table-row]');
         $this->assertGreaterThanOrEqual(1, $rows->count());
 
