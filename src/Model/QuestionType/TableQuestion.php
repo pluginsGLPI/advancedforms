@@ -817,6 +817,11 @@ final class TableQuestion extends AbstractQuestionType implements
                 }
             }
 
+            // Exclude question types with a sub-type selector (Fields plugin types)
+            if (!is_a($fqcn, QuestionTypeItem::class, true) && $type->getSubTypes() !== []) {
+                continue;
+            }
+
             $types[$fqcn] = $type->getName();
         }
 
