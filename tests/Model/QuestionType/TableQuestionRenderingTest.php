@@ -33,15 +33,18 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Dropdown;
 use Glpi\Application\ImportMapGenerator;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
+use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Session;
 use Symfony\Component\DomCrawler\Crawler;
 
 use function Safe\json_decode;
@@ -270,6 +273,53 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
     }
 
     /**
+     * Regression test: custom dropdown definitions all share the same database
+     * table (distinguished only by a foreign key to their definition), so a
+     * column's option list must be scoped to its own definition. Without that
+     * scoping, every "Item (custom dropdown)" column ends up offering entries
+     * from every custom dropdown definition instead of just its own.
+     */
+    public function testEachColumnOnlyShowsItsOwnCustomDropdownEntries(): void
+    {
+        $test1_definition = $this->initDropdownDefinition('Test1');
+        $test2_definition = $this->initDropdownDefinition('Test2');
+
+        $test1_class = $test1_definition->getDropdownClassName();
+        $test2_class = $test2_definition->getDropdownClassName();
+
+        Dropdown::resetItemtypesStaticCache();
+
+        $entity_id = Session::getActiveEntity();
+
+        $this->createItem($test1_class, [
+            'name'        => 'Item from Test1',
+            'entities_id' => $entity_id,
+        ]);
+        $this->createItem($test2_class, [
+            'name'        => 'Item from Test2',
+            'entities_id' => $entity_id,
+        ]);
+
+        $html = $this->render([
+            $this->column('Col1', QuestionTypeItemDropdown::class, itemtype: $test1_class),
+            $this->column('Col2', QuestionTypeItemDropdown::class, itemtype: $test2_class),
+        ]);
+
+        $crawler = new Crawler($html);
+        $selects = $crawler->filter('[data-af-table-body] [data-af-table-row] select');
+        $this->assertSame(2, $selects->count());
+
+        $col1_options = $selects->eq(0)->filter('option')->each(fn(Crawler $n): string => $n->text());
+        $col2_options = $selects->eq(1)->filter('option')->each(fn(Crawler $n): string => $n->text());
+
+        $this->assertContains('Item from Test1', $col1_options);
+        $this->assertNotContains('Item from Test2', $col1_options);
+
+        $this->assertContains('Item from Test2', $col2_options);
+        $this->assertNotContains('Item from Test1', $col2_options);
+    }
+
+    /**
      * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
      * @return array<string, string> Decoded `data-af-pattern-cols` payload.
      */
@@ -324,12 +374,13 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
         string $fqcn,
         bool $required = false,
         string $pattern = '',
+        string $itemtype = '',
     ): array {
         return [
             TableQuestionConfig::COL_NAME          => $name,
             TableQuestionConfig::COL_QUESTION_TYPE => $fqcn,
             TableQuestionConfig::COL_REQUIRED      => $required,
-            TableQuestionConfig::COL_ITEMTYPE      => '',
+            TableQuestionConfig::COL_ITEMTYPE      => $itemtype,
             TableQuestionConfig::COL_PATTERN       => $pattern,
         ];
     }

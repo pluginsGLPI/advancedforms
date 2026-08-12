@@ -804,6 +804,7 @@ final class TableQuestion extends AbstractQuestionType implements
             HostnameQuestion::class,
             HiddenQuestion::class,
             LdapQuestion::class,
+            ReservationQuestion::class,
             self::class,
         ];
 
@@ -933,7 +934,8 @@ final class TableQuestion extends AbstractQuestionType implements
             return $options;
         }
 
-        $where = [];
+        /** @var array<string, mixed> $where */
+        $where = $itemtype::getSystemSQLCriteria();
 
         if ($item->maybeDeleted()) {
             $where['is_deleted'] = 0;
