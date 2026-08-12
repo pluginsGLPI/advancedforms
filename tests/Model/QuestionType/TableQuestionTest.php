@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Form\Question;
 use Glpi\Form\Condition\ValueOperator;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
@@ -181,13 +182,13 @@ final class TableQuestionTest extends AdvancedFormsTestCase
             }
 
             #[Override]
-            public function renderAdministrationTemplate(?\Glpi\Form\Question $question): string
+            public function renderAdministrationTemplate(?Question $question): string
             {
                 return '';
             }
 
             #[Override]
-            public function renderEndUserTemplate(?\Glpi\Form\Question $question, mixed $answer = null): string
+            public function renderEndUserTemplate(?Question $question, mixed $answer = null): string
             {
                 return '';
             }
