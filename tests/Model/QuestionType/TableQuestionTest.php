@@ -162,6 +162,12 @@ final class TableQuestionTest extends AdvancedFormsTestCase
         $this->assertArrayNotHasKey(TreeCascadeDropdownQuestion::class, $types);
     }
 
+    public function testCompatibleTypesExcludesReservation(): void
+    {
+        $types = $this->type->getCompatibleQuestionTypes();
+        $this->assertArrayNotHasKey(ReservationQuestion::class, $types);
+    }
+
     /**
      * Regression test for types with custom sub-type selectors, which cannot
      * be represented as flat table column types and thus must be excluded.
