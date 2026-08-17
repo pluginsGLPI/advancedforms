@@ -46,6 +46,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
+use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Glpi\Form\QuestionType\AbstractQuestionType;
 use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
