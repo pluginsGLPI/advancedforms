@@ -99,7 +99,7 @@ final class TreeDropdownChildrenController extends AbstractController
         $is_recursive = $item_check->maybeRecursive();
 
         $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
-        if (!empty($entity_restrict)) {
+        if ($entity_restrict !== []) {
             $where = array_merge($where, $entity_restrict);
         }
 
