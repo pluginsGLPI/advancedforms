@@ -117,7 +117,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             return parent::renderEndUserTemplate($question);
         }
 
-        $default_items_id = $this->getDefaultValueItemId($question);
+        $default_items_id = $this->getDefaultValuesItemIds($question)[0] ?? 0;
         $aria_label = $this->items_id_aria_label;
 
         $tree_table = $itemtype::getTable();
@@ -262,7 +262,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         /** @var array<string, mixed> $base_where */
         $base_where = [];
         $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
-        if (!empty($entity_restrict)) {
+        if ($entity_restrict !== []) {
             $base_where = array_merge($base_where, $entity_restrict);
         }
 
@@ -331,7 +331,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         $is_recursive = $item_check->maybeRecursive();
 
         $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
-        if (!empty($entity_restrict)) {
+        if ($entity_restrict !== []) {
             $base_where = array_merge($base_where, $entity_restrict);
         }
 
