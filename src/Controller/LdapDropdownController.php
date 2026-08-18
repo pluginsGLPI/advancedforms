@@ -98,7 +98,7 @@ final class LdapDropdownController extends AbstractController
         $page_limit  = $request->request->getInt('page_limit', 0);
 
         // Make sure mandatory parameters are set
-        if ($page == 0 || $page_limit == 0) {
+        if ($page === 0 || $page_limit === 0) {
             throw new BadRequestHttpException();
         }
 
