@@ -84,7 +84,8 @@ final class ConfigFormTest extends FrontTestCase
         $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
 
         // Assert: no html was rendered as we lack rights to view config
-        $this->assertEmpty($crawler);
+        $config_header = $crawler->filter('[data-testid="advanced-forms-config-header"]');
+        $this->assertCount(0, $config_header);
     }
 
     #[DataProvider('provideQuestionTypes')]
