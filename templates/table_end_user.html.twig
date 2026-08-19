@@ -89,6 +89,14 @@
                                 ]) %}
                             {% endset %}
                             {{ sel_html|raw }}
+                        {% elseif cell.mode == 'select-ajax' %}
+                            <select
+                                class="form-select form-select-sm"
+                                name="{{ input_base }}[{{ row_index }}][col_{{ col_index }}]"
+                                data-af-needs-ajax-s2
+                                data-af-s2-config="{{ cell.config|json_encode|e('html_attr') }}"
+                                {% if col.required %} required {% endif %}
+                            ></select>
                         {% else %}
                             <input
                                 class="form-control form-control-sm"
@@ -143,6 +151,14 @@
                                 <option value="{{ val }}">{{ lbl }}</option>
                             {% endfor %}
                         </select>
+                    {% elseif cell.mode == 'select-ajax' %}
+                        <select
+                            class="form-select form-select-sm"
+                            name="{{ input_base }}[__ROW__][col_{{ col_index }}]"
+                            data-af-needs-ajax-s2
+                            data-af-s2-config="{{ cell.config|json_encode|e('html_attr') }}"
+                            {% if col.required %} required {% endif %}
+                        ></select>
                     {% else %}
                         <input
                             class="form-control form-control-sm"

@@ -714,9 +714,9 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         $cell_map           = [];
-        $user_options       = null;
+        $user_ajax_config   = null;
         $device_options     = null;
-        $glpi_item_options  = []; // keyed by itemtype FQCN to avoid duplicate DB queries
+        $item_ajax_configs  = []; // keyed by itemtype FQCN to avoid duplicate IDOR tokens
 
         foreach ($config->getColumns() as $index => $col) {
             $fqcn     = $col[TableQuestionConfig::COL_QUESTION_TYPE];
@@ -724,15 +724,15 @@ final class TableQuestion extends AbstractQuestionType implements
             $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
 
             if (is_a($fqcn, AbstractQuestionTypeActors::class, true)) {
-                $user_options     ??= $this->buildUserOptions();
-                $cell_map[$index]  = ['mode' => 'select', 'options' => $user_options];
+                $user_ajax_config ??= $this->buildAjaxDropdownConfig(User::class, ['is_active' => 1, 'is_deleted' => 0]);
+                $cell_map[$index]  = ['mode' => 'select-ajax', 'config' => $user_ajax_config];
             } elseif (is_a($fqcn, QuestionTypeUserDevice::class, true)) {
                 $device_options   ??= $this->buildUserDeviceOptions();
                 $cell_map[$index]  = ['mode' => 'select', 'options' => $device_options];
             } elseif (is_a($fqcn, QuestionTypeItem::class, true)) {
                 if ($itemtype !== '' && class_exists($itemtype)) {
-                    $glpi_item_options[$itemtype] ??= $this->buildGlpiItemtypeOptions($itemtype);
-                    $cell_map[$index] = ['mode' => 'select', 'options' => $glpi_item_options[$itemtype]];
+                    $item_ajax_configs[$itemtype] ??= $this->buildAjaxDropdownConfig($itemtype);
+                    $cell_map[$index] = ['mode' => 'select-ajax', 'config' => $item_ajax_configs[$itemtype]];
                 } else {
                     $cell_map[$index] = ['mode' => 'input', 'input_type' => 'text'];
                 }
@@ -870,43 +870,6 @@ final class TableQuestion extends AbstractQuestionType implements
     }
 
     /**
-     * Builds a [value => label] options array for actor-type columns.
-     * Loads up to 200 active users from the database.
-     *
-     * @return array<int|string, string>
-     */
-    private function buildUserOptions(): array
-    {
-        global $DB;
-
-        $options = ['' => Dropdown::EMPTY_VALUE];
-
-        $rows = $DB->request([
-            'SELECT' => ['id', 'name', 'realname', 'firstname'],
-            'FROM'   => User::getTable(),
-            'WHERE'  => ['is_active' => 1, 'is_deleted' => 0],
-            'ORDER'  => ['realname', 'firstname', 'name'],
-            'LIMIT'  => 200,
-        ]);
-
-        foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
-            $id = is_numeric($row['id']) ? (int) $row['id'] : 0;
-            $options[(string) $id] = formatUserName(
-                $id,
-                is_string($row['name'] ?? null) ? $row['name'] : null,
-                is_string($row['realname'] ?? null) ? $row['realname'] : null,
-                is_string($row['firstname'] ?? null) ? $row['firstname'] : null,
-            );
-        }
-
-        return $options;
-    }
-
-    /**
      * Builds an optgroup-keyed options array for the User Device column type.
      * Keys at the top level are group labels; inner keys are "Itemtype_id" strings.
      *
@@ -923,58 +886,38 @@ final class TableQuestion extends AbstractQuestionType implements
     }
 
     /**
-     * Builds a [id => name] options array for a GLPI itemtype (used by Item/ItemDropdown columns).
-     * Applies entity and soft-delete filters when applicable.
+     * Builds a select2 "ajax" widget config for a GLPI itemtype-backed column
+     * (Item/ItemDropdown columns, and the User picker behind Actor columns).
      *
      * @param class-string $itemtype
-     * @return array<int|string, string>
+     * @param array<string, mixed> $condition
+     * @return array<string, mixed>
      */
-    private function buildGlpiItemtypeOptions(string $itemtype): array
+    private function buildAjaxDropdownConfig(string $itemtype, array $condition = []): array
     {
-        global $DB;
+        global $CFG_GLPI;
 
-        $options = ['' => Dropdown::EMPTY_VALUE];
-        $item    = getItemForItemtype($itemtype);
-        if ($item === false) {
-            return $options;
-        }
+        $condition_key = $condition !== [] ? Dropdown::addNewCondition($condition) : '';
+        $root_doc      = is_string($CFG_GLPI['root_doc'] ?? null) ? $CFG_GLPI['root_doc'] : '';
+        $dropdown_max  = $CFG_GLPI['dropdown_max'] ?? 50;
 
-        /** @var array<string, mixed> $where */
-        $where = $itemtype::getSystemSQLCriteria();
-
-        if ($item->maybeDeleted()) {
-            $where['is_deleted'] = 0;
-        }
-
-        if ($item->isEntityAssign()) {
-            $where = array_merge($where, getEntitiesRestrictCriteria(
-                $item->getTable(),
-                '',
-                '',
-                $item->maybeRecursive(),
-            ));
-        }
-
-        $criteria = [
-            'SELECT' => ['id', 'name'],
-            'FROM'   => $item->getTable(),
-            'ORDER'  => 'name',
-            'LIMIT'  => 200,
+        return [
+            'url'                 => $root_doc . '/ajax/getDropdownValue.php',
+            'params'              => [
+                'itemtype'    => $itemtype,
+                'condition'   => $condition_key,
+                '_idor_token' => Session::getNewIDORToken($itemtype, ['condition' => $condition_key]),
+            ],
+            'dropdown_max'        => is_numeric($dropdown_max) ? (int) $dropdown_max : 50,
+            'ajax_limit_count'    => $this->ajaxLimitCount(),
+            'width'               => '100%',
+            'container_css_class' => '',
+            'multiple'            => false,
+            'placeholder'         => Dropdown::EMPTY_VALUE,
+            'allowclear'          => false,
+            'parent_id_field'     => '',
+            'on_change'           => '',
         ];
-
-        if ($where !== []) {
-            $criteria['WHERE'] = $where;
-        }
-
-        foreach ($DB->request($criteria) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
-            $options[(string) (is_numeric($row['id']) ? (int) $row['id'] : 0)] = is_string($row['name']) ? $row['name'] : '';
-        }
-
-        return $options;
     }
 
     private function loadConfig(Question $question): TableQuestionConfig

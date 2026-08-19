@@ -33,12 +33,15 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Computer;
 use Dropdown;
 use Glpi\Application\ImportMapGenerator;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
+use Glpi\Form\QuestionType\QuestionTypeItem;
 use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
+use Glpi\Form\QuestionType\QuestionTypeRequester;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
@@ -46,6 +49,7 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Session;
 use Symfony\Component\DomCrawler\Crawler;
+use User;
 
 use function Safe\json_decode;
 use function Safe\json_encode;
@@ -272,14 +276,7 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
         );
     }
 
-    /**
-     * Regression test: custom dropdown definitions all share the same database
-     * table (distinguished only by a foreign key to their definition), so a
-     * column's option list must be scoped to its own definition. Without that
-     * scoping, every "Item (custom dropdown)" column ends up offering entries
-     * from every custom dropdown definition instead of just its own.
-     */
-    public function testEachColumnOnlyShowsItsOwnCustomDropdownEntries(): void
+    public function testEachColumnGetsItsOwnCustomDropdownItemtypeInTheAjaxConfig(): void
     {
         $test1_definition = $this->initDropdownDefinition('Test1');
         $test2_definition = $this->initDropdownDefinition('Test2');
@@ -289,34 +286,85 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
 
         Dropdown::resetItemtypesStaticCache();
 
-        $entity_id = Session::getActiveEntity();
-
-        $this->createItem($test1_class, [
-            'name'        => 'Item from Test1',
-            'entities_id' => $entity_id,
-        ]);
-        $this->createItem($test2_class, [
-            'name'        => 'Item from Test2',
-            'entities_id' => $entity_id,
-        ]);
-
-        $html = $this->render([
+        $html    = $this->render([
             $this->column('Col1', QuestionTypeItemDropdown::class, itemtype: $test1_class),
             $this->column('Col2', QuestionTypeItemDropdown::class, itemtype: $test2_class),
         ]);
+        $configs = $this->renderedAjaxConfigs($html);
 
+        $this->assertCount(2, $configs);
+        $this->assertSame($test1_class, $configs[0]['params']['itemtype']);
+        $this->assertSame($test2_class, $configs[1]['params']['itemtype']);
+        $this->assertNotSame(
+            $configs[0]['params']['_idor_token'],
+            $configs[1]['params']['_idor_token'],
+            "Each column must get its own IDOR token, or one column could query the other's scope.",
+        );
+    }
+
+    public function testGlpiObjectColumnIsBackedByTheAjaxDropdownEndpoint(): void
+    {
+        $html    = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
+        $configs = $this->renderedAjaxConfigs($html);
+
+        $this->assertCount(1, $configs);
+        $this->assertSame(Computer::class, $configs[0]['params']['itemtype']);
+        $this->assertNotEmpty($configs[0]['params']['_idor_token']);
+        $this->assertStringEndsWith('/ajax/getDropdownValue.php', $configs[0]['url']);
+    }
+
+    public function testGlpiObjectColumnHasNoPreFetchedOptions(): void
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            $this->createItem(Computer::class, ['name' => 'Computer ' . $i, 'entities_id' => Session::getActiveEntity()]);
+        }
+
+        $html    = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
         $crawler = new Crawler($html);
-        $selects = $crawler->filter('[data-af-table-body] [data-af-table-row] select');
-        $this->assertSame(2, $selects->count());
+        $select  = $crawler->filter('[data-af-table-body] [data-af-table-row] select[data-af-needs-ajax-s2]');
 
-        $col1_options = $selects->eq(0)->filter('option')->each(fn(Crawler $n): string => $n->text());
-        $col2_options = $selects->eq(1)->filter('option')->each(fn(Crawler $n): string => $n->text());
+        $this->assertSame(1, $select->count());
+        $this->assertSame(0, $select->filter('option')->count());
+    }
 
-        $this->assertContains('Item from Test1', $col1_options);
-        $this->assertNotContains('Item from Test2', $col1_options);
+    public function testActorColumnIsBackedByTheAjaxDropdownEndpointRestrictedToActiveUsers(): void
+    {
+        $html    = $this->render([$this->column('Owner', QuestionTypeRequester::class)]);
+        $configs = $this->renderedAjaxConfigs($html);
 
-        $this->assertContains('Item from Test2', $col2_options);
-        $this->assertNotContains('Item from Test1', $col2_options);
+        $this->assertCount(1, $configs);
+        $this->assertSame(User::class, $configs[0]['params']['itemtype']);
+
+        $condition_key = $configs[0]['params']['condition'];
+        $this->assertNotSame('', $condition_key);
+        $this->assertSame(
+            ['is_active' => 1, 'is_deleted' => 0],
+            $_SESSION['glpicondition'][$condition_key] ?? null,
+        );
+    }
+
+    public function testAjaxColumnConfigIsAlsoPresentInTheRowCloneTemplate(): void
+    {
+        $html = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
+
+        $this->assertSame(2, substr_count($html, 'data-af-needs-ajax-s2'));
+    }
+
+    /**
+     * @return list<array<string, mixed>> Decoded `data-af-s2-config` payload
+     *         for each ajax-backed select in the visible row, in column order.
+     */
+    private function renderedAjaxConfigs(string $html): array
+    {
+        $crawler = new Crawler($html);
+        $selects = $crawler->filter('[data-af-table-body] [data-af-table-row] select[data-af-needs-ajax-s2]');
+
+        return $selects->each(function (Crawler $n): array {
+            $decoded = json_decode((string) $n->attr('data-af-s2-config'), associative: true);
+            $this->assertIsArray($decoded, 'data-af-s2-config must hold a JSON object.');
+
+            return $decoded;
+        });
     }
 
     /**

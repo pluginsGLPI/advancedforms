@@ -51,6 +51,11 @@ export class AfTableQuestion {
 
         this.#watchServerErrors();
 
+        // The first row is server-rendered, not cloned from the template, so
+        // its ajax-backed selects (unlike the static 'adapt' ones, which
+        // self-init through Dropdown::showFromArray) need the same wiring.
+        this.#initSelectsInRow(this.#body.querySelector('[data-af-table-row]'));
+
         this.#addBtn.addEventListener('click', () => this.addRow());
         this.#body.addEventListener('click', e => {
             const btn = e.target.closest('[data-af-table-remove-row]');
@@ -335,23 +340,49 @@ export class AfTableQuestion {
     }
 
     #initSelectsInRow(row) {
-        if (!row || !window.setupAdaptDropdown) { return; }
-        const limit = parseInt(this.#table.dataset.afS2Limit, 10) || 100;
-        row.querySelectorAll('[data-af-needs-s2]').forEach(select => {
-            const id = 'dropdown_af_eu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-            select.id = id;
-            const config = {
-                type: 'adapt',
-                field_id: id,
-                width: '100%',
-                dropdown_css_class: '',
-                placeholder: '',
-                ajax_limit_count: limit,
-            };
-            window.select2_configs = window.select2_configs || {};
-            window.select2_configs[id] = config;
-            window.setupAdaptDropdown(config);
-        });
+        if (!row) { return; }
+
+        if (window.setupAdaptDropdown) {
+            const limit = parseInt(this.#table.dataset.afS2Limit, 10) || 100;
+            row.querySelectorAll('[data-af-needs-s2]').forEach(select => {
+                const id = AfTableQuestion.#newFieldId(select);
+                const config = {
+                    type: 'adapt',
+                    field_id: id,
+                    width: '100%',
+                    dropdown_css_class: '',
+                    placeholder: '',
+                    ajax_limit_count: limit,
+                };
+                window.select2_configs = window.select2_configs || {};
+                window.select2_configs[id] = config;
+                window.setupAdaptDropdown(config);
+            });
+        }
+
+        if (window.setupAjaxDropdown) {
+            row.querySelectorAll('[data-af-needs-ajax-s2]').forEach(select => {
+                let config;
+                try {
+                    config = JSON.parse(select.dataset.afS2Config ?? '');
+                } catch {
+                    config = null;
+                }
+                if (!config || typeof config !== 'object') { return; }
+
+                const id = AfTableQuestion.#newFieldId(select);
+                const full_config = { ...config, field_id: id };
+                window.select2_configs = window.select2_configs || {};
+                window.select2_configs[id] = full_config;
+                window.setupAjaxDropdown(full_config);
+            });
+        }
+    }
+
+    static #newFieldId(select) {
+        const id = 'dropdown_af_eu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        select.id = id;
+        return id;
     }
 
     removeRow(rowElement) {
