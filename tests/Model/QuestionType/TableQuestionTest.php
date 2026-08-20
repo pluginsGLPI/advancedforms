@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Form\Question;
 use Glpi\Form\Condition\ValueOperator;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
@@ -45,7 +46,15 @@ use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
+use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Glpi\Form\QuestionType\AbstractQuestionType;
+use Glpi\Form\QuestionType\QuestionTypeCategoryInterface;
+use Glpi\Form\QuestionType\QuestionTypeItem;
+use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
+use Glpi\Form\QuestionType\QuestionTypesManager;
+use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
+use Override;
 
 final class TableQuestionTest extends AdvancedFormsTestCase
 {
@@ -152,6 +161,63 @@ final class TableQuestionTest extends AdvancedFormsTestCase
     {
         $types = $this->type->getCompatibleQuestionTypes();
         $this->assertArrayNotHasKey(TreeCascadeDropdownQuestion::class, $types);
+    }
+
+    public function testCompatibleTypesExcludesReservation(): void
+    {
+        $types = $this->type->getCompatibleQuestionTypes();
+        $this->assertArrayNotHasKey(ReservationQuestion::class, $types);
+    }
+
+    /**
+     * Regression test for types with custom sub-type selectors, which cannot
+     * be represented as flat table column types and thus must be excluded.
+     */
+    public function testCompatibleTypesExcludesTypesWithSubTypes(): void
+    {
+        $fake_type = new class extends AbstractQuestionType {
+            #[Override]
+            public function getCategory(): QuestionTypeCategoryInterface
+            {
+                return new AdvancedCategory();
+            }
+
+            #[Override]
+            public function getSubTypes(): array
+            {
+                return ['fake' => 'Fake sub type'];
+            }
+
+            #[Override]
+            public function renderAdministrationTemplate(?Question $question): string
+            {
+                return '';
+            }
+
+            #[Override]
+            public function renderEndUserTemplate(?Question $question, mixed $answer = null): string
+            {
+                return '';
+            }
+        };
+
+        QuestionTypesManager::getInstance()->registerPluginQuestionType($fake_type);
+
+        $types = $this->type->getCompatibleQuestionTypes();
+        $this->assertArrayNotHasKey($fake_type::class, $types);
+    }
+
+    /**
+     * QuestionTypeItem and QuestionTypeItemDropdown both declare a non-empty
+     * getSubTypes() but must stay selectable: Table
+     * already renders them through its own dedicated itemtype picker
+     * (TableQuestionConfig::COL_ITEMTYPE), independent of getSubTypes().
+     */
+    public function testCompatibleTypesIncludesItemAndItemDropdownDespiteSubTypes(): void
+    {
+        $types = $this->type->getCompatibleQuestionTypes();
+        $this->assertArrayHasKey(QuestionTypeItem::class, $types);
+        $this->assertArrayHasKey(QuestionTypeItemDropdown::class, $types);
     }
 
     public function testGetConfigKey(): void
