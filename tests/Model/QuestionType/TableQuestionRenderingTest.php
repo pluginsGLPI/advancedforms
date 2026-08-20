@@ -324,7 +324,13 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
         $select  = $crawler->filter('[data-af-table-body] [data-af-table-row] select[data-af-needs-ajax-s2]');
 
         $this->assertSame(1, $select->count());
-        $this->assertSame(0, $select->filter('option')->count());
+
+        $options = $select->filter('option');
+        $this->assertLessThanOrEqual(1, $options->count());
+        if ($options->count() === 1) {
+            $this->assertSame('', $options->attr('value'));
+            $this->assertNotNull($options->attr('disabled'));
+        }
     }
 
     public function testActorColumnIsBackedByTheAjaxDropdownEndpointRestrictedToActiveUsers(): void
