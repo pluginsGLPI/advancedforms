@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed the `Table` question's columns configuration panel: with enough columns to overflow the viewport, reaching the last ones required scrolling the whole page, which could make the still-open dropdown menu jump back to the top instead of staying anchored to its toggle button. The panel now scrolls on its own
+
 ## [1.3.0] - 2026-08-11
 
 ### Changed
