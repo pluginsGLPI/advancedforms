@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed the `Table` question's columns configuration panel: with enough columns to overflow the viewport, reaching the last ones required scrolling the whole page, which could make the still-open dropdown menu jump back to the top instead of staying anchored to its toggle button. The panel now scrolls on its own
+- Fixed the `Table` question's columns configuration panel forcing the whole page to scroll instead of scrolling on its own
 
 ## [1.3.0] - 2026-08-11
 
