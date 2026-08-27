@@ -33,16 +33,23 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Computer;
+use Dropdown;
 use Glpi\Application\ImportMapGenerator;
 use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
+use Glpi\Form\QuestionType\QuestionTypeItem;
+use Glpi\Form\QuestionType\QuestionTypeItemDropdown;
+use Glpi\Form\QuestionType\QuestionTypeRequester;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestionConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
+use Session;
 use Symfony\Component\DomCrawler\Crawler;
+use User;
 
 use function Safe\json_decode;
 use function Safe\json_encode;
@@ -269,6 +276,103 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
         );
     }
 
+    public function testEachColumnGetsItsOwnCustomDropdownItemtypeInTheAjaxConfig(): void
+    {
+        $test1_definition = $this->initDropdownDefinition('Test1');
+        $test2_definition = $this->initDropdownDefinition('Test2');
+
+        $test1_class = $test1_definition->getDropdownClassName();
+        $test2_class = $test2_definition->getDropdownClassName();
+
+        Dropdown::resetItemtypesStaticCache();
+
+        $html    = $this->render([
+            $this->column('Col1', QuestionTypeItemDropdown::class, itemtype: $test1_class),
+            $this->column('Col2', QuestionTypeItemDropdown::class, itemtype: $test2_class),
+        ]);
+        $configs = $this->renderedAjaxConfigs($html);
+
+        $this->assertCount(2, $configs);
+        $this->assertSame($test1_class, $configs[0]['params']['itemtype']);
+        $this->assertSame($test2_class, $configs[1]['params']['itemtype']);
+        $this->assertNotSame(
+            $configs[0]['params']['_idor_token'],
+            $configs[1]['params']['_idor_token'],
+            "Each column must get its own IDOR token, or one column could query the other's scope.",
+        );
+    }
+
+    public function testGlpiObjectColumnIsBackedByTheAjaxDropdownEndpoint(): void
+    {
+        $html    = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
+        $configs = $this->renderedAjaxConfigs($html);
+
+        $this->assertCount(1, $configs);
+        $this->assertSame(Computer::class, $configs[0]['params']['itemtype']);
+        $this->assertNotEmpty($configs[0]['params']['_idor_token']);
+        $this->assertStringEndsWith('/ajax/getDropdownValue.php', $configs[0]['url']);
+    }
+
+    public function testGlpiObjectColumnHasNoPreFetchedOptions(): void
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            $this->createItem(Computer::class, ['name' => 'Computer ' . $i, 'entities_id' => Session::getActiveEntity()]);
+        }
+
+        $html    = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
+        $crawler = new Crawler($html);
+        $select  = $crawler->filter('[data-af-table-body] [data-af-table-row] select[data-af-needs-ajax-s2]');
+
+        $this->assertSame(1, $select->count());
+
+        $options = $select->filter('option');
+        $this->assertLessThanOrEqual(1, $options->count());
+        if ($options->count() === 1) {
+            $this->assertSame('', $options->attr('value'));
+            $this->assertNotNull($options->attr('disabled'));
+        }
+    }
+
+    public function testActorColumnIsBackedByTheAjaxDropdownEndpointRestrictedToActiveUsers(): void
+    {
+        $html    = $this->render([$this->column('Owner', QuestionTypeRequester::class)]);
+        $configs = $this->renderedAjaxConfigs($html);
+
+        $this->assertCount(1, $configs);
+        $this->assertSame(User::class, $configs[0]['params']['itemtype']);
+
+        $condition_key = $configs[0]['params']['condition'];
+        $this->assertNotSame('', $condition_key);
+        $this->assertSame(
+            ['is_active' => 1, 'is_deleted' => 0],
+            $_SESSION['glpicondition'][$condition_key] ?? null,
+        );
+    }
+
+    public function testAjaxColumnConfigIsAlsoPresentInTheRowCloneTemplate(): void
+    {
+        $html = $this->render([$this->column('Asset', QuestionTypeItem::class, itemtype: Computer::class)]);
+
+        $this->assertSame(2, substr_count($html, 'data-af-needs-ajax-s2'));
+    }
+
+    /**
+     * @return list<array<string, mixed>> Decoded `data-af-s2-config` payload
+     *         for each ajax-backed select in the visible row, in column order.
+     */
+    private function renderedAjaxConfigs(string $html): array
+    {
+        $crawler = new Crawler($html);
+        $selects = $crawler->filter('[data-af-table-body] [data-af-table-row] select[data-af-needs-ajax-s2]');
+
+        return $selects->each(function (Crawler $n): array {
+            $decoded = json_decode((string) $n->attr('data-af-s2-config'), associative: true);
+            $this->assertIsArray($decoded, 'data-af-s2-config must hold a JSON object.');
+
+            return $decoded;
+        });
+    }
+
     /**
      * @param array<array{name: string, question_type: string, required: bool, itemtype: string, pattern: string}> $columns
      * @return array<string, string> Decoded `data-af-pattern-cols` payload.
@@ -324,12 +428,13 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
         string $fqcn,
         bool $required = false,
         string $pattern = '',
+        string $itemtype = '',
     ): array {
         return [
             TableQuestionConfig::COL_NAME          => $name,
             TableQuestionConfig::COL_QUESTION_TYPE => $fqcn,
             TableQuestionConfig::COL_REQUIRED      => $required,
-            TableQuestionConfig::COL_ITEMTYPE      => '',
+            TableQuestionConfig::COL_ITEMTYPE      => $itemtype,
             TableQuestionConfig::COL_PATTERN       => $pattern,
         ];
     }
