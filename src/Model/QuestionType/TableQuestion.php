@@ -182,6 +182,8 @@ final class TableQuestion extends AbstractQuestionType implements
             return [];
         }
 
+        $answer = $this->normalizeDropdownCells($answer, $question);
+
         // Drop empty rows; required columns are enforced by validateAnswer().
         $result = [];
         foreach ($answer as $row) {
@@ -205,6 +207,8 @@ final class TableQuestion extends AbstractQuestionType implements
         if ($rules === []) {
             return $result;
         }
+
+        $answer = $this->normalizeDropdownCells($answer, $question);
 
         $row_number = 0;
         foreach ($answer as $row) {
@@ -329,6 +333,46 @@ final class TableQuestion extends AbstractQuestionType implements
         }
 
         return false;
+    }
+
+    /**
+     * @param array<array-key, mixed> $rows
+     * @return array<array-key, mixed>
+     */
+    private function normalizeDropdownCells(array $rows, Question $question): array
+    {
+        $dropdown_indexes = [];
+        foreach ($this->loadConfig($question)->getColumns() as $index => $col) {
+            $fqcn     = $col[TableQuestionConfig::COL_QUESTION_TYPE];
+            $itemtype = $col[TableQuestionConfig::COL_ITEMTYPE] ?? '';
+            if (
+                is_a($fqcn, AbstractQuestionTypeActors::class, true)
+                || (is_a($fqcn, QuestionTypeItem::class, true) && $itemtype !== '' && class_exists($itemtype))
+            ) {
+                $dropdown_indexes[] = $index;
+            }
+        }
+
+        if ($dropdown_indexes === []) {
+            return $rows;
+        }
+
+        foreach ($rows as &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            foreach ($dropdown_indexes as $index) {
+                $key = 'col_' . $index;
+                if (($row[$key] ?? null) === '0' || ($row[$key] ?? null) === 0) {
+                    $row[$key] = '';
+                }
+            }
+        }
+
+        unset($row);
+
+        return $rows;
     }
 
     #[Override]
