@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- Filter the '0' empty-selection sentinel in Table and LDAP select questions
 - Fix Table question column type edge cases
 
 ## [1.3.0] - 2026-08-11
