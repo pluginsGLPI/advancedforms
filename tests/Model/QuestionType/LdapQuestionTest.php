@@ -33,7 +33,9 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use Glpi\Form\Question;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
@@ -49,6 +51,33 @@ final class LdapQuestionTest extends QuestionTypeTestCase
     protected function getTestedQuestionType(): QuestionTypeInterface&ConfigurableItemInterface
     {
         return new LdapQuestion();
+    }
+
+    /**
+     * Dropdown::show(), which renders this question's field, defaults an
+     * unselected value to "0" instead of an empty string. Without a guard,
+     * that sentinel gets saved and displayed as if it were a real answer.
+     */
+    public function testPrepareEndUserAnswerFiltersEmptySelectionSentinel(): void
+    {
+        $type = new LdapQuestion();
+
+        $this->enableConfigurableItem($type);
+        $builder = new FormBuilder("My form");
+        $builder->addQuestion(
+            "My question",
+            LdapQuestion::class,
+            extra_data: json_encode(['authldap_id' => 1]),
+        );
+
+        $form = $this->createForm($builder);
+        $questions_id = $this->getQuestionId($form, "My question");
+        $question = new Question();
+        $this->assertTrue($question->getFromDB($questions_id));
+
+        $this->assertSame('', $type->prepareEndUserAnswer($question, '0'));
+        $this->assertSame('', $type->prepareEndUserAnswer($question, 0));
+        $this->assertSame('jdoe@example.com', $type->prepareEndUserAnswer($question, 'jdoe@example.com'));
     }
 
     #[Override]

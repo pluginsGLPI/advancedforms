@@ -35,6 +35,7 @@ namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
 use Glpi\Form\AnswersHandler\AnswersHandler;
 use Glpi\Form\Question;
+use Glpi\Form\QuestionType\QuestionTypeAssignee;
 use Glpi\Form\QuestionType\QuestionTypeCheckbox;
 use Glpi\Form\QuestionType\QuestionTypeEmail;
 use Glpi\Form\QuestionType\QuestionTypeNumber;
@@ -765,6 +766,50 @@ final class TableQuestionValidationTest extends AdvancedFormsTestCase
         ]);
 
         $this->assertTrue($result->isValid());
+    }
+
+    public function testRequiredActorColumnWithEmptySentinelProducesError(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Assignee', QuestionTypeAssignee::class, required: true),
+            $this->column('Comment', QuestionTypeShortText::class, required: false),
+        ]);
+
+        $result = $this->type->validateAnswer($question, [
+            ['col_0' => '0', 'col_1' => 'a comment'],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertCount(1, $result->getErrors());
+    }
+
+    public function testPrepareEndUserAnswerDropsRowWhoseOnlyValueIsActorEmptySentinel(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Assignee', QuestionTypeAssignee::class, required: false),
+        ]);
+
+        $result = $this->type->prepareEndUserAnswer($question, [
+            ['col_0' => '0'],
+        ]);
+
+        $this->assertSame([], $result);
+    }
+
+    public function testPrepareEndUserAnswerNormalizesActorEmptySentinelToEmptyString(): void
+    {
+        $question = $this->makeTableQuestion([
+            $this->column('Assignee', QuestionTypeAssignee::class, required: false),
+            $this->column('Comment', QuestionTypeShortText::class, required: false),
+        ]);
+
+        $result = $this->type->prepareEndUserAnswer($question, [
+            ['col_0' => '0', 'col_1' => 'a comment'],
+        ]);
+
+        $this->assertSame([
+            ['col_0' => '', 'col_1' => 'a comment'],
+        ], $result);
     }
 
     /**
