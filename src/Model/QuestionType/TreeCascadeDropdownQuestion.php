@@ -124,7 +124,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         $foreign_key = $itemtype::getForeignKeyField();
 
         $rand_tree = random_int(1000000, 9999999);
-        $final_items_id_name = $question->getEndUserInputName() . '[items_id]';
+        $final_items_id_name = $question->getEndUserInputName() . '[items_ids]';
         $level2_container = 'level2_container_' . $rand_tree;
 
         $dropdown_restriction_params = $this->getDropdownRestrictionParams($question);
