@@ -59,10 +59,34 @@ export class AfTreeCascadeDropdown {
 
         this.#setupAdapt($select);
         this.#bindChangeEvent($select);
+        this.#observeValidationState($select);
 
         if (this.auto_load_parent_id > 0 && this.next_container_id) {
             this.#loadChildren(this.auto_load_parent_id, $(`#${this.next_container_id}`));
         }
+    }
+
+    /**
+     * The generic form renderer marks every visible <select> found inside
+     * the question wrapper as invalid when the question fails mandatory
+     * validation, since it has no way to know that this question is made of
+     * several cascading levels sharing a single answer. As soon as a level
+     * already has a value selected, strip the wrongly-applied invalid state
+     * (and its duplicated "required" tooltip) so only the actually empty
+     * level stays flagged.
+     */
+    #observeValidationState($select) {
+        const select = $select[0];
+        const observer = new MutationObserver(() => {
+            const value = parseInt($select.val(), 10);
+            if (value > 0 && select.classList.contains('is-invalid')) {
+                select.classList.remove('is-invalid');
+                select.removeAttribute('aria-invalid');
+                select.removeAttribute('aria-errormessage');
+                $select.closest('.af-tree-level-wrapper').find('.invalid-tooltip').remove();
+            }
+        });
+        observer.observe(select, { attributes: true, attributeFilter: ['class'] });
     }
 
     #setupAdapt($select) {

@@ -76,7 +76,7 @@ final class TreeDropdownChildrenController extends AbstractController
         $question_type = $question->getQuestionType();
 
         $itemtype = $question_type->getDefaultValueItemtype($question) ?? '';
-        $field_name = $question->getEndUserInputName() . '[items_id]';
+        $field_name = $question->getEndUserInputName() . '[items_ids]';
         $aria_label = $question_type->items_id_aria_label ?? __('Select a dropdown item');
 
         $dropdown_restriction_params = $question_type->getDropdownRestrictionParams($question);
