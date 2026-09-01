@@ -36,6 +36,7 @@ namespace GlpiPlugin\Advancedforms\Controller;
 use Glpi\Controller\AbstractController;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use Glpi\Exception\Http\BadRequestHttpException;
+use Reservation;
 use ReservationItem;
 use Session;
 
@@ -45,7 +46,7 @@ abstract class AbstractReservationWidgetController extends AbstractController
     /** @throws AccessDeniedHttpException when the current user cannot read reservations. */
     protected function checkReservationAccess(): void
     {
-        if (!Session::haveRightsOr('reservation', [READ, ReservationItem::RESERVEANITEM])) {
+        if (!Session::haveRightsOr(Reservation::$rightname, [READ, ReservationItem::RESERVEANITEM])) {
             throw new AccessDeniedHttpException();
         }
     }
