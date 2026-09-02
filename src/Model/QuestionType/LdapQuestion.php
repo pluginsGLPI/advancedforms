@@ -131,6 +131,16 @@ final class LdapQuestion extends AbstractQuestionType implements ConfigurableIte
     }
 
     #[Override]
+    public function prepareEndUserAnswer(Question $question, mixed $answer): mixed
+    {
+        if ($answer === '0' || $answer === 0) {
+            return '';
+        }
+
+        return $answer;
+    }
+
+    #[Override]
     public function renderEndUserTemplate(Question|null $question): string
     {
         if (!$question instanceof Question) {
