@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- Use translated itemtype name for reservation item select groups
 - Filter the '0' empty-selection sentinel in Table and LDAP select questions
 - Fix Table question column type edge cases
 

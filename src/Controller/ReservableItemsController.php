@@ -78,7 +78,7 @@ final class ReservableItemsController extends AbstractReservationWidgetControlle
 
     /**
      * @param class-string<CommonDBTM> $itemtype
-     * @return array<int, array{id: int, text: string, itemtype: string}>
+     * @return array<int, array{id: int, text: string, itemtype: string, itemtype_label: string}>
      */
     private function getReservableItemsForType(string $itemtype, string $search): array
     {
@@ -114,10 +114,12 @@ final class ReservableItemsController extends AbstractReservationWidgetControlle
             }
 
             $id = $row['id'] ?? null;
+            $itemtype_label = $itemtype::getTypeName(1);
             $results[] = [
                 'id' => is_numeric($id) ? (int) $id : 0,
-                'text' => sprintf('%s (%s)', $item->getName(), $itemtype::getTypeName(1)),
+                'text' => sprintf('%s (%s)', $item->getName(), $itemtype_label),
                 'itemtype' => $itemtype,
+                'itemtype_label' => $itemtype_label,
             ];
         }
 

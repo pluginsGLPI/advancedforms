@@ -93,22 +93,22 @@ export class ReservationQuestionWidget {
         $select.on('select2:clear select2:unselecting', () => this.#onItemCleared());
     }
 
-    /** Groups flat {id, text, itemtype} results into Select2 optgroups per itemtype. */
+    /** Groups flat {id, text, itemtype, itemtype_label} results into Select2 optgroups per itemtype. */
     #groupResultsByItemtype(data) {
         const groups = new Map();
 
         for (const item of data) {
-            const group_label = item.itemtype || '';
-            if (!groups.has(group_label)) {
-                groups.set(group_label, []);
+            const key = item.itemtype || '';
+            if (!groups.has(key)) {
+                groups.set(key, { text: item.itemtype_label || key, children: [] });
             }
-            groups.get(group_label).push({
+            groups.get(key).children.push({
                 id: item.id,
                 text: item.text,
             });
         }
 
-        return Array.from(groups, ([text, children]) => ({ text, children }));
+        return Array.from(groups.values());
     }
 
     #onItemSelected() {
