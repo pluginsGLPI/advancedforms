@@ -88,7 +88,7 @@ function plugin_init_advancedforms(): void
 function plugin_version_advancedforms(): array
 {
     return [
-        'name'           => 'advancedforms',
+        'name'           => 'Advanced forms',
         'version'        => PLUGIN_ADVANCEDFORMS_VERSION,
         'author'         => '<a href="http://www.teclib.com">Teclib\'</a>',
         'license'        => '',
