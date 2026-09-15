@@ -106,7 +106,7 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
         $answers = [
             $this->getQuestionId($form, "My location") => [
                 'itemtype' => Location::class,
-                'items_id' => $child->getID(),
+                'items_ids' => $child->getID(),
             ],
         ];
 
@@ -164,7 +164,7 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
         $answers = [
             $this->getQuestionId($form, "My location") => [
                 'itemtype' => Location::class,
-                'items_id' => $parent->getID(),
+                'items_ids' => $parent->getID(),
             ],
         ];
 
@@ -227,7 +227,7 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
         $answers = [
             $this->getQuestionId($form, "My location") => [
                 'itemtype' => Location::class,
-                'items_id' => $child->getID(),
+                'items_ids' => $child->getID(),
             ],
         ];
 
@@ -280,7 +280,7 @@ final class TreeCascadeItemAsTextConditionHandlerTest extends AdvancedFormsTestC
         $answers = [
             $this->getQuestionId($form, "My location") => [
                 'itemtype' => Location::class,
-                'items_id' => 0,
+                'items_ids' => 0,
             ],
         ];
 

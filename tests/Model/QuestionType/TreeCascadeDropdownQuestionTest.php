@@ -40,7 +40,6 @@ use Glpi\Form\Category;
 use SoftwareLicenseType;
 use DocumentCategory;
 use BusinessCriticity;
-use KnowbaseItemCategory;
 use IPNetwork;
 use SoftwareCategory;
 use WebhookCategory;
@@ -60,6 +59,8 @@ use Location;
 use Override;
 use Session;
 use Symfony\Component\DomCrawler\Crawler;
+
+use function Safe\json_encode;
 
 final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
 {
@@ -152,9 +153,6 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
             'Management' => [
                 DocumentCategory::class,
                 BusinessCriticity::class,
-            ],
-            'Tools' => [
-                KnowbaseItemCategory::class,
             ],
             'Internet' => [
                 IPNetwork::class,
@@ -819,13 +817,10 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
     {
         $this->login();
         $controller = new RendererController();
-        $response = $controller->__invoke(
-            Request::create(
-                '',
-                'GET',
-                ['id' => $form->getID()],
-            ),
-        );
+        $request = Request::create('', 'GET');
+        $request->attributes->set('id', $form->getID());
+
+        $response = $controller->__invoke($request);
         return new Crawler($response->getContent());
     }
 }

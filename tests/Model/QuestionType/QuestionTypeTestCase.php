@@ -44,6 +44,10 @@ use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 
+use function Safe\json_encode;
+use function Safe\ob_get_clean;
+use function Safe\ob_start;
+
 abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
 {
     use FormTesterTrait;
@@ -229,15 +233,10 @@ abstract class QuestionTypeTestCase extends AdvancedFormsTestCase
         $this->login();
         $this->beforeHelpdeskRender();
         $controller = new RendererController();
-        $response = $controller->__invoke(
-            Request::create(
-                '',
-                'GET',
-                [
-                    'id' => $form->getID(),
-                ],
-            ),
-        );
+        $request = Request::create('', 'GET');
+        $request->attributes->set('id', $form->getID());
+
+        $response = $controller->__invoke($request);
         return new Crawler($response->getContent());
     }
 

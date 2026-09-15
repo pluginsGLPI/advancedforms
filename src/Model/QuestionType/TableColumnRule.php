@@ -177,6 +177,7 @@ final readonly class TableColumnRule
             $value,
             ValueOperator::MATCH_REGEX,
             $this->pattern,
+            null,
         );
     }
 }

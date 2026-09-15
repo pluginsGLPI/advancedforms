@@ -76,7 +76,7 @@ final class TreeDropdownChildrenController extends AbstractController
         $question_type = $question->getQuestionType();
 
         $itemtype = $question_type->getDefaultValueItemtype($question) ?? '';
-        $field_name = $question->getEndUserInputName() . '[items_id]';
+        $field_name = $question->getEndUserInputName() . '[items_ids]';
         $aria_label = $question_type->items_id_aria_label ?? __('Select a dropdown item');
 
         $dropdown_restriction_params = $question_type->getDropdownRestrictionParams($question);
@@ -99,7 +99,7 @@ final class TreeDropdownChildrenController extends AbstractController
         $is_recursive = $item_check->maybeRecursive();
 
         $entity_restrict = getEntitiesRestrictCriteria($table, '', '', $is_recursive);
-        if (!empty($entity_restrict)) {
+        if ($entity_restrict !== []) {
             $where = array_merge($where, $entity_restrict);
         }
 
