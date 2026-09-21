@@ -40,27 +40,31 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
 {
     // Unique reference to hardcoded name used for serialization
     public const ALLOWED_ITEMTYPES = 'allowed_itemtypes';
+    public const SHOW_CALENDAR = 'show_calendar';
 
     /** @param array<string> $allowed_itemtypes */
     public function __construct(
         private array $allowed_itemtypes = [],
+        private bool $show_calendar = true,
     ) {}
 
-    /** @param array{allowed_itemtypes?: array<string>} $data */
+    /** @param array{allowed_itemtypes?: array<string>, show_calendar?: bool} $data */
     #[Override]
     public static function jsonDeserialize(array $data): self
     {
         return new self(
             allowed_itemtypes: $data[self::ALLOWED_ITEMTYPES] ?? [],
+            show_calendar: $data[self::SHOW_CALENDAR] ?? true,
         );
     }
 
-    /** @return array{allowed_itemtypes: array<string>} */
+    /** @return array{allowed_itemtypes: array<string>, show_calendar: bool} */
     #[Override]
     public function jsonSerialize(): array
     {
         return [
             self::ALLOWED_ITEMTYPES => $this->allowed_itemtypes,
+            self::SHOW_CALENDAR => $this->show_calendar,
         ];
     }
 
@@ -68,6 +72,11 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
     public function getAllowedItemtypes(): array
     {
         return $this->allowed_itemtypes;
+    }
+
+    public function isCalendarEnabled(): bool
+    {
+        return $this->show_calendar;
     }
 
     /** @return array<string> */

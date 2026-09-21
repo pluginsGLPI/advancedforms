@@ -128,6 +128,7 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
                 'extra_data'              => $config,
                 'reservation_types'       => $reservation_types,
                 'ALLOWED_ITEMTYPES'       => ReservationQuestionConfig::ALLOWED_ITEMTYPES,
+                'SHOW_CALENDAR'           => ReservationQuestionConfig::SHOW_CALENDAR,
                 'destination_label'       => FormDestination::getTypeName(2),
                 'timeline_category_label' => Category::TIMELINE->getLabel(),
                 'pre_reservation_label'   => (new PreReservationField())->getLabel(),
@@ -158,6 +159,7 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
         return TemplateRenderer::getInstance()->render('@advancedforms/reservation_question.html.twig', [
             'input_name'        => $question->getEndUserInputName(),
             'allowed_itemtypes' => $config->getAllowedItemtypes(),
+            'show_calendar'     => $config->isCalendarEnabled(),
         ]);
     }
 

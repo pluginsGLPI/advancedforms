@@ -31,6 +31,7 @@
 
 export class ReservationQuestionWidget {
     #root;
+    #calendar = null;
     #endpoint_url = `${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationWidget`;
 
     /** @param {HTMLElement} root - root element rendered by templates/reservation_question.html.twig */
@@ -116,7 +117,14 @@ export class ReservationQuestionWidget {
         this.#setReservationItemsId($select.val());
         $(this.#root.querySelector('[data-reservation-question-dates]')).removeClass('d-none');
         this.#checkAvailability();
-        this.#loadReservations();
+
+        // Absent when the question is configured without the calendar (see #ensureCalendar).
+        this.#ensureCalendar();
+        if (this.#calendar) {
+            this.#calendar.unselect();
+            this.#calendar.gotoDate(new Date());
+            this.#calendar.refetchEvents();
+        }
     }
 
     #onItemCleared() {
@@ -129,7 +137,10 @@ export class ReservationQuestionWidget {
         }
         $(this.#root.querySelector('[data-reservation-question-dates]')).addClass('d-none');
         this.#showAvailability(null);
-        this.#renderReservations([]);
+        if (this.#calendar) {
+            this.#calendar.unselect();
+            this.#calendar.removeAllEvents();
+        }
     }
 
     /** begin/end are rendered by the datetimeField macro (self-initializing Flatpickr); just react to changes. */
@@ -197,46 +208,78 @@ export class ReservationQuestionWidget {
         this.#showStatus(__('The end date must be after the start date', 'advancedforms'), 'text-danger');
     }
 
-    /** Fetches the equipment's existing reservations and lists them so the user can see busy slots. */
-    #loadReservations() {
-        const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
-        if (!reservationitems_id) {
-            this.#renderReservations([]);
+    /** Builds the calendar once; item changes afterwards just refetch its events (see #onItemSelected). */
+    #ensureCalendar() {
+        if (this.#calendar) {
             return;
         }
 
-        $.post(`${this.#endpoint_url}/Reservations`, { reservationitems_id })
-            .done((data) => this.#renderReservations(Array.isArray(data) ? data : []))
-            .fail(() => this.#renderReservations([]));
-    }
-
-    /** @param {Array<{begin: string, end: string}>} reservations */
-    #renderReservations(reservations) {
-        const container = this.#root.querySelector('[data-reservation-question-reservations]');
+        const container = this.#root.querySelector('[data-reservation-question-calendar]');
         if (!container) {
             return;
         }
 
-        if (reservations.length === 0) {
-            container.innerHTML = '';
+        this.#calendar = new FullCalendar.Calendar(container, {
+            plugins: ['timeGrid', 'interaction'],
+            defaultView: 'timeGridWeek',
+            header: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            height: 450,
+            selectable: true,
+            selectMirror: true,
+            // Keep the highlight visible when focus leaves the calendar (e.g. another question);
+            // it is cleared explicitly on item change/select instead (see #onItemSelected/#onItemCleared).
+            unselectAuto: false,
+            select: (info) => this.#onSlotSelected(info),
+            events: (info, successCallback, failureCallback) => this.#fetchEvents(info, successCallback, failureCallback),
+        });
+        this.#calendar.render();
+    }
+
+    /** FullCalendar event source: reuses the existing Reservations endpoint, scoped to the visible range. */
+    #fetchEvents(info, successCallback, failureCallback) {
+        const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
+        if (!reservationitems_id) {
+            successCallback([]);
             return;
         }
 
-        const title = document.createElement('div');
-        title.className = 'text-muted small mb-1';
-        title.textContent = __('Existing reservations for this item', 'advancedforms');
+        $.post(`${this.#endpoint_url}/Reservations`, {
+            reservationitems_id,
+            begin: this.#formatForServer(info.start),
+            end: this.#formatForServer(info.end),
+        })
+            .done((data) => successCallback((Array.isArray(data) ? data : []).map((reservation) => ({
+                title: __('Reserved', 'advancedforms'),
+                start: reservation.begin.replace(' ', 'T'),
+                end: reservation.end.replace(' ', 'T'),
+                color: 'var(--tblr-red)',
+                editable: false,
+                overlap: false,
+            }))))
+            .fail(() => failureCallback());
+    }
 
-        const list = document.createElement('ul');
-        list.className = 'list-unstyled small mb-0';
-        for (const reservation of reservations) {
-            const line = document.createElement('li');
-            line.className = 'text-muted';
-            // textContent, never innerHTML: dates come from the server but stay untrusted here.
-            line.textContent = `${reservation.begin} → ${reservation.end}`;
-            list.appendChild(line);
+    /**
+     * User picked a free slot on the calendar: mirror it into the begin/end pickers used by the
+     * rest of the widget. The selection highlight is left in place (not unselected) so the user
+     * can see what they just picked; it clears on the next selection or item change instead.
+     */
+    #onSlotSelected(info) {
+        const begin_picker = this.#getBeginInput()?.closest('.flatpickr')?._flatpickr;
+        const end_picker = this.#getEndInput()?.closest('.flatpickr')?._flatpickr;
+        if (!begin_picker || !end_picker) {
+            return;
         }
 
-        container.replaceChildren(title, list);
+        begin_picker.setDate(info.start);
+        end_picker.setDate(info.end);
+        this.#checkAvailability();
+    }
+
+    /** @returns {string} date formatted as 'Y-m-d H:i:s', as expected by the Reservations endpoint. */
+    #formatForServer(date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
 
     #showAvailability(available) {

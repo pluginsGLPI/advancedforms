@@ -40,12 +40,22 @@ class ReservationQuestionConfigTest extends TestCase
 {
     public function testJsonRoundTrip(): void
     {
-        $config = new ReservationQuestionConfig(['Computer', 'Monitor']);
+        $config = new ReservationQuestionConfig(['Computer', 'Monitor'], show_calendar: false);
         $serialized = $config->jsonSerialize();
-        $this->assertSame(['allowed_itemtypes' => ['Computer', 'Monitor']], $serialized);
+        $this->assertSame(
+            ['allowed_itemtypes' => ['Computer', 'Monitor'], 'show_calendar' => false],
+            $serialized,
+        );
 
         $rebuilt = ReservationQuestionConfig::jsonDeserialize($serialized);
         $this->assertSame(['Computer', 'Monitor'], $rebuilt->getAllowedItemtypes());
+        $this->assertFalse($rebuilt->isCalendarEnabled());
+    }
+
+    public function testCalendarEnabledByDefault(): void
+    {
+        $config = new ReservationQuestionConfig(['Computer']);
+        $this->assertTrue($config->isCalendarEnabled());
     }
 
     public function testEffectiveAllowedItemtypesFallsBackToConfiguredReservationTypes(): void
