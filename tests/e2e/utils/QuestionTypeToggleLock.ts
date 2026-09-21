@@ -1,5 +1,3 @@
-<?php
-
 /**
  * -------------------------------------------------------------------------
  * advancedforms plugin for GLPI
@@ -31,45 +29,42 @@
  * -------------------------------------------------------------------------
  */
 
-namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
+import { mkdirSync, rmdirSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
-use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestionConfig;
-use PHPUnit\Framework\TestCase;
+const LOCK_PATH = join(tmpdir(), 'advancedforms-e2e-question-type-toggle.lock');
 
-class ReservationQuestionConfigTest extends TestCase
-{
-    public function testJsonRoundTrip(): void
-    {
-        $config = new ReservationQuestionConfig(['Computer', 'Monitor'], show_calendar: false);
-        $serialized = $config->jsonSerialize();
-        $this->assertSame(
-            ['allowed_itemtypes' => ['Computer', 'Monitor'], 'show_calendar' => false],
-            $serialized,
-        );
+// Tracks nested acquisitions within this worker process, so a test that wraps its
+// whole body and also calls a helper that locks its own sub-step doesn't deadlock
+// waiting on a lock it already holds itself.
+let hold_count = 0;
 
-        $rebuilt = ReservationQuestionConfig::jsonDeserialize($serialized);
-        $this->assertSame(['Computer', 'Monitor'], $rebuilt->getAllowedItemtypes());
-        $this->assertFalse($rebuilt->isCalendarEnabled());
+/**
+ * Runs `fn` while holding an exclusive lock shared by every Playwright worker process.
+ */
+export async function withQuestionTypeToggleLock<T>(fn: () => Promise<T>): Promise<T> {
+    if (hold_count === 0) {
+        for (;;) {
+            try {
+                mkdirSync(LOCK_PATH);
+                break;
+            } catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+                    throw error;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+        }
     }
+    hold_count++;
 
-    public function testCalendarEnabledByDefault(): void
-    {
-        $config = new ReservationQuestionConfig(['Computer']);
-        $this->assertTrue($config->isCalendarEnabled());
-    }
-
-    public function testEffectiveAllowedItemtypesFallsBackToConfiguredReservationTypes(): void
-    {
-        global $CFG_GLPI;
-        $CFG_GLPI['reservation_types'] = ['Computer', 'Monitor', 'Peripheral'];
-
-        $config = new ReservationQuestionConfig([]);
-        $this->assertSame(['Computer', 'Monitor', 'Peripheral'], $config->getEffectiveAllowedItemtypes());
-    }
-
-    public function testEffectiveAllowedItemtypesUsesExplicitListWhenSet(): void
-    {
-        $config = new ReservationQuestionConfig(['Monitor']);
-        $this->assertSame(['Monitor'], $config->getEffectiveAllowedItemtypes());
+    try {
+        return await fn();
+    } finally {
+        hold_count--;
+        if (hold_count === 0) {
+            rmdirSync(LOCK_PATH);
+        }
     }
 }

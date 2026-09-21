@@ -44,7 +44,10 @@ export class AdvancedFormsTablePage extends GlpiPage {
         super(page);
     }
 
-    /** Enables the Table question type from the plugin configuration page. */
+    /**
+     * Enables the Table question type from the plugin configuration page, disabling
+     * every other question type the plugin provides.
+     */
     public async enableTableQuestionType(): Promise<void> {
         await this.page.goto(
             `/front/config.form.php?forcetab=${AdvancedFormsTablePage.CONFIG_TAB}`,
@@ -54,9 +57,24 @@ export class AdvancedFormsTablePage extends GlpiPage {
             .locator('[data-testid^="feature-"]')
             .filter({ hasText: 'Table question type' });
         const toggle = card.getByTestId('feature-toggle');
+        const own_name = await toggle.getAttribute('name');
 
+        let changed = false;
+        for (const other_toggle of await this.page.getByTestId('feature-toggle').all()) {
+            if (await other_toggle.getAttribute('name') === own_name) {
+                continue;
+            }
+            if (await other_toggle.isChecked()) {
+                await other_toggle.uncheck();
+                changed = true;
+            }
+        }
         if (!(await toggle.isChecked())) {
             await toggle.check();
+            changed = true;
+        }
+
+        if (changed) {
             await this.getButton('Save').click();
             await expect(card.getByTestId('feature-toggle')).toBeChecked();
         }
@@ -65,7 +83,7 @@ export class AdvancedFormsTablePage extends GlpiPage {
     /** Opens the column configuration dropdown of a table question in the editor. */
     public async openColumnConfig(question: Locator): Promise<void> {
         await question.getByRole('button', { name: 'Configure table columns' }).click();
-        await question.locator('[data-af-table-columns-container]').waitFor({ state: 'visible' });
+        await question.locator('[data-af-table-column-add]').waitFor({ state: 'visible' });
     }
 
     /**
