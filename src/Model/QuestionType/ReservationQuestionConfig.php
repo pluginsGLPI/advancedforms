@@ -40,6 +40,7 @@ final readonly class ReservationQuestionConfig implements JsonFieldInterface
 {
     // Unique reference to hardcoded name used for serialization
     public const ALLOWED_ITEMTYPES = 'allowed_itemtypes';
+
     public const SHOW_CALENDAR = 'show_calendar';
 
     /** @param array<string> $allowed_itemtypes */
