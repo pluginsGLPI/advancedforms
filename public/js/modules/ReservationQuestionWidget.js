@@ -219,13 +219,24 @@ export class ReservationQuestionWidget {
             return;
         }
 
+        this.#loadCalendarCss();
+
+        // Same locale/hours setup as core js/planning.js; planning hours are absent from CFG_GLPI for anonymous sessions.
+        const loaded_locales = typeof FullCalendarLocales !== 'undefined' ? Object.keys(FullCalendarLocales) : [];
         this.#calendar = new FullCalendar.Calendar(container, {
             plugins: ['timeGrid', 'interaction'],
             defaultView: 'timeGridWeek',
             header: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            locale: loaded_locales.length === 1 ? loaded_locales[0] : undefined,
+            minTime: CFG_GLPI.planning_begin ?? '00:00:00',
+            maxTime: CFG_GLPI.planning_end ?? '24:00:00',
             height: 450,
             selectable: true,
             selectMirror: true,
+            // Don't offer slots the server would reject: past ones or overlapping an existing reservation.
+            selectOverlap: false,
+            validRange: { start: new Date() },
+            selectAllow: (info) => info.start >= new Date(),
             // Keep the highlight visible when focus leaves the calendar (e.g. another question);
             // it is cleared explicitly on item change/select instead (see #onItemSelected/#onItemCleared).
             unselectAuto: false,
@@ -233,6 +244,30 @@ export class ReservationQuestionWidget {
             events: (info, successCallback, failureCallback) => this.#fetchEvents(info, successCallback, failureCallback),
         });
         this.#calendar.render();
+    }
+
+    /**
+     * Several calendar-enabled questions may share the page: only add the stylesheet once.
+     * It loads asynchronously, so resize the calendar once it applies: slot positions measured
+     * on the unstyled grid would otherwise misplace the events until the next re-render.
+     */
+    #loadCalendarCss() {
+        const href = this.#root.dataset.calendarCss;
+        if (!href) {
+            return;
+        }
+
+        let link = document.querySelector(`link[rel="stylesheet"][href="${CSS.escape(href)}"]`);
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+        }
+
+        if (!link.sheet) {
+            link.addEventListener('load', () => this.#calendar?.updateSize(), { once: true });
+        }
     }
 
     /** FullCalendar event source: reuses the existing Reservations endpoint, scoped to the visible range. */

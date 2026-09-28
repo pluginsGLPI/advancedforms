@@ -35,6 +35,7 @@
      data-reservation-question-widget
      data-input-name="{{ input_name }}"
      data-allowed-itemtypes="{{ allowed_itemtypes|json_encode }}"
+     {% if show_calendar %}data-calendar-css="{{ css_path('lib/fullcalendar.css') }}"{% endif %}
 >
     <select class="form-select" data-reservation-question-item-select>
         <option value=""></option>
@@ -74,8 +75,8 @@
     <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
 </div>
 {% if show_calendar %}
-    <link rel="stylesheet" href="{{ css_path('lib/fullcalendar.css') }}">
-    <script src="{{ js_path('lib/fullcalendar.js') }}"></script>
+    {# Session-deduped, also loads the FullCalendar locale matching the user language #}
+    {% do call(['Html', 'requireJs'], ['fullcalendar']) %}
 {% endif %}
 <script type="module">
     import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
