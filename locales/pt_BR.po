@@ -1,0 +1,313 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: advancedforms\n"
+"PO-Revision-Date: 2026-09-29 08:30-0300\n"
+"Last-Translator: andrefelipeufcg <andrefelipe@copin.ufcg.edu.br>\n"
+"Language-Team: pt_BR\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "This slot is no longer available."
+msgstr "Este horário não está mais disponível."
+
+msgid "Advanced forms"
+msgstr "Formulários avançados"
+
+msgid "Pre-reservation"
+msgstr "Pré-reserva"
+
+msgid "Select a question..."
+msgstr "Selecione uma pergunta..."
+
+msgid "The pre-reservation could not be created: no identifiable requester."
+msgstr "A pré-reserva não pôde ser criada: solicitante não identificável."
+
+msgid "The pre-reservation could not be created: the selected item is not allowed."
+msgstr "A pré-reserva não pôde ser criada: o item selecionado não é permitido."
+
+msgid "No pre-reservation"
+msgstr "Nenhuma pré-reserva"
+
+msgid "Answer from a specific question"
+msgstr "Resposta de uma pergunta específica"
+
+msgid "Answer to last \"Material reservation\" question"
+msgstr "Resposta da última pergunta de \"Reserva de Material\""
+
+msgid "All valid \"Material reservation\" answers"
+msgstr "Todas as respostas válidas de \"Reserva de Material\""
+
+msgid "New pre-reservation request"
+msgstr "Nova solicitação de pré-reserva"
+
+msgid "Pre-reservation request approved"
+msgstr "Solicitação de pré-reserva aprovada"
+
+msgid "Pre-reservation request refused"
+msgstr "Solicitação de pré-reserva recusada"
+
+msgid "Reservation slot no longer available"
+msgstr "O horário de reserva não está mais disponível"
+
+msgid "Notification reason"
+msgstr "Motivo da notificação"
+
+msgid "Reservation start date"
+msgstr "Data de início da reserva"
+
+msgid "Reservation end date"
+msgstr "Data de término da reserva"
+
+msgid "Validation comment"
+msgstr "Comentário de validação"
+
+msgid "Ticket title"
+msgstr "Título do chamado"
+
+msgid "Ticket URL"
+msgstr "URL do chamado"
+
+msgid "Advanced"
+msgstr "Avançado"
+
+msgid "Hidden"
+msgstr "Oculto"
+
+msgid "Hidden address question type"
+msgstr "Tipo de pergunta oculta"
+
+msgid "This question type will insert some hidden data into the form."
+msgstr "Este tipo de pergunta inserirá alguns dados ocultos no formulário."
+
+msgid "Hostname"
+msgstr "Nome do host"
+
+msgid "Hostname question type"
+msgstr "Tipo de pergunta de Nome do host"
+
+msgid "This question type will automatically register the user's hostname."
+msgstr "Este tipo de pergunta registrará automaticamente o nome do host do usuário."
+
+msgid "Ip address"
+msgstr "Endereço IP"
+
+msgid "IP address question type"
+msgstr "Tipo de pergunta de Endereço IP"
+
+msgid "This question type will automatically register the user's ip address."
+msgstr "Este tipo de pergunta registrará automaticamente o endereço IP do usuário."
+
+msgid "LDAP select"
+msgstr "Seleção LDAP"
+
+msgid "LDAP select question type"
+msgstr "Tipo de pergunta de seleção LDAP"
+
+msgid "Select some data from a LDAP directory."
+msgstr "Selecione alguns dados de um diretório LDAP."
+
+msgid "Material reservation"
+msgstr "Reserva de material"
+
+msgid "Select an item to reserve"
+msgstr "Selecione um item para reservar"
+
+msgid "Unexpected value"
+msgstr "Valor inesperado"
+
+msgid "Please select an item and both a start and end date."
+msgstr "Por favor, selecione um item e uma data de início e de término."
+
+msgid "The end date must be after the start date."
+msgstr "A data de término deve ser após a data de início."
+
+msgid "The end date must be after the start date"
+msgstr "A data de término deve ser após a data de início"
+
+msgid "Material reservation question type"
+msgstr "Tipo de pergunta de Reserva de Material"
+
+msgid "Allow users to reserve equipment from a form."
+msgstr "Permitir que os usuários reservem equipamentos de um formulário."
+
+msgid "the value is not valid"
+msgstr "o valor não é válido"
+
+msgid "the value is not a number"
+msgstr "o valor não é um número"
+
+msgid "Table"
+msgstr "Tabela"
+
+msgid "Row %1\$s: the column \"%2\$s\" is required."
+msgstr "Linha %1\$s: a coluna \"%2\$s\" é obrigatória."
+
+msgid "Row %1\$s: the column \"%2\$s\" is invalid: %3\$s"
+msgstr "Linha %1\$s: a coluna \"%2\$s\" é inválida: %3\$s"
+
+msgid "Row %1\$s: the column \"%2\$s\" does not match the expected format."
+msgstr "Linha %1\$s: a coluna \"%2\$s\" não corresponde ao formato esperado."
+
+msgid "Table question type"
+msgstr "Tipo de pergunta de Tabela"
+
+msgid "Allow users to fill in tabular data with configurable columns."
+msgstr "Permitir que os usuários preencham dados tabulares com colunas configuráveis."
+
+msgid "Tree Cascade Dropdown"
+msgstr "Lista Suspensa em Cascata"
+
+msgid "Enable tree cascade dropdown question type (recursive dropdown for hierarchical data)"
+msgstr "Ativar tipo de pergunta de lista suspensa em cascata"
+
+msgid "Advanced forms plugin configuration"
+msgstr "Configuração do plugin Formulários Avançados"
+
+msgid "Require technician approval"
+msgstr "Exigir aprovação de técnico"
+
+msgid "Data from LDAP directory"
+msgstr "Dados do diretório LDAP"
+
+msgid "Allowed equipment types"
+msgstr "Tipos de equipamentos permitidos"
+
+msgid "All reservable types"
+msgstr "Todos os tipos reserváveis"
+
+msgid "Whether a technician must approve the reservation before it is confirmed is configured on the destination that uses this question, under"
+msgstr "Se um técnico deve aprovar a reserva antes que ela seja confirmada é configurado no destino que usa esta pergunta, sob"
+
+msgid "Define columns below"
+msgstr "Defina as colunas abaixo"
+
+msgid "Configure table columns"
+msgstr "Configurar colunas da tabela"
+
+msgid "Columns"
+msgstr "Colunas"
+
+msgid "Column name"
+msgstr "Nome da coluna"
+
+msgid "Select a type"
+msgstr "Selecione um tipo"
+
+msgid "Required column"
+msgstr "Coluna obrigatória"
+
+msgid "Remove column"
+msgstr "Remover coluna"
+
+msgid "Validation pattern"
+msgstr "Padrão de validação"
+
+msgid "Add column"
+msgstr "Adicionar coluna"
+
+msgid "Start date"
+msgstr "Data de início"
+
+msgid "End date"
+msgstr "Data de término"
+
+msgid "Please fill in all required columns."
+msgstr "Por favor, preencha todas as colunas obrigatórias."
+
+msgid "This value does not match the expected format."
+msgstr "Este valor não corresponde ao formato esperado."
+
+msgid "Select a value"
+msgstr "Selecione um valor"
+
+msgid "Remove row"
+msgstr "Remover linha"
+
+msgid "Add a row"
+msgstr "Adicionar uma linha"
+
+msgid "Pending validation"
+msgstr "Aguardando validação"
+
+msgid "Approved"
+msgstr "Aprovado"
+
+msgid "Refused"
+msgstr "Recusado"
+
+msgid "Canceled"
+msgstr "Cancelado"
+
+msgid "Reservation confirmed automatically"
+msgstr "Reserva confirmada automaticamente"
+
+msgid "This slot is no longer available. Please submit a new reservation request."
+msgstr "Este horário não está mais disponível. Por favor, envie uma nova solicitação de reserva."
+
+msgid "Comment (optional)"
+msgstr "Comentário (opcional)"
+
+msgid "Approve"
+msgstr "Aprovar"
+
+msgid "Refuse"
+msgstr "Recusar"
+
+msgid "This slot is no longer available."
+msgstr "Este horário não está mais disponível."
+
+msgid "Pre-reservation"
+msgstr "Pré-reserva"
+
+msgid "The pre-reservation could not be created: no identifiable requester."
+msgstr "Não foi possível criar a pré-reserva: não foi possível identificar o solicitante."
+
+msgid "The pre-reservation could not be created: the selected item is not allowed."
+msgstr "Não foi possível criar a pré-reserva: o item selecionado não é permitido."
+
+msgid "No pre-reservation"
+msgstr "Sem pré-reserva"
+
+msgid "Answer from a specific question"
+msgstr "Resposta de uma pergunta específica"
+
+msgid "Answer to last \"Material reservation\" question"
+msgstr "Resposta à última pergunta de \"Reserva de material\""
+
+msgid "All valid \"Material reservation\" answers"
+msgstr "Todas as respostas válidas de \"Reserva de material\""
+
+msgid "New pre-reservation request"
+msgstr "Nova solicitação de pré-reserva"
+
+msgid "Pre-reservation request approved"
+msgstr "Solicitação de pré-reserva aprovada"
+
+msgid "Pre-reservation request refused"
+msgstr "Solicitação de pré-reserva recusada"
+
+msgid "Reservation slot no longer available"
+msgstr "O horário da reserva não está mais disponível"
+
+msgid "Could not check availability, please try again"
+msgstr "Não foi possível verificar a disponibilidade. Tente novamente"
+
+msgid "Existing reservations for this item"
+msgstr "Reservas existentes para este item"
+
+msgid "This slot is available"
+msgstr "Este horário está disponível"
+
+msgid "An error occurred"
+msgstr "Ocorreu um erro"
+
+msgid "Row %1$s: the column \"%2$s\" is required."
+msgstr "Linha %1$s: a coluna \"%2$s\" é obrigatória."
+
+msgid "Row %1$s: the column \"%2$s\" is invalid: %3$s"
+msgstr "Linha %1$s: a coluna \"%2$s\" é inválida: %3$s"
+
+msgid "Row %1$s: the column \"%2$s\" does not match the expected format."
+msgstr "Linha %1$s: a coluna \"%2$s\" não corresponde ao formato esperado."

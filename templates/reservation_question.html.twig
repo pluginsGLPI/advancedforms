@@ -35,6 +35,7 @@
      data-reservation-question-widget
      data-input-name="{{ input_name }}"
      data-allowed-itemtypes="{{ allowed_itemtypes|json_encode }}"
+     data-item-placeholder="{{ __('Select an item to reserve', 'advancedforms')|e('html_attr') }}"
 >
     <select class="form-select" data-reservation-question-item-select>
         <option value=""></option>

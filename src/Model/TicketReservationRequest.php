@@ -51,8 +51,6 @@ final class TicketReservationRequest extends CommonDBChild
 
     public static $items_id = 'tickets_id';
 
-    public static $rightname = 'ticket';
-
     public const STATUS_WAITING  = 1;
 
     public const STATUS_ACCEPTED = 2;

@@ -74,7 +74,7 @@ export class ReservationQuestionWidget {
         $select.select2({
             width: '100%',
             allowClear: true,
-            placeholder: __('Select an item to reserve', 'advancedforms'),
+            placeholder: this.#root.dataset.itemPlaceholder || __('Select an item to reserve', 'advancedforms'),
             ajax: {
                 url: `${this.#endpoint_url}/ReservableItems`,
                 type: 'POST',
