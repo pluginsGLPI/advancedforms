@@ -64,6 +64,7 @@ function plugin_init_advancedforms(): void
 
     ImportMapGenerator::getInstance()->registerModulesPath('advancedforms', '/public/js/modules');
 
+    \GlpiPlugin\Advancedforms\Model\TicketReservationRequest::$rightname = 'ticket';
     InitManager::getInstance()->init();
 }
 
