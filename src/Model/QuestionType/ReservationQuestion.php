@@ -160,6 +160,8 @@ final class ReservationQuestion extends AbstractQuestionType implements Configur
             'input_name'        => $question->getEndUserInputName(),
             'allowed_itemtypes' => $config->getAllowedItemtypes(),
             'show_calendar'     => $config->isCalendarEnabled(),
+            // Server/session time: the calendar runs in UTC mode, like core planning.
+            'now'               => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ]);
     }
 

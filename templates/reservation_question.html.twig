@@ -35,7 +35,7 @@
      data-reservation-question-widget
      data-input-name="{{ input_name }}"
      data-allowed-itemtypes="{{ allowed_itemtypes|json_encode }}"
-     {% if show_calendar %}data-calendar-css="{{ css_path('lib/fullcalendar.css') }}"{% endif %}
+     {% if show_calendar %}data-calendar-css="{{ css_path('lib/fullcalendar.css') }}" data-now="{{ now }}"{% endif %}
 >
     <select class="form-select" data-reservation-question-item-select>
         <option value=""></option>
@@ -69,6 +69,8 @@
         <div class="col-12 mt-1 small" data-reservation-question-availability></div>
         {% if show_calendar %}
             <div class="col-12 mt-2" data-reservation-question-calendar></div>
+        {% else %}
+            <div class="col-12 mt-1" data-reservation-question-reservations></div>
         {% endif %}
     </div>
 

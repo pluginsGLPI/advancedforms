@@ -78,6 +78,9 @@ async function createFormWithReservationQuestion(
 
 test.describe('Advanced forms - Material reservation question', () => {
     test.describe.configure({ timeout: 180_000 });
+    // Browser timezone far from the server one (UTC+14): the calendar must still show
+    // and pick server/session wall-clock times.
+    test.use({ timezoneId: 'Pacific/Kiritimati' });
     test('end user can select an item and pick a slot on the calendar, then submit', async ({ page, profile, api }) => {
         await withQuestionTypeToggleLock(async () => {
             await profile.set(Profiles.SuperAdmin);
@@ -179,19 +182,26 @@ test.describe('Advanced forms - Material reservation question', () => {
 
             // A free slot right after the busy one still works.
             await reservation.selectCalendarSlot(widget, '13:00:00', '14:00:00');
-            await expect(reservation.getBeginInput(widget)).not.toHaveValue('');
+            // Exact server wall-clock time despite the browser timezone (see test.use above).
+            await expect(reservation.getBeginInput(widget)).toHaveValue(`${target_date} 13:00:00`);
             await expect(reservation.getAvailabilityMessage(widget)).toHaveText('This slot is available');
         });
     });
 
-    test('disabling the calendar removes it from the end-user form', async ({ page, profile, api }) => {
+    test('disabling the calendar falls back to the list of existing reservations', async ({ page, profile, api }) => {
         await withQuestionTypeToggleLock(async () => {
             await profile.set(Profiles.SuperAdmin);
             const form = new FormPage(page);
             const reservation = new AdvancedFormsReservationPage(page);
             const form_name = `E2E reservation no calendar - ${randomUUID()}`;
 
-            const { form_id, reservable_item_name } = await createFormWithReservationQuestion(page, api, form_name);
+            const { form_id, reservable_item_name, reservationitems_id } = await createFormWithReservationQuestion(page, api, form_name);
+            await api.createItem('Reservation', {
+                reservationitems_id,
+                begin: '2099-01-05 10:00:00',
+                end: '2099-01-05 12:00:00',
+                users_id: getWorkerUserId(),
+            });
 
             await form.goto(form_id);
             const question = page.getByRole('region', { name: 'Question details' }).first();
@@ -206,6 +216,8 @@ test.describe('Advanced forms - Material reservation question', () => {
 
             await expect(reservation.getCalendar(widget)).toHaveCount(0);
             await expect(widget.locator('.reservation-question-dates')).toBeVisible();
+            await expect(widget.getByText('Existing reservations for this item')).toBeVisible();
+            await expect(widget.getByText('2099-01-05 10:00:00 → 2099-01-05 12:00:00')).toBeVisible();
         });
     });
 });
