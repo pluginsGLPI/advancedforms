@@ -196,10 +196,13 @@ test.describe('Advanced forms - Material reservation question', () => {
             const form_name = `E2E reservation no calendar - ${randomUUID()}`;
 
             const { form_id, reservable_item_name, reservationitems_id } = await createFormWithReservationQuestion(page, api, form_name);
+            // Next year rather than a far-future date: reservation dates are TIMESTAMP columns,
+            // capped at 2038 on MySQL.
+            const day = `${new Date().getFullYear() + 1}-01-05`;
             await api.createItem('Reservation', {
                 reservationitems_id,
-                begin: '2099-01-05 10:00:00',
-                end: '2099-01-05 12:00:00',
+                begin: `${day} 10:00:00`,
+                end: `${day} 12:00:00`,
                 users_id: getWorkerUserId(),
             });
 
@@ -217,7 +220,7 @@ test.describe('Advanced forms - Material reservation question', () => {
             await expect(reservation.getCalendar(widget)).toHaveCount(0);
             await expect(widget.locator('.reservation-question-dates')).toBeVisible();
             await expect(widget.getByText('Existing reservations for this item')).toBeVisible();
-            await expect(widget.getByText('2099-01-05 10:00:00 → 2099-01-05 12:00:00')).toBeVisible();
+            await expect(widget.getByText(`${day} 10:00:00 → ${day} 12:00:00`)).toBeVisible();
         });
     });
 });
