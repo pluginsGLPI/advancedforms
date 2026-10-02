@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Model\ConditionHandler;
 
 use CommonDBTM;
+use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\Condition\ConditionData;
 use Glpi\Form\Condition\ConditionHandler\ConditionHandlerInterface;
 use Glpi\Form\Condition\ValueOperator;
@@ -83,12 +84,14 @@ final readonly class TreeCascadeItemAsTextConditionHandler implements ConditionH
         mixed $a,
         ValueOperator $operator,
         mixed $b,
+        ?JsonFieldInterface $config,
     ): bool {
-        if (!is_array($a) || !isset($a['items_id'])) {
+        if (!is_array($a) || !isset($a['items_ids'])) {
             return false;
         }
 
-        $item = $this->itemtype::getById($a['items_id']);
+        $items_id = is_array($a['items_ids']) ? reset($a['items_ids']) : $a['items_ids'];
+        $item = $this->itemtype::getById($items_id);
         if (!$item) {
             return false;
         }
