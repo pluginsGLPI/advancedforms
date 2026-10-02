@@ -31,6 +31,7 @@
 
 export class ReservationQuestionWidget {
     #root;
+    #calendar = null;
     #endpoint_url = `${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationWidget`;
 
     /** @param {HTMLElement} root - root element rendered by templates/reservation_question.html.twig */
@@ -116,7 +117,17 @@ export class ReservationQuestionWidget {
         this.#setReservationItemsId($select.val());
         $(this.#root.querySelector('[data-reservation-question-dates]')).removeClass('d-none');
         this.#checkAvailability();
-        this.#loadReservations();
+
+        // Absent when the question is configured without the calendar (see #ensureCalendar):
+        // fall back to the plain list of existing reservations.
+        this.#ensureCalendar();
+        if (this.#calendar) {
+            this.#calendar.unselect();
+            this.#calendar.today();
+            this.#calendar.refetchEvents();
+        } else {
+            this.#loadReservations();
+        }
     }
 
     #onItemCleared() {
@@ -130,6 +141,10 @@ export class ReservationQuestionWidget {
         $(this.#root.querySelector('[data-reservation-question-dates]')).addClass('d-none');
         this.#showAvailability(null);
         this.#renderReservations([]);
+        if (this.#calendar) {
+            this.#calendar.unselect();
+            this.#calendar.removeAllEvents();
+        }
     }
 
     /** begin/end are rendered by the datetimeField macro (self-initializing Flatpickr); just react to changes. */
@@ -197,7 +212,125 @@ export class ReservationQuestionWidget {
         this.#showStatus(__('The end date must be after the start date', 'advancedforms'), 'text-danger');
     }
 
-    /** Fetches the equipment's existing reservations and lists them so the user can see busy slots. */
+    /** Builds the calendar once; item changes afterwards just refetch its events (see #onItemSelected). */
+    #ensureCalendar() {
+        if (this.#calendar) {
+            return;
+        }
+
+        const container = this.#root.querySelector('[data-reservation-question-calendar]');
+        if (!container) {
+            return;
+        }
+
+        this.#loadCalendarCss();
+
+        // Same locale/hours setup as core js/planning.js; planning hours are absent from CFG_GLPI for anonymous sessions.
+        const loaded_locales = typeof FullCalendarLocales !== 'undefined' ? Object.keys(FullCalendarLocales) : [];
+        // Like core planning: UTC mode + server "now", so the grid shows server/session wall-clock
+        // times (those of the reservations) whatever the browser timezone.
+        const now = new Date(`${this.#root.dataset.now.replace(' ', 'T')}Z`);
+        this.#calendar = new FullCalendar.Calendar(container, {
+            plugins: ['timeGrid', 'interaction'],
+            defaultView: 'timeGridWeek',
+            header: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            locale: loaded_locales.length === 1 ? loaded_locales[0] : undefined,
+            timeZone: 'UTC',
+            now,
+            nowIndicator: true,
+            minTime: CFG_GLPI.planning_begin ?? '00:00:00',
+            maxTime: CFG_GLPI.planning_end ?? '24:00:00',
+            height: 450,
+            selectable: true,
+            selectMirror: true,
+            // Don't offer slots the server would reject: past ones or overlapping an existing reservation.
+            selectOverlap: false,
+            validRange: { start: now },
+            selectAllow: (info) => info.start >= now,
+            // Keep the highlight visible when focus leaves the calendar (e.g. another question);
+            // it is cleared explicitly on item change/select instead (see #onItemSelected/#onItemCleared).
+            unselectAuto: false,
+            select: (info) => this.#onSlotSelected(info),
+            events: (info, successCallback, failureCallback) => this.#fetchEvents(info, successCallback, failureCallback),
+        });
+        this.#calendar.render();
+    }
+
+    /**
+     * Several calendar-enabled questions may share the page: only add the stylesheet once.
+     * It loads asynchronously, so resize the calendar once it applies: slot positions measured
+     * on the unstyled grid would otherwise misplace the events until the next re-render.
+     */
+    #loadCalendarCss() {
+        const href = this.#root.dataset.calendarCss;
+        if (!href) {
+            return;
+        }
+
+        let link = document.querySelector(`link[rel="stylesheet"][href="${CSS.escape(href)}"]`);
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+        }
+
+        if (!link.sheet) {
+            link.addEventListener('load', () => this.#calendar?.updateSize(), { once: true });
+        }
+    }
+
+    /** FullCalendar event source: reuses the existing Reservations endpoint, scoped to the visible range. */
+    #fetchEvents(info, successCallback, failureCallback) {
+        const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
+        if (!reservationitems_id) {
+            successCallback([]);
+            return;
+        }
+
+        $.post(`${this.#endpoint_url}/Reservations`, {
+            reservationitems_id,
+            begin: this.#formatForServer(info.start),
+            end: this.#formatForServer(info.end),
+        })
+            .done((data) => successCallback((Array.isArray(data) ? data : []).map((reservation) => ({
+                title: __('Reserved', 'advancedforms'),
+                start: reservation.begin.replace(' ', 'T'),
+                end: reservation.end.replace(' ', 'T'),
+                color: 'var(--tblr-red)',
+                editable: false,
+                overlap: false,
+            }))))
+            .fail(() => failureCallback());
+    }
+
+    /**
+     * User picked a free slot on the calendar: mirror it into the begin/end pickers used by the
+     * rest of the widget. The selection highlight is left in place (not unselected) so the user
+     * can see what they just picked; it clears on the next selection or item change instead.
+     */
+    #onSlotSelected(info) {
+        const begin_picker = this.#getBeginInput()?.closest('.flatpickr')?._flatpickr;
+        const end_picker = this.#getEndInput()?.closest('.flatpickr')?._flatpickr;
+        if (!begin_picker || !end_picker) {
+            return;
+        }
+
+        // Strings, not Date objects: flatpickr would read the UTC-mode dates in the browser timezone.
+        begin_picker.setDate(this.#formatForServer(info.start));
+        end_picker.setDate(this.#formatForServer(info.end));
+        this.#checkAvailability();
+    }
+
+    /**
+     * The calendar runs in UTC mode: the UTC fields hold the server/session wall-clock time.
+     * @returns {string} date formatted as 'Y-m-d H:i:s', as expected by the endpoints and the pickers.
+     */
+    #formatForServer(date) {
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    /** Calendar disabled: fetches the equipment's existing reservations and lists them so the user can see busy slots. */
     #loadReservations() {
         const reservationitems_id = this.#root.querySelector('[data-reservation-question-field="reservationitems_id"]')?.value ?? '';
         if (!reservationitems_id) {

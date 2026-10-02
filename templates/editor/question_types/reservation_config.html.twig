@@ -51,6 +51,16 @@
         }
     ) }}
 
+    {{ fields.sliderField(
+        'extra_data[' ~ SHOW_CALENDAR ~ ']',
+        extra_data.isCalendarEnabled() ? 1 : 0,
+        __('Show availability calendar', 'advancedforms'),
+        {
+            'full_width'    : true,
+            'is_horizontal' : true,
+        }
+    ) }}
+
     <div class="alert alert-info mt-2 mb-0">
         <div>
             {{ __('Whether a technician must approve the reservation before it is confirmed is configured on the destination that uses this question, under', 'advancedforms') }}

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Add interactive availability calendar to reservation question
+
 ### Fixed
 
 - Fixed the `Table` question's columns configuration panel forcing the whole page to scroll instead of scrolling on its own
