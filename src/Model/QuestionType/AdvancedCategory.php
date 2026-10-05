@@ -47,6 +47,7 @@ final class AdvancedCategory implements QuestionTypeCategoryInterface
             $type = array_pop($types);
             return $type->getName();
         }
+
         return __('Advanced', 'advancedforms');
     }
 
@@ -58,6 +59,7 @@ final class AdvancedCategory implements QuestionTypeCategoryInterface
             $type = array_pop($types);
             return $type->getIcon();
         }
+
         return 'ti ti-adjustments-plus';
     }
 
