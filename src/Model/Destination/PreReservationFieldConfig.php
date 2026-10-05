@@ -64,9 +64,7 @@ final readonly class PreReservationFieldConfig implements JsonFieldInterface, Co
     public static function jsonDeserialize(array $data): self
     {
         $strategy = PreReservationFieldStrategy::tryFrom($data[self::STRATEGY] ?? "");
-        if ($strategy === null) {
-            $strategy = PreReservationFieldStrategy::NO_PRERESERVATION;
-        }
+        $strategy ??= PreReservationFieldStrategy::NO_PRERESERVATION;
 
         return new self(
             strategy: $strategy,

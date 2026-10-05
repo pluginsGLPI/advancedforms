@@ -46,9 +46,8 @@ final class AdvancedCategory implements QuestionTypeCategoryInterface
         if (count($types) === 1) {
             $type = array_pop($types);
             return $type->getName();
-        } else {
-            return __('Advanced', 'advancedforms');
         }
+        return __('Advanced', 'advancedforms');
     }
 
     #[Override]
@@ -58,9 +57,8 @@ final class AdvancedCategory implements QuestionTypeCategoryInterface
         if (count($types) === 1) {
             $type = array_pop($types);
             return $type->getIcon();
-        } else {
-            return 'ti ti-adjustments-plus';
         }
+        return 'ti ti-adjustments-plus';
     }
 
     #[Override]
