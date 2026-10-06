@@ -29,6 +29,27 @@
  * -------------------------------------------------------------------------
  */
 
+/* global FullCalendar */
+
+let fullcalendar_loader = null;
+
+/**
+ * GLPI core bundles FullCalendar inside its Vue planning and no longer exposes it globally:
+ * load the plugin's own copy (see public/lib/fullcalendar), once per page whatever the number of questions.
+ * FullCalendar v6 injects its own styles, no stylesheet to load.
+ */
+function loadFullCalendar() {
+    fullcalendar_loader ??= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        // Relative to this module, with the same cache-busting query string.
+        script.src = new URL(`../../lib/fullcalendar/fullcalendar.js${new URL(import.meta.url).search}`, import.meta.url).href;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+    return fullcalendar_loader;
+}
+
 export class ReservationQuestionWidget {
     #root;
     #calendar = null;
@@ -118,16 +139,23 @@ export class ReservationQuestionWidget {
         $(this.#root.querySelector('[data-reservation-question-dates]')).removeClass('d-none');
         this.#checkAvailability();
 
-        // Absent when the question is configured without the calendar (see #ensureCalendar):
+        // Absent when the question is configured without the calendar:
         // fall back to the plain list of existing reservations.
-        this.#ensureCalendar();
-        if (this.#calendar) {
+        if (!this.#getCalendarContainer()) {
+            this.#loadReservations();
+            return;
+        }
+
+        loadFullCalendar().then(() => {
+            this.#ensureCalendar();
             this.#calendar.unselect();
             this.#calendar.today();
             this.#calendar.refetchEvents();
-        } else {
-            this.#loadReservations();
-        }
+        });
+    }
+
+    #getCalendarContainer() {
+        return this.#root.querySelector('[data-reservation-question-calendar]');
     }
 
     #onItemCleared() {
@@ -218,28 +246,20 @@ export class ReservationQuestionWidget {
             return;
         }
 
-        const container = this.#root.querySelector('[data-reservation-question-calendar]');
-        if (!container) {
-            return;
-        }
-
-        this.#loadCalendarCss();
-
-        // Same locale/hours setup as core js/planning.js; planning hours are absent from CFG_GLPI for anonymous sessions.
-        const loaded_locales = typeof FullCalendarLocales !== 'undefined' ? Object.keys(FullCalendarLocales) : [];
         // Like core planning: UTC mode + server "now", so the grid shows server/session wall-clock
         // times (those of the reservations) whatever the browser timezone.
         const now = new Date(`${this.#root.dataset.now.replace(' ', 'T')}Z`);
-        this.#calendar = new FullCalendar.Calendar(container, {
-            plugins: ['timeGrid', 'interaction'],
-            defaultView: 'timeGridWeek',
-            header: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
-            locale: loaded_locales.length === 1 ? loaded_locales[0] : undefined,
+        this.#calendar = new FullCalendar.Calendar(this.#getCalendarContainer(), {
+            initialView: 'timeGridWeek',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            // Like core BaseFullCalendar.vue: FullCalendar falls back from e.g. "fr-FR" to "fr", then to English.
+            locale: document.documentElement.lang,
             timeZone: 'UTC',
             now,
             nowIndicator: true,
-            minTime: CFG_GLPI.planning_begin ?? '00:00:00',
-            maxTime: CFG_GLPI.planning_end ?? '24:00:00',
+            // Planning hours are absent from CFG_GLPI for anonymous sessions.
+            slotMinTime: CFG_GLPI.planning_begin ?? '00:00:00',
+            slotMaxTime: CFG_GLPI.planning_end ?? '24:00:00',
             height: 450,
             selectable: true,
             selectMirror: true,
@@ -254,30 +274,6 @@ export class ReservationQuestionWidget {
             events: (info, successCallback, failureCallback) => this.#fetchEvents(info, successCallback, failureCallback),
         });
         this.#calendar.render();
-    }
-
-    /**
-     * Several calendar-enabled questions may share the page: only add the stylesheet once.
-     * It loads asynchronously, so resize the calendar once it applies: slot positions measured
-     * on the unstyled grid would otherwise misplace the events until the next re-render.
-     */
-    #loadCalendarCss() {
-        const href = this.#root.dataset.calendarCss;
-        if (!href) {
-            return;
-        }
-
-        let link = document.querySelector(`link[rel="stylesheet"][href="${CSS.escape(href)}"]`);
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = href;
-            document.head.appendChild(link);
-        }
-
-        if (!link.sheet) {
-            link.addEventListener('load', () => this.#calendar?.updateSize(), { once: true });
-        }
     }
 
     /** FullCalendar event source: reuses the existing Reservations endpoint, scoped to the visible range. */
