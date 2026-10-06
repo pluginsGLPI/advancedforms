@@ -142,14 +142,15 @@ export class AdvancedFormsReservationPage extends GlpiPage {
      * safely in the future regardless of which day of the week the test runs on.
      */
     public async goToNextCalendarWeek(widget: Locator): Promise<void> {
-        await this.getCalendar(widget).getByRole('button', { name: 'next', exact: true }).click();
+        // eslint-disable-next-line playwright/no-raw-locators
+        await this.getCalendar(widget).locator('.fc-next-button').click();
     }
 
     /** ISO date (YYYY-MM-DD) of the first day column currently visible on the calendar. */
     public async getFirstVisibleCalendarDate(widget: Locator): Promise<string> {
         const date = await this.getCalendar(widget)
             // eslint-disable-next-line playwright/no-raw-locators
-            .locator('th.fc-day-header')
+            .locator('th.fc-col-header-cell')
             .first()
             .getAttribute('data-date');
         if (date === null) {
@@ -167,11 +168,11 @@ export class AdvancedFormsReservationPage extends GlpiPage {
     public async selectCalendarSlot(widget: Locator, start_time: string, end_time: string): Promise<void> {
         const calendar = this.getCalendar(widget);
         // eslint-disable-next-line playwright/no-raw-locators
-        const day_header = calendar.locator('th.fc-day-header').first();
+        const day_header = calendar.locator('th.fc-col-header-cell').first();
         // eslint-disable-next-line playwright/no-raw-locators
-        const start_row = calendar.locator(`tr[data-time="${start_time}"]`).first();
+        const start_row = calendar.locator(`td.fc-timegrid-slot-lane[data-time="${start_time}"]`).first();
         // eslint-disable-next-line playwright/no-raw-locators
-        const end_row = calendar.locator(`tr[data-time="${end_time}"]`).first();
+        const end_row = calendar.locator(`td.fc-timegrid-slot-lane[data-time="${end_time}"]`).first();
 
         // The time axis is scrolled independently from the page: bring both ends of
         // the slot into view before reading bounding boxes for the drag coordinates.
@@ -201,7 +202,7 @@ export class AdvancedFormsReservationPage extends GlpiPage {
      */
     public getCalendarSelectionMirror(widget: Locator): Locator {
         // eslint-disable-next-line playwright/no-raw-locators
-        return this.getCalendar(widget).locator('.fc-mirror-container .fc-event');
+        return this.getCalendar(widget).locator('.fc-event.fc-event-mirror');
     }
 
     /** Existing reservations rendered as busy blocks on the calendar. */

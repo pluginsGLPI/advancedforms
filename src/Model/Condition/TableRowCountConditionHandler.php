@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Model\Condition;
 
+use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\Condition\ConditionData;
 use Glpi\Form\Condition\ConditionHandler\ConditionHandlerInterface;
 use Glpi\Form\Condition\ValueOperator;
@@ -86,6 +87,7 @@ final class TableRowCountConditionHandler implements ConditionHandlerInterface
         mixed $a,
         ValueOperator $operator,
         mixed $b,
+        ?JsonFieldInterface $config = null,
     ): bool {
         $rows      = $this->countFilledRows($a);
         $threshold = (int) (is_scalar($b) ? $b : 0);

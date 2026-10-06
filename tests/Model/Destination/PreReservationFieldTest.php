@@ -167,7 +167,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $this->assertCount(1, $destinations);
         $destination = current($destinations);
         $this->updateItem(
-            $destination::getType(),
+            $destination::class,
             $destination->getId(),
             ['config' => [PreReservationField::getKey() => $config->jsonSerialize()]],
             ['config'],
@@ -260,7 +260,7 @@ final class PreReservationFieldTest extends AdvancedFormsTestCase
         $this->assertCount(1, $destinations);
         $destination = current($destinations);
         $this->updateItem(
-            $destination::getType(),
+            $destination::class,
             $destination->getId(),
             ['config' => [PreReservationField::getKey() => $config->jsonSerialize()]],
             ['config'],
