@@ -107,7 +107,9 @@ test.describe('Advanced forms - Table question', () => {
             await page.getByRole('button', { name: 'Submit' }).click();
 
             // A link to the created answer/item confirms the submission succeeded.
-            await expect(page.getByRole('link', { name: form_name })).toBeVisible();
+            // Scoped to the success alert, since the same link also appears
+            // permanently in the ticket's "Items" tab.
+            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
         });
     });
 
@@ -178,7 +180,9 @@ test.describe('Advanced forms - Table question', () => {
             await expect(table.getEndUserCell(eu_table, 0, 0)).not.toHaveClass(/is-invalid/);
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            await expect(page.getByRole('link', { name: form_name })).toBeVisible();
+            // Scoped to the success alert, since the same link also appears
+            // permanently in the ticket's "Items" tab.
+            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
         });
     });
 
@@ -222,7 +226,9 @@ test.describe('Advanced forms - Table question', () => {
 
             await page.getByRole('button', { name: 'Submit' }).click();
 
-            await expect(page.getByRole('link', { name: form_name })).toBeVisible();
+            // Scoped to the success alert, since the same link also appears
+            // permanently in the ticket's "Items" tab.
+            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
         });
     });
 

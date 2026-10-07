@@ -106,7 +106,9 @@ test.describe('Advanced forms - Material reservation question', () => {
             await expect(reservation.getAvailabilityMessage(widget)).toHaveText('This slot is available');
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            await expect(page.getByRole('link', { name: form_name })).toBeVisible();
+            // Scoped to the success alert, since the same link also appears
+            // permanently in the ticket's "Items" tab.
+            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
         });
     });
 
