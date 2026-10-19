@@ -73,6 +73,12 @@ final class HiddenQuestion extends AbstractQuestionType implements
     }
 
     #[Override]
+    public function isAllowedForUnauthenticatedAccess(): bool
+    {
+        return true;
+    }
+
+    #[Override]
     public function getWeight(): int
     {
         return 30;

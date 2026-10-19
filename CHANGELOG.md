@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Use translated itemtype name for reservation item select groups
 - Filter the '0' empty-selection sentinel in Table and LDAP select questions
 - Fix Table question column type edge cases
+- Fix hidden question not available in anonymous forms
 
 ### Others
 
