@@ -114,6 +114,12 @@ msgstr "Reserva de material"
 msgid "Select an item to reserve"
 msgstr "Selecione um item para reservar"
 
+msgid "Show availability calendar"
+msgstr "Exibir calendário de disponibilidade"
+
+msgid "Reserved"
+msgstr "Reservado"
+
 msgid "Unexpected value"
 msgstr "Valor inesperado"
 
