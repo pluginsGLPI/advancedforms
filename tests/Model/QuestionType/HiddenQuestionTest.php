@@ -106,7 +106,7 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
         $this->logOut();
         $request = Request::create('/Form/SubmitAnswers?token=my_token', 'POST', [
             'forms_id'             => $form->getID(),
-            "answers_$question_id" => 'tampered value',
+            'answers_' . $question_id => 'tampered value',
             'altcha'               => $this->solveAltchaChallenge(),
         ]);
         $response = (new SubmitAnswerController(new NullLogger()))->__invoke($request);
