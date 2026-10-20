@@ -38,3 +38,7 @@ This question won't be displayed to the users.
 * Follow [development guidelines](http://glpi-developer-documentation.readthedocs.io/en/latest/plugins/index.html)
 * Work on a new branch on your own fork
 * Open a PR that will be reviewed by a developer
+
+## Additional resources
+
+* [Translations on Transifex](https://explore.transifex.com/teclib/glpi-plugin-plugin-advancedforms/)

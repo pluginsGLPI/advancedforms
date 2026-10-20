@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNRELEASED]
 
+### Added
+
+- Add translations management through Transifex
+
 ### Fixed
 
 - Fix GLPI compatibility constraint in plugin XML
