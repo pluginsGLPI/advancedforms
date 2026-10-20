@@ -106,10 +106,9 @@ test.describe('Advanced forms - Table question', () => {
 
             await page.getByRole('button', { name: 'Submit' }).click();
 
-            // A link to the created answer/item confirms the submission succeeded.
-            // Scoped to the success alert, since the same link also appears
-            // permanently in the ticket's "Items" tab.
-            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
+            // A single created ticket triggers a redirection to it, confirming the submission succeeded.
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
@@ -180,9 +179,9 @@ test.describe('Advanced forms - Table question', () => {
             await expect(table.getEndUserCell(eu_table, 0, 0)).not.toHaveClass(/is-invalid/);
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            // Scoped to the success alert, since the same link also appears
-            // permanently in the ticket's "Items" tab.
-            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
+            // A single created ticket triggers a redirection to it, confirming the submission succeeded.
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
@@ -226,9 +225,9 @@ test.describe('Advanced forms - Table question', () => {
 
             await page.getByRole('button', { name: 'Submit' }).click();
 
-            // Scoped to the success alert, since the same link also appears
-            // permanently in the ticket's "Items" tab.
-            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
+            // A single created ticket triggers a redirection to it, confirming the submission succeeded.
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
