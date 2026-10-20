@@ -106,9 +106,9 @@ test.describe('Advanced forms - Material reservation question', () => {
             await expect(reservation.getAvailabilityMessage(widget)).toHaveText('This slot is available');
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            // Scoped to the success alert, since the same link also appears
-            // permanently in the ticket's "Items" tab.
-            await expect(form.getAlert(form_name).getByRole('link', { name: form_name })).toBeVisible();
+            // A single created ticket triggers a redirection to it, confirming the submission succeeded.
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
