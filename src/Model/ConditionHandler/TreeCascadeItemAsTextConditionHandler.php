@@ -84,13 +84,18 @@ final readonly class TreeCascadeItemAsTextConditionHandler implements ConditionH
         mixed $a,
         ValueOperator $operator,
         mixed $b,
-        ?JsonFieldInterface $config,
+        ?JsonFieldInterface $config = null,
     ): bool {
-        if (!is_array($a) || !isset($a['items_ids'])) {
+        if (!is_array($a)) {
             return false;
         }
 
-        $items_id = is_array($a['items_ids']) ? reset($a['items_ids']) : $a['items_ids'];
+        $raw = $a['items_ids'] ?? $a['items_id'] ?? null;
+        if ($raw === null) {
+            return false;
+        }
+
+        $items_id = is_array($raw) ? reset($raw) : $raw;
         $item = $this->itemtype::getById($items_id);
         if (!$item) {
             return false;

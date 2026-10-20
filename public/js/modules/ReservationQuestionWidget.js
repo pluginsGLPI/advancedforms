@@ -34,14 +34,13 @@
 let fullcalendar_loader = null;
 
 /**
- * GLPI core bundles FullCalendar inside its Vue planning and no longer exposes it globally:
- * load the plugin's own copy (see public/lib/fullcalendar), once per page whatever the number of questions.
- * FullCalendar v6 injects its own styles, no stylesheet to load.
+ * On GLPI 12+ core no longer exposes FullCalendar globally, so we load
+ * the plugin's own v6 copy.  On GLPI 11 core has already loaded v5 via
+ * Html::requireJs, so we just resolve immediately.
  */
 function loadFullCalendar() {
     fullcalendar_loader ??= new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        // Relative to this module, with the same cache-busting query string.
         script.src = new URL(`../../lib/fullcalendar/fullcalendar.js${new URL(import.meta.url).search}`, import.meta.url).href;
         script.onload = resolve;
         script.onerror = reject;
@@ -146,12 +145,13 @@ export class ReservationQuestionWidget {
             return;
         }
 
-        loadFullCalendar().then(() => {
-            this.#ensureCalendar();
+        const isV6 = this.#root.dataset.fullcalendarV6 === '1';
+        (isV6 ? loadFullCalendar().then(() => true) : Promise.resolve(false)).then((useV6) => {
+            this.#ensureCalendar(useV6);
             this.#calendar.unselect();
             this.#calendar.today();
             this.#calendar.refetchEvents();
-        });
+        }).catch(() => this.#showStatus(__('Could not load availability calendar', 'advancedforms'), 'text-danger'));
     }
 
     #getCalendarContainer() {
@@ -241,7 +241,7 @@ export class ReservationQuestionWidget {
     }
 
     /** Builds the calendar once; item changes afterwards just refetch its events (see #onItemSelected). */
-    #ensureCalendar() {
+    #ensureCalendar(isV6) {
         if (this.#calendar) {
             return;
         }
@@ -249,31 +249,65 @@ export class ReservationQuestionWidget {
         // Like core planning: UTC mode + server "now", so the grid shows server/session wall-clock
         // times (those of the reservations) whatever the browser timezone.
         const now = new Date(`${this.#root.dataset.now.replace(' ', 'T')}Z`);
-        this.#calendar = new FullCalendar.Calendar(this.#getCalendarContainer(), {
-            initialView: 'timeGridWeek',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
-            // Like core BaseFullCalendar.vue: FullCalendar falls back from e.g. "fr-FR" to "fr", then to English.
-            locale: document.documentElement.lang,
+
+        if (!isV6) {
+            this.#loadCalendarCss();
+        }
+
+        const commonOpts = {
             timeZone: 'UTC',
             now,
             nowIndicator: true,
-            // Planning hours are absent from CFG_GLPI for anonymous sessions.
-            slotMinTime: CFG_GLPI.planning_begin ?? '00:00:00',
-            slotMaxTime: CFG_GLPI.planning_end ?? '24:00:00',
             height: 450,
             selectable: true,
             selectMirror: true,
-            // Don't offer slots the server would reject: past ones or overlapping an existing reservation.
             selectOverlap: false,
             validRange: { start: now },
             selectAllow: (info) => info.start >= now,
-            // Keep the highlight visible when focus leaves the calendar (e.g. another question);
-            // it is cleared explicitly on item change/select instead (see #onItemSelected/#onItemCleared).
             unselectAuto: false,
             select: (info) => this.#onSlotSelected(info),
             events: (info, successCallback, failureCallback) => this.#fetchEvents(info, successCallback, failureCallback),
-        });
+        };
+
+        const opts = isV6 ? {
+            ...commonOpts,
+            initialView: 'timeGridWeek',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            locale: document.documentElement.lang,
+            slotMinTime: CFG_GLPI.planning_begin ?? '00:00:00',
+            slotMaxTime: CFG_GLPI.planning_end ?? '24:00:00',
+        } : {
+            ...commonOpts,
+            plugins: ['timeGrid', 'interaction'],
+            defaultView: 'timeGridWeek',
+            header: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+            locale: (typeof FullCalendarLocales !== 'undefined' && Object.keys(FullCalendarLocales).length === 1)
+                ? Object.keys(FullCalendarLocales)[0] : undefined,
+            minTime: CFG_GLPI.planning_begin ?? '00:00:00',
+            maxTime: CFG_GLPI.planning_end ?? '24:00:00',
+        };
+
+        this.#calendar = new FullCalendar.Calendar(this.#getCalendarContainer(), opts);
         this.#calendar.render();
+    }
+
+    #loadCalendarCss() {
+        const href = this.#root.dataset.calendarCss;
+        if (!href) {
+            return;
+        }
+
+        let link = document.querySelector(`link[rel="stylesheet"][href="${CSS.escape(href)}"]`);
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+        }
+
+        if (!link.sheet) {
+            link.addEventListener('load', () => this.#calendar?.updateSize(), { once: true });
+        }
     }
 
     /** FullCalendar event source: reuses the existing Reservations endpoint, scoped to the visible range. */
