@@ -41,4 +41,4 @@ This question won't be displayed to the users.
 
 ## Additional resources
 
-* [Translations on Transifex](https://explore.transifex.com/teclib/glpi-plugin-plugin-advancedforms/)
+* [Translations on Transifex](https://explore.transifex.com/teclib/glpi-plugin-advancedforms/)
