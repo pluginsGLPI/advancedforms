@@ -1,0 +1,406 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Romain B., 2026
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-22 03:55+0000\n"
+"PO-Revision-Date: 2026-10-21 08:01+0000\n"
+"Last-Translator: Romain B., 2026\n"
+"Language-Team: Portuguese (Brazil) (https://app.transifex.com/teclib/teams/310802/pt_BR/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pt_BR\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+#: templates/destination/prereservation_config_field.html.twig
+msgid "Require technician approval"
+msgstr "Exigir aprovação de técnico"
+
+#: templates/table_end_user.html.twig
+msgid "Please fill in all required columns."
+msgstr "Por favor, preencha todas as colunas obrigatórias."
+
+#: templates/table_end_user.html.twig
+msgid "This value does not match the expected format."
+msgstr "Este valor não corresponde ao formato esperado."
+
+#: templates/table_end_user.html.twig
+msgid "Select a value"
+msgstr "Selecione um valor"
+
+#: templates/table_end_user.html.twig
+msgid "Remove row"
+msgstr "Remover linha"
+
+#: templates/table_end_user.html.twig
+msgid "Add a row"
+msgstr "Adicionar uma linha"
+
+#: templates/reservation_question.html.twig
+msgid "Start date"
+msgstr "Data de início"
+
+#: templates/reservation_question.html.twig
+msgid "End date"
+msgstr "Data de término"
+
+#: templates/config_form.html.twig
+msgid "Advanced forms plugin configuration"
+msgstr "Configuração do plugin Formulários Avançados"
+
+#: templates/editor/question_types/table_admin.html.twig
+msgid "Define columns below"
+msgstr "Defina as colunas abaixo"
+
+#: templates/editor/question_types/ldap_select_config.html.twig
+msgid "Data from LDAP directory"
+msgstr "Dados do diretório LDAP"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "Allowed equipment types"
+msgstr "Tipos de equipamentos permitidos"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "All reservable types"
+msgstr "Todos os tipos reserváveis"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "Show availability calendar"
+msgstr "Exibir calendário de disponibilidade"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid ""
+"Whether a technician must approve the reservation before it is confirmed is "
+"configured on the destination that uses this question, under"
+msgstr ""
+"Se um técnico deve aprovar a reserva antes que ela seja confirmada é "
+"configurado no destino que usa esta pergunta, sob"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Configure table columns"
+msgstr "Configurar colunas da tabela"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Columns"
+msgstr "Colunas"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Column name"
+msgstr "Nome da coluna"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Select a type"
+msgstr "Selecione um tipo"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Required column"
+msgstr "Coluna obrigatória"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Remove column"
+msgstr "Remover coluna"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Validation pattern"
+msgstr "Padrão de validação"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Add column"
+msgstr "Adicionar coluna"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Pending validation"
+msgstr "Aguardando validação"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Approved"
+msgstr "Aprovado"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Refused"
+msgstr "Recusado"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Canceled"
+msgstr "Cancelado"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Reservation confirmed automatically"
+msgstr "Reserva confirmada automaticamente"
+
+#: templates/timeline/reservation_request.html.twig
+msgid ""
+"This slot is no longer available. Please submit a new reservation request."
+msgstr ""
+"Este horário não está mais disponível. Por favor, envie uma nova solicitação"
+" de reserva."
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Comment (optional)"
+msgstr "Comentário (opcional)"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Approve"
+msgstr "Aprovar"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Refuse"
+msgstr "Recusar"
+
+#: src/Controller/ReservationRequestController.php:81
+msgid "This slot is no longer available."
+msgstr "Este horário não está mais disponível."
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:49
+msgid "New pre-reservation request"
+msgstr "Nova solicitação de pré-reserva"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:50
+msgid "Pre-reservation request approved"
+msgstr "Solicitação de pré-reserva aprovada"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:51
+msgid "Pre-reservation request refused"
+msgstr "Solicitação de pré-reserva recusada"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:52
+msgid "Reservation slot no longer available"
+msgstr "O horário da reserva não está mais disponível"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:96
+msgid "Notification reason"
+msgstr "Motivo da notificação"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:97
+msgid "Reservation start date"
+msgstr "Data de início da reserva"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:98
+msgid "Reservation end date"
+msgstr "Data de término da reserva"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:99
+msgid "Validation comment"
+msgstr "Comentário de validação"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:100
+msgid "Ticket title"
+msgstr "Título do chamado"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:101
+msgid "Ticket URL"
+msgstr "URL do chamado"
+
+#: src/Model/Config/ConfigTab.php:48
+msgid "Advanced forms"
+msgstr "Formulários avançados"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:52
+msgid "No pre-reservation"
+msgstr "Sem pré-reserva"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:53
+msgid "Answer from a specific question"
+msgstr "Resposta de uma pergunta específica"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:54
+msgid "Answer to last \"Material reservation\" question"
+msgstr "Resposta à última pergunta de \"Reserva de material\""
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:55
+msgid "All valid \"Material reservation\" answers"
+msgstr "Todas as respostas válidas de \"Reserva de material\""
+
+#: src/Model/Destination/PreReservationField.php:69
+msgid "Pre-reservation"
+msgstr "Pré-reserva"
+
+#: src/Model/Destination/PreReservationField.php:133
+msgid "Select a question..."
+msgstr "Selecione uma pergunta..."
+
+#: src/Model/Destination/PreReservationField.php:176
+msgid "The pre-reservation could not be created: no identifiable requester."
+msgstr ""
+"Não foi possível criar a pré-reserva: não foi possível identificar o "
+"solicitante."
+
+#: src/Model/Destination/PreReservationField.php:220
+msgid ""
+"The pre-reservation could not be created: the selected item is not allowed."
+msgstr ""
+"Não foi possível criar a pré-reserva: o item selecionado não é permitido."
+
+#: src/Model/TicketReservationRequest.php:73
+msgid "Reservation request"
+msgid_plural "Reservation requests"
+msgstr[0] "Solicitação de reserva"
+msgstr[1] "Solicitações de reserva"
+msgstr[2] "Solicitações de reserva"
+
+#: src/Model/QuestionType/TableColumnRule.php:155
+msgid "the value is not valid"
+msgstr "o valor não é válido"
+
+#: src/Model/QuestionType/TableColumnRule.php:159
+msgid "the value is not a number"
+msgstr "o valor não é um número"
+
+#: src/Model/QuestionType/TableQuestion.php:89
+msgid "Table"
+msgstr "Tabela"
+
+#: src/Model/QuestionType/TableQuestion.php:279
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" is required."
+msgstr "Linha %1$s: a coluna \"%2$s\" é obrigatória."
+
+#: src/Model/QuestionType/TableQuestion.php:292
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" is invalid: %3$s"
+msgstr "Linha %1$s: a coluna \"%2$s\" é inválida: %3$s"
+
+#: src/Model/QuestionType/TableQuestion.php:301
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" does not match the expected format."
+msgstr "Linha %1$s: a coluna \"%2$s\" não corresponde ao formato esperado."
+
+#: src/Model/QuestionType/TableQuestion.php:661
+msgid "Table question type"
+msgstr "Tipo de pergunta de Tabela"
+
+#: src/Model/QuestionType/TableQuestion.php:667
+msgid "Allow users to fill in tabular data with configurable columns."
+msgstr ""
+"Permitir que os usuários preencham dados tabulares com colunas "
+"configuráveis."
+
+#: src/Model/QuestionType/IpAddressQuestion.php:61
+msgid "Ip address"
+msgstr "Endereço IP"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:137
+msgid "IP address question type"
+msgstr "Tipo de pergunta de Endereço IP"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:143
+msgid "This question type will automatically register the user's ip address."
+msgstr ""
+"Este tipo de pergunta registrará automaticamente o endereço IP do usuário."
+
+#: src/Model/QuestionType/HiddenQuestion.php:66
+msgid "Hidden"
+msgstr "Oculto"
+
+#: src/Model/QuestionType/HiddenQuestion.php:140
+msgid "Hidden address question type"
+msgstr "Tipo de pergunta oculta"
+
+#: src/Model/QuestionType/HiddenQuestion.php:146
+msgid "This question type will insert some hidden data into the form."
+msgstr "Este tipo de pergunta inserirá alguns dados ocultos no formulário."
+
+#: src/Model/QuestionType/TreeCascadeDropdownQuestion.php:94
+msgid "Tree Cascade Dropdown"
+msgstr "Lista Suspensa em Cascata"
+
+#: src/Model/QuestionType/TreeCascadeDropdownQuestion.php:477
+msgid ""
+"Enable tree cascade dropdown question type (recursive dropdown for "
+"hierarchical data)"
+msgstr "Ativar tipo de pergunta de lista suspensa em cascata"
+
+#: src/Model/QuestionType/LdapQuestion.php:67
+msgid "LDAP select"
+msgstr "Seleção LDAP"
+
+#: src/Model/QuestionType/LdapQuestion.php:169
+msgid "LDAP select question type"
+msgstr "Tipo de pergunta de seleção LDAP"
+
+#: src/Model/QuestionType/LdapQuestion.php:175
+msgid "Select some data from a LDAP directory."
+msgstr "Selecione alguns dados de um diretório LDAP."
+
+#: src/Model/QuestionType/HostnameQuestion.php:61
+msgid "Hostname"
+msgstr "Nome do host"
+
+#: src/Model/QuestionType/HostnameQuestion.php:137
+msgid "Hostname question type"
+msgstr "Tipo de pergunta de Nome do host"
+
+#: src/Model/QuestionType/HostnameQuestion.php:143
+msgid "This question type will automatically register the user's hostname."
+msgstr ""
+"Este tipo de pergunta registrará automaticamente o nome do host do usuário."
+
+#: src/Model/QuestionType/AdvancedCategory.php:51
+msgid "Advanced"
+msgstr "Avançado"
+
+#: src/Model/QuestionType/ReservationQuestion.php:64
+msgid "Material reservation"
+msgstr "Reserva de material"
+
+#: src/Model/QuestionType/ReservationQuestion.php:199
+msgid "Unexpected value"
+msgstr "Valor inesperado"
+
+#: src/Model/QuestionType/ReservationQuestion.php:221
+msgid "Please select an item and both a start and end date."
+msgstr "Por favor, selecione um item e uma data de início e de término."
+
+#: src/Model/QuestionType/ReservationQuestion.php:226
+msgid "The end date must be after the start date."
+msgstr "A data de término deve ser após a data de início."
+
+#: src/Model/QuestionType/ReservationQuestion.php:262
+msgid "Material reservation question type"
+msgstr "Tipo de pergunta de Reserva de Material"
+
+#: src/Model/QuestionType/ReservationQuestion.php:268
+msgid "Allow users to reserve equipment from a form."
+msgstr "Permitir que os usuários reservem equipamentos de um formulário."
+
+#: public/js/modules/ReservationQuestionWidget.js:99
+msgid "Select an item to reserve"
+msgstr "Selecione um item para reservar"
+
+#: public/js/modules/ReservationQuestionWidget.js:223
+msgid "Could not check availability, please try again"
+msgstr "Não foi possível verificar a disponibilidade. Tente novamente"
+
+#: public/js/modules/ReservationQuestionWidget.js:240
+msgid "The end date must be after the start date"
+msgstr "A data de término deve ser após a data de início"
+
+#: public/js/modules/ReservationQuestionWidget.js:293
+msgid "Reserved"
+msgstr "Reservado"
+
+#: public/js/modules/ReservationQuestionWidget.js:356
+msgid "Existing reservations for this item"
+msgstr "Reservas existentes para este item"
+
+#: public/js/modules/ReservationQuestionWidget.js:378
+msgid "This slot is available"
+msgstr "Este horário está disponível"
+
+#: public/js/modules/ReservationQuestionWidget.js:378
+msgid "This slot is no longer available"
+msgstr "Este horário não está mais disponível"
+
+#: public/js/modules/ReservationRequestTimelineActions.js:75
+#: public/js/modules/ReservationRequestTimelineActions.js:79
+msgid "An error occurred"
+msgstr "Ocorreu um erro"
