@@ -33,13 +33,25 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Model\QuestionType;
 
+use AltchaOrg\Altcha\Algorithm\Pbkdf2;
+use AltchaOrg\Altcha\Altcha;
+use AltchaOrg\Altcha\SolveChallengeOptions;
+use Glpi\Altcha\AltchaManager;
+use Glpi\Controller\Form\SubmitAnswerController;
+use Glpi\Form\AccessControl\ControlType\DirectAccess;
+use Glpi\Form\AccessControl\ControlType\DirectAccessConfig;
+use Glpi\Form\AnswersSet;
+use Glpi\Form\Form;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
+use Glpi\Tests\FormBuilder;
 use Glpi\Tests\FormTesterTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Tests\QuestionType\QuestionTypeTestCase;
 use Override;
+use Psr\Log\NullLogger;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\Request;
 
 final class HiddenQuestionTest extends QuestionTypeTestCase
 {
@@ -79,5 +91,54 @@ final class HiddenQuestionTest extends QuestionTypeTestCase
     ): void {
         $input = $html->filter('input[value="my hidden value"]');
         $this->assertEmpty($input);
+    }
+
+    public function testUnauthenticatedSubmissionSavesHiddenDefaultValue(): void
+    {
+        $this->enableConfigurableItem(HiddenQuestion::class);
+        $builder = new FormBuilder("Anonymous form");
+        $builder->addQuestion("My hidden question", HiddenQuestion::class, 'my hidden value');
+        $builder->setUseDefaultAccessPolicies(false);
+        $builder->addAccessControl(DirectAccess::class, new DirectAccessConfig(
+            token: 'my_token',
+            allow_unauthenticated: true,
+        ));
+        $form = $this->createForm($builder);
+        $question_id = $this->getQuestionId($form, "My hidden question");
+
+        $this->logOut();
+        $request = Request::create('/Form/SubmitAnswers?token=my_token', 'POST', [
+            'forms_id'             => $form->getID(),
+            "answers_$question_id" => 'tampered value',
+            'altcha'               => $this->solveAltchaChallenge(),
+        ]);
+        $response = (new SubmitAnswerController(new NullLogger()))->__invoke($request);
+
+        $this->assertSame(200, $response->getStatusCode(), $response->getContent());
+        $answers_set = $this->getLastAnswersSet($form);
+        $answer = $answers_set->getAnswerByQuestionId($question_id);
+        $this->assertNotNull($answer);
+        $this->assertSame('my hidden value', $answer->getRawAnswer());
+    }
+
+    private function getLastAnswersSet(Form $form): AnswersSet
+    {
+        $rows = (new AnswersSet())->find(['forms_forms_id' => $form->getID()], ['id DESC'], 1);
+        $this->assertCount(1, $rows);
+        return AnswersSet::getById(current($rows)['id']);
+    }
+
+    private function solveAltchaChallenge(): string
+    {
+        $challenge = AltchaManager::getInstance()->generateChallenge();
+        $solution = (new Altcha())->solveChallenge(new SolveChallengeOptions(
+            challenge: $challenge,
+            algorithm: new Pbkdf2(),
+        ));
+
+        return base64_encode(json_encode([
+            'challenge' => $challenge->toArray(),
+            'solution'  => $solution,
+        ]));
     }
 }
