@@ -62,14 +62,13 @@ use Supplier;
 use User;
 
 /**
- * Turns off the email followup of the actors found only by disabled sources
- * (strategy, specific actor or question) of the requesters, observers and
- * assignees fields.
+ * Turns off the email followup of the actors found only by disabled sources.
  *
  * @phpstan-type Source array{
  *      list: ActorNotificationFieldConfig::DISABLED_*,
  *      value: string|int,
- *      strategy: ITILActorFieldStrategy
+ *      strategy: ITILActorFieldStrategy,
+ *      question?: Question
  * }
  */
 final class ActorNotificationField extends AbstractConfigField
@@ -211,15 +210,9 @@ final class ActorNotificationField extends AbstractConfigField
                 continue;
             }
 
-            [$disabled_persons, $enabled_persons] = $this->getPersonsBySourceState(
-                $config,
-                $role,
-                $actor_field,
-                $actor_config,
-                $answers_set,
-            );
+            [$disabled_persons, $enabled_persons] = $this->getPersons($config, $role, $actor_field, $actor_config, $answers_set);
 
-            // A person keeps the followup as soon as one enabled source finds it.
+            // An enabled source wins
             $persons_to_mute = array_diff_key($disabled_persons, $enabled_persons);
             if ($persons_to_mute === []) {
                 continue;
@@ -254,9 +247,7 @@ final class ActorNotificationField extends AbstractConfigField
 
         $roles = [];
         foreach ($this->getActorFields() as $role => $actor_field) {
-            // Actors fields are prepared before this one (lower weight), so
-            // their input is already normalized. A missing actor field config
-            // falls back to its default strategy, as it will once saved.
+            // Actors fields are already prepared (lower weight)
             $actor_config = $this->getActorFieldConfigFromInput($actor_field, $input);
             $raw_role = is_array($raw_roles[$role] ?? null) ? $raw_roles[$role] : [];
 
@@ -299,7 +290,7 @@ final class ActorNotificationField extends AbstractConfigField
             return parent::exportDynamicConfig($config, $destination);
         }
 
-        // Questions ids are kept as is: the form serializer maps them itself.
+        // Question ids are mapped by the form serializer
         $requirements = [];
         foreach ($roles as $role => $role_config) {
             if (!is_array($role_config) || !is_array($role_config[ActorNotificationFieldConfig::DISABLED_ACTORS] ?? null)) {
@@ -354,12 +345,12 @@ final class ActorNotificationField extends AbstractConfigField
                     continue;
                 }
 
-                [$fkey, $name] = array_pad(explode('-', $actor, 2), 2, '');
-                $itemtype = getItemtypeForForeignKeyField($fkey);
-                if ($itemtype !== User::class && $itemtype !== Supplier::class) {
+                $parsed_actor = self::parseActorKey($actor);
+                if ($parsed_actor === null) {
                     continue;
                 }
 
+                [$itemtype, $name] = $parsed_actor;
                 $actors[] = self::getActorKey($itemtype, $mapper->getItemId($itemtype, $name));
             }
 
@@ -396,8 +387,7 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Sources of an actor field that can be toggled: one per strategy, per
-     * specific user or supplier, and per question answering with people.
+     * Toggleable sources: strategies, specific users or suppliers, questions.
      *
      * @return list<Source>
      */
@@ -412,8 +402,9 @@ final class ActorNotificationField extends AbstractConfigField
                     'strategy' => $strategy,
                 ];
             } elseif ($strategy === ITILActorFieldStrategy::SPECIFIC_VALUES) {
+                $notifiable_itemtypes = $this->getNotifiableItemtypes($actor_field);
                 foreach ($actor_config->getSpecificITILActorsIds() ?? [] as $itemtype => $ids) {
-                    if (!in_array($itemtype, self::NOTIFIABLE_ITEMTYPES, true) || !is_array($ids)) {
+                    if (!in_array($itemtype, $notifiable_itemtypes, true) || !is_array($ids)) {
                         continue;
                     }
 
@@ -431,14 +422,17 @@ final class ActorNotificationField extends AbstractConfigField
                 }
             } elseif ($strategy === ITILActorFieldStrategy::SPECIFIC_ANSWERS) {
                 foreach ($actor_config->getSpecificQuestionIds() ?? [] as $question_id) {
-                    if (!is_numeric($question_id) || !$this->isNotifiableQuestion($actor_field, (int) $question_id)) {
+                    $question = is_numeric($question_id) ? Question::getById((int) $question_id) : null;
+                    if (!$question instanceof Question || !$this->isNotifiableQuestion($actor_field, $question)) {
                         continue;
                     }
 
+                    // Kept for the label
                     $sources[] = [
                         'list'     => ActorNotificationFieldConfig::DISABLED_QUESTION_IDS,
-                        'value'    => (int) $question_id,
+                        'value'    => $question->getID(),
                         'strategy' => $strategy,
+                        'question' => $question,
                     ];
                 }
             }
@@ -451,6 +445,19 @@ final class ActorNotificationField extends AbstractConfigField
     public static function getActorKey(string $itemtype, int $id): string
     {
         return getForeignKeyFieldForItemType($itemtype) . '-' . $id;
+    }
+
+    /**
+     * Users and suppliers accepted by the field.
+     *
+     * @return list<class-string<User|Supplier>>
+     */
+    private function getNotifiableItemtypes(ITILActorField $actor_field): array
+    {
+        return array_values(array_filter(
+            self::NOTIFIABLE_ITEMTYPES,
+            fn(string $itemtype): bool => in_array($itemtype, $actor_field->getAllowedActorTypes(), true),
+        ));
     }
 
     /** @return list<ITILActorFieldStrategy> */
@@ -485,22 +492,37 @@ final class ActorNotificationField extends AbstractConfigField
                 return $item instanceof CommonDBTM ? $item->getFriendlyName() : (string) $source['value'];
 
             case ActorNotificationFieldConfig::DISABLED_QUESTION_IDS:
-                $question = Question::getById((int) $source['value']);
-                return $question instanceof Question ? $question->getName() : (string) $source['value'];
+                return isset($source['question']) ? $source['question']->getName() : (string) $source['value'];
 
             default:
                 return $source['strategy']->getLabel($actor_field->getLabel());
         }
     }
 
-    private function getItemFromActorKey(string $actor_key): ?CommonDBTM
+    /**
+     * Splits `<foreign key>-<id>` (`<foreign key>-<name>` in an export).
+     *
+     * @return array{class-string<User|Supplier>, string}|null
+     */
+    private static function parseActorKey(string $actor_key): ?array
     {
-        [$fkey, $id] = array_pad(explode('-', $actor_key, 2), 2, '');
+        [$fkey, $value] = array_pad(explode('-', $actor_key, 2), 2, '');
         $itemtype = getItemtypeForForeignKeyField($fkey);
-        if (!in_array($itemtype, self::NOTIFIABLE_ITEMTYPES, true) || !is_numeric($id)) {
+        if (!in_array($itemtype, self::NOTIFIABLE_ITEMTYPES, true)) {
             return null;
         }
 
+        return [$itemtype, $value];
+    }
+
+    private function getItemFromActorKey(string $actor_key): ?CommonDBTM
+    {
+        $parsed_actor = self::parseActorKey($actor_key);
+        if ($parsed_actor === null || !is_numeric($parsed_actor[1])) {
+            return null;
+        }
+
+        [$itemtype, $id] = $parsed_actor;
         $item = getItemForItemtype($itemtype);
         if (!$item instanceof CommonDBTM || !$item->getFromDB((int) $id)) {
             return null;
@@ -509,24 +531,11 @@ final class ActorNotificationField extends AbstractConfigField
         return $item;
     }
 
-    /**
-     * A question is listed only if its answer can give users or suppliers,
-     * following the answers accepted by the "Answer from specific questions"
-     * strategy (any actors question, e.g. requester questions migrated from
-     * Formcreator are also used for assignees).
-     */
-    private function isNotifiableQuestion(ITILActorField $actor_field, int $question_id): bool
+    /** Question whose answer can give users or suppliers. */
+    private function isNotifiableQuestion(ITILActorField $actor_field, Question $question): bool
     {
-        $question = Question::getById($question_id);
-        if (!$question instanceof Question) {
-            return false;
-        }
-
         $type = $question->getQuestionType();
-        $notifiable_itemtypes = array_filter(
-            self::NOTIFIABLE_ITEMTYPES,
-            fn(string $itemtype): bool => in_array($itemtype, $actor_field->getAllowedActorTypes(), true),
-        );
+        $notifiable_itemtypes = $this->getNotifiableItemtypes($actor_field);
 
         if ($type instanceof QuestionTypeEmail) {
             return true;
@@ -553,38 +562,38 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Persons found by the disabled sources and by the enabled ones.
+     * Persons found by the disabled and the enabled sources, each resolved once.
      *
-     * @return array{array<string, true>, array<string, true>}
+     * @return array{array<string, true>, array<string, true>} Disabled and enabled persons
      */
-    private function getPersonsBySourceState(
+    private function getPersons(
         ActorNotificationFieldConfig $config,
         string $role,
         ITILActorField $actor_field,
         ITILActorFieldConfig $actor_config,
         AnswersSet $answers_set,
     ): array {
-        $disabled = [];
-        $enabled = [];
+        $disabled_persons = [];
+        $enabled_persons = [];
 
         foreach ($this->getUniqueStrategies($actor_config) as $strategy) {
-            if ($strategy === ITILActorFieldStrategy::SPECIFIC_ANSWERS) {
-                foreach ($actor_config->getSpecificQuestionIds() ?? [] as $question_id) {
-                    if (!is_numeric($question_id)) {
+            if ($strategy === ITILActorFieldStrategy::SPECIFIC_VALUES) {
+                $notifiable_itemtypes = $this->getNotifiableItemtypes($actor_field);
+                foreach ($actor_config->getSpecificITILActorsIds() ?? [] as $itemtype => $ids) {
+                    if (!in_array($itemtype, $notifiable_itemtypes, true)) {
                         continue;
                     }
 
-                    $is_disabled = $config->isQuestionDisabled($role, (int) $question_id);
-                    foreach ($this->getActorsForQuestion($actor_field, (int) $question_id, $answers_set) as $actor) {
-                        $person = $this->getPersonKey($actor);
+                    foreach (is_array($ids) ? $ids : [] as $id) {
+                        $person = $this->getPersonKey(['itemtype' => $itemtype, 'items_id' => $id]);
                         if ($person === null) {
                             continue;
                         }
 
-                        if ($is_disabled) {
-                            $disabled[$person] = true;
+                        if ($config->isActorDisabled($role, $person)) {
+                            $disabled_persons[$person] = true;
                         } else {
-                            $enabled[$person] = true;
+                            $enabled_persons[$person] = true;
                         }
                     }
                 }
@@ -592,26 +601,71 @@ final class ActorNotificationField extends AbstractConfigField
                 continue;
             }
 
+            if ($strategy === ITILActorFieldStrategy::SPECIFIC_ANSWERS) {
+                foreach ($actor_config->getSpecificQuestionIds() ?? [] as $question_id) {
+                    if (!is_numeric($question_id)) {
+                        continue;
+                    }
+
+                    $question_disabled = $config->isQuestionDisabled($role, (int) $question_id);
+                    foreach ($this->getActorsForQuestion($actor_field, (int) $question_id, $answers_set) as $actor) {
+                        $person = $this->getPersonKey($actor);
+                        if ($person === null) {
+                            continue;
+                        }
+
+                        if ($question_disabled) {
+                            $disabled_persons[$person] = true;
+                        } else {
+                            $enabled_persons[$person] = true;
+                        }
+                    }
+                }
+
+                continue;
+            }
+
+            // Template and groups strategies give no user or supplier
+            if (!in_array($strategy, self::STRATEGY_LEVEL_SOURCES, true)) {
+                continue;
+            }
+
+            $strategy_disabled = $config->isStrategyDisabled($role, $strategy);
             foreach ($strategy->getITILActors($actor_field, $actor_config, $answers_set) ?? [] as $actor) {
                 $person = $this->getPersonKey($actor);
                 if ($person === null) {
                     continue;
                 }
 
-                $is_disabled = match (true) {
-                    $strategy === ITILActorFieldStrategy::SPECIFIC_VALUES => $config->isActorDisabled($role, $person),
-                    in_array($strategy, self::STRATEGY_LEVEL_SOURCES, true) => $config->isStrategyDisabled($role, $strategy),
-                    default => false,
-                };
-                if ($is_disabled) {
-                    $disabled[$person] = true;
+                // The delegated user keeps the delegation block choice
+                if ($strategy_disabled && !$this->isDelegatedFormFiller($strategy, $actor, $answers_set)) {
+                    $disabled_persons[$person] = true;
                 } else {
-                    $enabled[$person] = true;
+                    $enabled_persons[$person] = true;
                 }
             }
         }
 
-        return [$disabled, $enabled];
+        return [$disabled_persons, $enabled_persons];
+    }
+
+    /** Form filler sent on behalf of another user. */
+    private function isDelegatedFormFiller(ITILActorFieldStrategy $strategy, mixed $actor, AnswersSet $answers_set): bool
+    {
+        $delegated_users_id = $answers_set->getDelegation()->users_id;
+        if (
+            $strategy !== ITILActorFieldStrategy::FORM_FILLER
+            || $delegated_users_id === null
+            || !is_array($actor)
+        ) {
+            return false;
+        }
+
+        // Selecting oneself is not a delegation
+        $author_id = is_numeric($answers_set->fields['users_id'] ?? null) ? (int) $answers_set->fields['users_id'] : 0;
+        $items_id = is_numeric($actor['items_id'] ?? null) ? (int) $actor['items_id'] : 0;
+
+        return $items_id === $delegated_users_id && $delegated_users_id !== $author_id;
     }
 
     /** @return array<mixed> */
@@ -638,9 +692,7 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Identifies a person: same type and id (as an actor key, e.g.
-     * `users_id-12`), or same address for an email without GLPI account.
-     * Groups are ignored.
+     * Actor key, or `email-<address>` without account. Null for groups.
      */
     private function getPersonKey(mixed $actor): ?string
     {
@@ -649,7 +701,7 @@ final class ActorNotificationField extends AbstractConfigField
         }
 
         $itemtype = $actor['itemtype'] ?? null;
-        if ($itemtype !== User::class && $itemtype !== Supplier::class) {
+        if (!in_array($itemtype, self::NOTIFIABLE_ITEMTYPES, true)) {
             return null;
         }
 
@@ -667,12 +719,8 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Turns off the followup on every line of the given persons.
-     *
-     * Lines set by the template come first and have no notification entry:
-     * these persons are imposed by the template and keep the followup. The
-     * notification entries are re-keyed on the actors keys, as the core reads
-     * them by actor key.
+     * Turns off the followup of the given persons. Template lines come first,
+     * without notification entry, and keep the followup.
      *
      * @param array<mixed>        $input
      * @param class-string<User|Supplier> $itemtype
@@ -754,8 +802,7 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Accepts the saved format (a list of values) and the form format (a map
-     * of value => 1 if disabled, 0 if enabled, from the toggles).
+     * Accepts a list (saved) or a map value => 0|1 (form toggles).
      *
      * @return list<string>
      */

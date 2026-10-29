@@ -34,21 +34,23 @@
         {{ __('Actors found only by disabled sources are added without email followup. Sources added to the actors fields are listed once the destination is saved.', 'advancedforms') }}
     </div>
 
+    {% set disabled = options.disabled|default(false) %}
     {% for role in roles %}
         <fieldset class="mb-2" data-testid="actor-notification-role">
             <legend class="fs-5 fw-bold mb-1">{{ role.label }}</legend>
             {% for row in role.rows %}
                 {# The checkbox value overrides the hidden one: an unchecked toggle
-                   submits "1", meaning the source is disabled. #}
+                   submits "1", meaning the source is disabled. A disabled field
+                   submits nothing. #}
                 <label class="form-check form-switch mb-1">
-                    <input name="{{ row.input_name }}" type="hidden" value="1">
+                    <input name="{{ row.input_name }}" type="hidden" value="1" {{ disabled ? 'disabled' : '' }}>
                     <input
                         name="{{ row.input_name }}"
                         class="form-check-input"
                         type="checkbox"
                         value="0"
                         {{ row.enabled ? 'checked' : '' }}
-                        {{ options.disabled|default(false) ? 'disabled' : '' }}
+                        {{ disabled ? 'disabled' : '' }}
                     >
                     <span class="form-check-label">
                         {{ row.label }}

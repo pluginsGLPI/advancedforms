@@ -40,10 +40,7 @@ use Glpi\Form\Destination\HasFieldWithQuestionId;
 use Override;
 
 /**
- * Sources whose actors must not receive the email followup, per actor role.
- *
- * Only the `roles` part is serialized; the actors fields configs are kept in
- * memory to know which sources exist in the destination.
+ * Disabled email followup sources, by actor role. Only `roles` is serialized.
  *
  * @phpstan-type RoleConfig array{
  *      disabled_strategies: list<string>,
@@ -103,8 +100,7 @@ final class ActorNotificationFieldConfig implements JsonFieldInterface
     }
 
     /**
-     * Every list is always present: the core expects the question ids key in
-     * each role when it renumbers questions on form duplication.
+     * Every list is always present: the core needs the question ids on duplication.
      *
      * @param list<string> $strategies
      * @param list<string> $actors

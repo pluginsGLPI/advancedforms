@@ -35,10 +35,13 @@ namespace GlpiPlugin\Advancedforms\Tests\Console;
 
 use DBmysql;
 use Glpi\Form\AccessControl\FormAccessControlManager;
+use Glpi\Form\Destination\CommonITILField\AssigneeField;
+use Glpi\Form\Destination\CommonITILField\ITILActorFieldConfig;
 use Glpi\Form\Destination\FormDestination;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\FormMigration;
 use Glpi\Form\Question;
+use Glpi\Plugin\Hooks;
 use GlpiPlugin\Advancedforms\Console\ImportFormcreatorActorsNotificationCommand;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationFieldConfig;
@@ -68,6 +71,9 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         $this->assertStringContainsString('Destinations to update: 1', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 3', $tester->getDisplay());
         $this->assertSame($config_before, $this->getDestination($form)->fields['config']);
+
+        // A dry run does not mark the destination as imported
+        $this->assertStringContainsString('Updated destinations: 1', $this->runCommand()->getDisplay());
     }
 
     public function testUncheckedActorsSourcesAreDisabled(): void
@@ -85,33 +91,95 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         );
     }
 
-    public function testRerunKeepsManualSettingsWithoutDuplicates(): void
+    public function testRerunSkipsImportedDestinations(): void
     {
         $form = $this->migrateFormcreatorFormWithUncheckedActors();
         $this->runCommand();
-
-        // Manually disable another source
-        $normal_key = 'users_id-' . getItemByTypeName(User::class, 'normal', true);
-        $destination = $this->getDestination($form);
-        $config = $destination->getConfig();
-        $config[ActorNotificationField::getKey()]['roles']['assign']['disabled_actors'][] = $normal_key;
-        $this->updateItem(
-            FormDestination::class,
-            $destination->getID(),
-            ['config' => $config, '_from_import' => true], // Saved config, already prepared
-            ['config', '_from_import'],
-        );
+        $expected = $this->changeSettingsByHand($form);
 
         $tester = $this->runCommand();
 
         $this->assertStringContainsString('Updated destinations: 0', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 0', $tester->getDisplay());
-        $expected = $this->expectedConfig($form);
-        $expected['roles']['assign']['disabled_actors'][] = $normal_key;
+        $this->assertStringContainsString('Destinations already imported, skipped: 1', $tester->getDisplay());
         $this->assertSame(
             $expected,
             $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
         );
+    }
+
+    public function testForcedRerunImportsAgainWithoutDuplicates(): void
+    {
+        $form = $this->migrateFormcreatorFormWithUncheckedActors();
+        $this->runCommand();
+        $expected = $this->changeSettingsByHand($form);
+
+        $tester = $this->runCommand(force: true);
+
+        $this->assertStringContainsString('Updated destinations: 1', $tester->getDisplay());
+        $this->assertStringContainsString('Disabled sources: 1', $tester->getDisplay());
+        $expected['roles']['requester']['disabled_strategies'] = ['form_filler'];
+        $this->assertSame(
+            $expected,
+            $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
+        );
+    }
+
+    public function testDestinationWithoutSourceFoundIsNotRemembered(): void
+    {
+        /** @var DBmysql $DB */
+        global $DB;
+
+        $form = $this->migrateFormcreatorFormWithUncheckedActors();
+        // Only the technician stays unchecked
+        $DB->update(
+            'glpi_plugin_formcreator_targets_actors',
+            ['use_notification' => 1],
+            ['NOT' => ['actor_role' => self::ROLE_ASSIGN]],
+        );
+        $config = $this->getDestination($form)->getConfig();
+        $config_without_tech = $config;
+        $config_without_tech[AssigneeField::getKey()][ITILActorFieldConfig::SPECIFIC_ITILACTORS_IDS] = [
+            User::class => [getItemByTypeName(User::class, 'normal', true)],
+        ];
+        $this->saveDestinationConfig($form, $config_without_tech);
+
+        $tester = $this->runCommand();
+
+        $this->assertStringContainsString('Source not found in the destination actors', $tester->getDisplay());
+        $this->assertStringContainsString('Updated destinations: 0', $tester->getDisplay());
+
+        // Once the technician is added to the destination, the next run imports it
+        $this->saveDestinationConfig($form, $config);
+        $tester = $this->runCommand();
+
+        $this->assertStringContainsString('Updated destinations: 1', $tester->getDisplay());
+        $this->assertStringContainsString('Disabled sources: 1', $tester->getDisplay());
+    }
+
+    public function testFailedUpdateIsReportedAndNotRemembered(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        $form = $this->migrateFormcreatorFormWithUncheckedActors();
+        $config_before = $this->getDestination($form)->fields['config'];
+
+        // A plugin refuses the update of the destination
+        $plugin_hooks = $PLUGIN_HOOKS;
+        $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['advancedforms'][FormDestination::class] = static function (FormDestination $destination): void {
+            $destination->input = false;
+        };
+        try {
+            $tester = $this->runCommand();
+        } finally {
+            $PLUGIN_HOOKS = $plugin_hooks;
+        }
+
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString('Updated destinations: 0', $tester->getDisplay());
+        $this->assertSame($config_before, $this->getDestination($form)->fields['config']);
+
+        $this->assertStringContainsString('Updated destinations: 1', $this->runCommand()->getDisplay());
     }
 
     public function testMissingQuestionIsReportedAndOtherSourcesImported(): void
@@ -134,12 +202,29 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
 
     public function testMissingFormcreatorTablesFails(): void
     {
-        $this->withoutFormcreatorTable(function () {
-            $tester = $this->runCommand();
+        /** @var DBmysql $DB */
+        global $DB;
 
-            $this->assertSame(Command::FAILURE, $tester->getStatusCode());
-            $this->assertStringContainsString('Formcreator tables not found', $tester->getDisplay());
-        });
+        // The command uses the global connection: a stub hides the actors table.
+        $db_stub = $this->createStub(DBmysql::class);
+        $db_stub->connected = true;
+        $db_stub->method('tableExists')->willReturnCallback(
+            fn(string $table): bool => $table !== 'glpi_plugin_formcreator_targets_actors',
+        );
+
+        $real_db = $DB;
+        $DB = $db_stub;
+        try {
+            $tester = $this->runCommand();
+        } finally {
+            $DB = $real_db;
+        }
+
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString(
+            'Formcreator tables not found: glpi_plugin_formcreator_targets_actors.',
+            $tester->getDisplay(),
+        );
     }
 
     private function migrateFormcreatorFormWithUncheckedActors(): Form
@@ -196,12 +281,40 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         return $form;
     }
 
-    private function runCommand(bool $dry_run = false): CommandTester
+    private function runCommand(bool $dry_run = false, bool $force = false): CommandTester
     {
         $tester = new CommandTester(new ImportFormcreatorActorsNotificationCommand());
-        $tester->execute($dry_run ? ['--dry-run' => true] : []);
+        $tester->execute(array_filter(['--dry-run' => $dry_run, '--force' => $force]));
 
         return $tester;
+    }
+
+    /**
+     * Enables again the imported form filler and disables another source.
+     *
+     * @return array<string, mixed> The new config
+     */
+    private function changeSettingsByHand(Form $form): array
+    {
+        $config_key = ActorNotificationField::getKey();
+        $destination = $this->getDestination($form);
+        $config = $destination->getConfig();
+        $config[$config_key]['roles']['requester']['disabled_strategies'] = [];
+        $config[$config_key]['roles']['assign']['disabled_actors'][] = 'users_id-' . getItemByTypeName(User::class, 'normal', true);
+        $this->saveDestinationConfig($form, $config);
+
+        return $this->getDestination($form)->getConfig()[$config_key];
+    }
+
+    /** @param array<string, mixed> $config Saved config, already prepared */
+    private function saveDestinationConfig(Form $form, array $config): void
+    {
+        $this->updateItem(
+            FormDestination::class,
+            $this->getDestination($form)->getID(),
+            ['config' => $config, '_from_import' => true],
+            ['config', '_from_import'],
+        );
     }
 
     private function getDestination(Form $form): FormDestination
@@ -227,21 +340,5 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
                 actors: ['users_id-' . getItemByTypeName(User::class, 'tech', true)],
             ),
         ]];
-    }
-
-    /** Runs the callback while the Formcreator actors table is renamed. */
-    private function withoutFormcreatorTable(callable $callback): void
-    {
-        /** @var DBmysql $DB */
-        global $DB;
-
-        $DB->commit();
-        $DB->doQuery('RENAME TABLE `glpi_plugin_formcreator_targets_actors` TO `glpi_plugin_formcreator_targets_actors_bak`');
-        try {
-            $callback();
-        } finally {
-            $DB->doQuery('RENAME TABLE `glpi_plugin_formcreator_targets_actors_bak` TO `glpi_plugin_formcreator_targets_actors`');
-            $DB->beginTransaction();
-        }
     }
 }

@@ -33,8 +33,10 @@
 
 namespace GlpiPlugin\Advancedforms\Console;
 
+use Config;
 use Glpi\Console\AbstractCommand;
 use Glpi\Form\Destination\CommonITILField\ITILActorFieldConfig;
+use Glpi\Form\Destination\CommonITILField\ITILActorFieldStrategy;
 use Glpi\Form\Destination\FormDestination;
 use Glpi\Form\Destination\FormDestinationChange;
 use Glpi\Form\Destination\FormDestinationProblem;
@@ -54,18 +56,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 use User;
 
 /**
- * Disables, in the "Email followup" destination field, the sources of the
- * Formcreator actors whose email followup was unchecked. To run after the
- * Formcreator migration, while the Formcreator tables still exist.
- *
- * The migration does not keep its ids mapping: forms and questions are found
- * by uuid, destinations by form, type and name.
+ * Disables the "Email followup" sources of the Formcreator actors whose
+ * followup was unchecked. Run after the migration, before dropping the
+ * Formcreator tables. Imported destinations are skipped by the next runs.
  *
  * @phpstan-type NotFound array{target: string, element: string, reason: string}
  * @phpstan-type Change array{form: string, destination: string, role: string, source: string}
+ * @phpstan-import-type Source from ActorNotificationField
  */
 final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
 {
+    /** One config row per imported destination */
+    public const IMPORTED_DESTINATIONS_CONFIG_CONTEXT = 'advancedforms:formcreator_actors_notification';
+
     private const ACTORS_TABLE = 'glpi_plugin_formcreator_targets_actors';
 
     private const FORMS_TABLE = 'glpi_plugin_formcreator_forms';
@@ -86,9 +89,7 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
         3 => 'assign',
     ];
 
-    // PluginFormcreatorTarget_Actor::ACTOR_TYPE_* having an email followup.
-    // Groups (5, 6, 10, 11) have none, validator (2) and supervisor (12) are
-    // not migrated.
+    // PluginFormcreatorTarget_Actor::ACTOR_TYPE_* having an email followup
     private const ACTOR_TYPE_CREATOR = 1;
 
     private const ACTOR_TYPE_PERSON = 3;
@@ -110,8 +111,23 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
     /** @var list<NotFound> */
     private array $not_found = [];
 
-    /** @var array<int, FormDestination> */
+    private ActorNotificationField $field;
+
+    /** @var array<int, FormDestination> Destinations with sources to disable, by id */
     private array $destinations = [];
+
+    /** @var array<int, true> Destinations imported by a previous run */
+    private array $imported_destinations = [];
+
+    private bool $force = false;
+
+    /** @var array<int, true> */
+    private array $skipped_destinations = [];
+
+    private bool $has_failed_destinations = false;
+
+    /** @var array<int, array<string, list<Source>>> Sources by destination id and role */
+    private array $sources = [];
 
     /** @var array<int, array<string, array<string, list<string|int>>>> Sources to disable by destination id, role and list */
     private array $sources_to_disable = [];
@@ -129,6 +145,12 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
                 null,
                 InputOption::VALUE_NONE,
                 __('Display the changes without saving them', 'advancedforms'),
+            )
+            ->addOption(
+                'force',
+                null,
+                InputOption::VALUE_NONE,
+                __('Import again the destinations already imported, even the sources enabled again since', 'advancedforms'),
             );
     }
 
@@ -146,8 +168,14 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
 
         $dry_run = (bool) $input->getOption('dry-run');
 
+        $this->field = new ActorNotificationField();
+        $this->force = (bool) $input->getOption('force');
         $this->not_found = [];
         $this->destinations = [];
+        $this->imported_destinations = $this->getImportedDestinations();
+        $this->skipped_destinations = [];
+        $this->has_failed_destinations = false;
+        $this->sources = [];
         $this->sources_to_disable = [];
         foreach ($this->getUncheckedActors() as $actor) {
             $this->handleUncheckedActor($actor);
@@ -157,15 +185,26 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
         $updated_destinations = 0;
         foreach ($this->sources_to_disable as $destination_id => $sources) {
             $destination_changes = $this->disableSources($this->destinations[$destination_id], $sources, $dry_run);
+            if ($destination_changes === null) {
+                // Retried by the next run
+                unset($this->destinations[$destination_id]);
+                $this->has_failed_destinations = true;
+                continue;
+            }
+
             if ($destination_changes !== []) {
                 $updated_destinations++;
                 array_push($changes, ...$destination_changes);
             }
         }
 
+        if (!$dry_run) {
+            $this->saveImportedDestinations();
+        }
+
         $this->outputSummary($output, $changes, $updated_destinations, $dry_run);
 
-        return Command::SUCCESS;
+        return $this->has_failed_destinations ? Command::FAILURE : Command::SUCCESS;
     }
 
     /** @return list<string> */
@@ -180,6 +219,30 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
             $tables,
             fn(string $table): bool => !$this->getDb()->tableExists($table, usecache: false),
         ));
+    }
+
+    /** @return array<int, true> */
+    private function getImportedDestinations(): array
+    {
+        $destinations = [];
+        foreach (Config::getConfigurationValues(self::IMPORTED_DESTINATIONS_CONFIG_CONTEXT) as $id) {
+            $destinations[$this->toInt($id)] = true;
+        }
+
+        return $destinations;
+    }
+
+    /** Remembers the destinations of this run not imported yet. */
+    private function saveImportedDestinations(): void
+    {
+        $values = [];
+        foreach (array_keys(array_diff_key($this->destinations, $this->imported_destinations)) as $id) {
+            $values['destination_' . $id] = (string) $id;
+        }
+
+        if ($values !== []) {
+            Config::setConfigurationValues(self::IMPORTED_DESTINATIONS_CONFIG_CONTEXT, $values);
+        }
     }
 
     /** @return iterable<array<string, mixed>> */
@@ -254,6 +317,11 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
             return;
         }
 
+        if (!$this->force && isset($this->imported_destinations[$destination->getID()])) {
+            $this->skipped_destinations[$destination->getID()] = true;
+            return;
+        }
+
         [$list, $value, $element] = $this->getSource($form, $actor_type, $actor_value);
         if ($value === null) {
             $this->addNotFound(
@@ -266,12 +334,13 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
             return;
         }
 
-        if (!$this->isSourceConfigured($form, $destination, $role, $list, $value)) {
+        if (!$this->isSourceConfigured($destination, $role, $list, $value)) {
             $this->addNotFound($target_label, $element, __('Source not found in the destination actors', 'advancedforms'));
             return;
         }
 
         $this->destinations[$destination->getID()] = $destination;
+
         $values = $this->sources_to_disable[$destination->getID()][$role][$list] ?? [];
         if (!in_array($value, $values, true)) {
             $this->sources_to_disable[$destination->getID()][$role][$list][] = $value;
@@ -288,10 +357,7 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
         ], true);
     }
 
-    /**
-     * The migration keeps the Formcreator uuid, unless it was empty or shared
-     * by several forms: a uuid derived from the form id is then generated.
-     */
+    /** By the Formcreator uuid, or the one generated from the id by the migration. */
     private function findMigratedForm(int $fc_form_id): ?Form
     {
         $fc_form = $this->getDb()->request([
@@ -320,15 +386,15 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
     }
 
     /**
-     * Source matching a Formcreator actor, value is null if the actor or
-     * question is not found.
+     * Source of a Formcreator actor, value null if not found.
      *
      * @return array{ActorNotificationFieldConfig::DISABLED_*, string|int|null, string}
      */
     private function getSource(Form $form, int $actor_type, int $actor_value): array
     {
         if ($actor_type === self::ACTOR_TYPE_CREATOR) {
-            return [ActorNotificationFieldConfig::DISABLED_STRATEGIES, 'form_filler', 'form_filler'];
+            $strategy = ITILActorFieldStrategy::FORM_FILLER->value;
+            return [ActorNotificationFieldConfig::DISABLED_STRATEGIES, $strategy, $strategy];
         }
 
         if (in_array($actor_type, self::QUESTION_ACTOR_TYPES, true)) {
@@ -367,20 +433,12 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
     }
 
     private function isSourceConfigured(
-        Form $form,
         FormDestination $destination,
         string $role,
         string $list,
         string|int $value,
     ): bool {
-        $field = new ActorNotificationField();
-        $actor_field = $field->getActorFields()[$role];
-        $actor_config = $field->getConfig($form, $destination->getConfig())->getActorsConfig($role);
-        if (!$actor_config instanceof ITILActorFieldConfig) {
-            return false;
-        }
-
-        foreach ($field->getSources($actor_field, $actor_config) as $source) {
+        foreach ($this->getDestinationSources($destination, $role) as $source) {
             if ($source['list'] === $list && $source['value'] === $value) {
                 return true;
             }
@@ -390,25 +448,45 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
     }
 
     /**
-     * Adds the sources to the ones already disabled, without removing any.
+     * Sources of a role of the destination, cached.
+     *
+     * @return list<Source>
+     */
+    private function getDestinationSources(FormDestination $destination, string $role): array
+    {
+        $destination_id = $destination->getID();
+        if (!isset($this->sources[$destination_id])) {
+            $field_config = $this->field->getConfig($destination->getForm(), $destination->getConfig());
+            $this->sources[$destination_id] = [];
+            foreach ($this->field->getActorFields() as $actor_role => $actor_field) {
+                $actor_config = $field_config->getActorsConfig($actor_role);
+                $this->sources[$destination_id][$actor_role] = $actor_config instanceof ITILActorFieldConfig
+                    ? $this->field->getSources($actor_field, $actor_config)
+                    : [];
+            }
+        }
+
+        return $this->sources[$destination_id][$role] ?? [];
+    }
+
+    /**
+     * Adds the sources to the disabled ones.
      *
      * @param array<string, array<string, list<string|int>>> $sources
-     * @return list<Change>
+     * @return list<Change>|null null if not saved
      */
-    private function disableSources(FormDestination $destination, array $sources, bool $dry_run): array
+    private function disableSources(FormDestination $destination, array $sources, bool $dry_run): ?array
     {
         $form = $destination->getForm();
-        $field = new ActorNotificationField();
         $config = $destination->getConfig();
-        $field_config = $field->getConfig($form, $config);
+        $field_config = $this->field->getConfig($form, $config);
 
         $changes = [];
         $roles = [];
-        foreach ($field->getActorFields() as $role => $actor_field) {
+        foreach ($this->field->getActorFields() as $role => $actor_field) {
             $role_config = $field_config->getRoleConfig($role);
-            $actor_config = $field_config->getActorsConfig($role);
 
-            foreach ($actor_config instanceof ITILActorFieldConfig ? $field->getSources($actor_field, $actor_config) : [] as $source) {
+            foreach ($this->getDestinationSources($destination, $role) as $source) {
                 $list = $source['list'];
                 if (
                     !in_array($source['value'], $sources[$role][$list] ?? [], true)
@@ -427,7 +505,7 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
                     'form'        => $form->getName(),
                     'destination' => $destination->getName(),
                     'role'        => $actor_field->getLabel(),
-                    'source'      => $field->getSourceLabel($actor_field, $source),
+                    'source'      => $this->field->getSourceLabel($actor_field, $source),
                 ];
             }
 
@@ -440,14 +518,14 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
 
         $config[ActorNotificationField::getKey()] = (new ActorNotificationFieldConfig($roles))->jsonSerialize();
 
-        // The other fields config is already valid: do not prepare it again.
-        $destination->update([
+        // Config already prepared
+        $updated = $destination->update([
             'id'           => $destination->getID(),
             'config'       => $config,
             '_from_import' => true,
         ]);
 
-        return $changes;
+        return $updated ? $changes : null;
     }
 
     /** @param list<Change> $changes */
@@ -478,6 +556,13 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
             $updated_destinations,
         ));
         $output->writeln(sprintf(__('Disabled sources: %d', 'advancedforms'), count($changes)));
+
+        if ($this->skipped_destinations !== []) {
+            $output->writeln('<comment>' . sprintf(
+                __('Destinations already imported, skipped: %d. Use --force to import them again.', 'advancedforms'),
+                count($this->skipped_destinations),
+            ) . '</comment>');
+        }
 
         if ($this->not_found !== []) {
             $output->writeln('<comment>' . sprintf(__('Elements not found: %d', 'advancedforms'), count($this->not_found)) . '</comment>');

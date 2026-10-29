@@ -35,6 +35,8 @@ namespace GlpiPlugin\Advancedforms\Tests\Model\Destination;
 
 use CommonITILActor;
 use CommonITILObject;
+use Glpi\Form\AnswersHandler\AnswersHandler;
+use Glpi\Form\DelegationData;
 use Glpi\Form\Destination\CommonITILField\AssigneeField;
 use Glpi\Form\Destination\CommonITILField\AssigneeFieldConfig;
 use Glpi\Form\Destination\CommonITILField\ITILActorFieldStrategy;
@@ -58,6 +60,7 @@ use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationFieldConfig;
 use GlpiPlugin\Advancedforms\Tests\AdvancedFormsTestCase;
 use Group;
+use Group_User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Profile;
 use Session;
@@ -113,6 +116,41 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
         $this->assertSame(2, substr_count($html, 'checked'));
     }
 
+    public function testSupplierIsNotListedWhereTheCoreIgnoresIt(): void
+    {
+        $this->login();
+        $supplier = $this->createItem(Supplier::class, [
+            'name'        => 'Observer supplier',
+            'entities_id' => $this->getTestRootEntity(true),
+        ]);
+        $form = $this->createFormWithActorsQuestions();
+
+        // Observers are users or groups only
+        $this->setDestinationConfig($form, [
+            ObserverField::getKey() => (new ObserverFieldConfig(
+                [ITILActorFieldStrategy::SPECIFIC_VALUES],
+                ['suppliers_id-' . $supplier->getID()],
+            ))->jsonSerialize(),
+        ]);
+
+        $this->assertStringNotContainsString('[roles][observer]', $this->renderField($form));
+    }
+
+    public function testDisabledSectionSubmitsNothing(): void
+    {
+        $this->login();
+        $form = $this->createFormWithActorsQuestions();
+        $this->setDestinationConfig($form, [
+            RequesterField::getKey() => $this->requesterConfig([ITILActorFieldStrategy::FORM_FILLER]),
+        ]);
+
+        $html = $this->renderField($form, ['disabled' => true]);
+
+        // The hidden input and the toggle of the form filler source
+        $this->assertSame(2, substr_count($html, '<input'));
+        $this->assertSame(2, preg_match_all('/<input[^>]*\sdisabled\s*>/', $html));
+    }
+
     public function testDisabledSpecificActorHasNoFollowup(): void
     {
         $this->login();
@@ -159,6 +197,83 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
 
         $this->assertSame(
             ['User-' . Session::getLoginUserID() => 0],
+            $this->getActorsNotifications($ticket, CommonITILActor::REQUESTER),
+        );
+    }
+
+    public static function provideDelegationFollowups(): iterable
+    {
+        yield 'followup chosen' => [true];
+        yield 'followup refused' => [false];
+    }
+
+    #[DataProvider('provideDelegationFollowups')]
+    public function testDisabledFormFillerKeepsDelegationFollowup(bool $use_notification): void
+    {
+        $delegated_user = $this->createItem(User::class, ['name' => 'Delegated requester']);
+        $post_only_id = getItemByTypeName(User::class, 'post-only', true);
+        $group = $this->createItem(Group::class, ['name' => 'Delegation group']);
+        $this->createItem(Group_User::class, [
+            'groups_id'       => $group->getID(),
+            'users_id'        => $post_only_id,
+            'is_userdelegate' => 1,
+        ]);
+        $this->createItem(Group_User::class, [
+            'groups_id' => $group->getID(),
+            'users_id'  => $delegated_user->getID(),
+        ]);
+
+        $this->login();
+        $form = $this->createFormWithActorsQuestions();
+        $this->setDestinationConfig($form, [
+            RequesterField::getKey() => $this->requesterConfig([ITILActorFieldStrategy::FORM_FILLER]),
+            ActorNotificationField::getKey() => $this->notificationConfig(
+                requester: ['disabled_strategies' => [ITILActorFieldStrategy::FORM_FILLER->value]],
+            ),
+        ]);
+
+        $this->login('post-only', 'postonly');
+        $created_items = AnswersHandler::getInstance()->saveAnswers(
+            $form,
+            [],
+            $post_only_id,
+            delegation: new DelegationData($delegated_user->getID(), $use_notification),
+        )->getCreatedItems();
+        $this->assertCount(1, $created_items);
+        $ticket = current($created_items);
+        $this->assertInstanceOf(CommonITILObject::class, $ticket);
+
+        $this->assertSame(
+            [$this->userKey($delegated_user) => (int) $use_notification],
+            $this->getActorsNotifications($ticket, CommonITILActor::REQUESTER),
+        );
+    }
+
+    public function testDisabledFormFillerSelectingSelfHasNoFollowup(): void
+    {
+        $this->login();
+        $form = $this->createFormWithActorsQuestions();
+        $this->setDestinationConfig($form, [
+            RequesterField::getKey() => $this->requesterConfig([ITILActorFieldStrategy::FORM_FILLER]),
+            ActorNotificationField::getKey() => $this->notificationConfig(
+                requester: ['disabled_strategies' => [ITILActorFieldStrategy::FORM_FILLER->value]],
+            ),
+        ]);
+
+        $this->login('post-only', 'postonly');
+        $post_only_id = getItemByTypeName(User::class, 'post-only', true);
+        $created_items = AnswersHandler::getInstance()->saveAnswers(
+            $form,
+            [],
+            $post_only_id,
+            delegation: new DelegationData($post_only_id, true),
+        )->getCreatedItems();
+        $this->assertCount(1, $created_items);
+        $ticket = current($created_items);
+        $this->assertInstanceOf(CommonITILObject::class, $ticket);
+
+        $this->assertSame(
+            ['User-' . $post_only_id => 0],
             $this->getActorsNotifications($ticket, CommonITILActor::REQUESTER),
         );
     }
@@ -542,7 +657,8 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
         return $destination->getConfig();
     }
 
-    private function renderField(Form $form): string
+    /** @param array<string, mixed> $display_options */
+    private function renderField(Form $form, array $display_options = []): string
     {
         $destination = $this->getDestination($form);
         $field = new ActorNotificationField();
@@ -552,7 +668,7 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
             $destination,
             $field->getConfig($form, $destination->getConfig()),
             'config[' . ActorNotificationField::getKey() . ']',
-            [],
+            $display_options,
         );
     }
 
