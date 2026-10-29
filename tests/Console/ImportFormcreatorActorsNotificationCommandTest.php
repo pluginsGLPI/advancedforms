@@ -45,6 +45,7 @@ use Glpi\Plugin\Hooks;
 use GlpiPlugin\Advancedforms\Console\ImportFormcreatorActorsNotificationCommand;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationFieldConfig;
+use GlpiPlugin\Advancedforms\Tests\Model\Destination\ActorNotificationConfigAssertionsTrait;
 use GlpiPlugin\Advancedforms\Tests\Model\Mapper\MapperTestCase;
 use Group;
 use Symfony\Component\Console\Command\Command;
@@ -53,6 +54,8 @@ use User;
 
 final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCase
 {
+    use ActorNotificationConfigAssertionsTrait;
+
     private const ROLE_REQUESTER = 1;
 
     private const ROLE_OBSERVER = 2;
@@ -85,7 +88,7 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
         $this->assertStringContainsString('Updated destinations: 1', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 3', $tester->getDisplay());
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $this->expectedConfig($form),
             $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
         );
@@ -102,7 +105,7 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         $this->assertStringContainsString('Updated destinations: 0', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 0', $tester->getDisplay());
         $this->assertStringContainsString('Destinations already imported, skipped: 1', $tester->getDisplay());
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $expected,
             $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
         );
@@ -119,7 +122,7 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         $this->assertStringContainsString('Updated destinations: 1', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 1', $tester->getDisplay());
         $expected['roles']['requester']['disabled_strategies'] = ['form_filler'];
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $expected,
             $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
         );
@@ -194,7 +197,7 @@ final class ImportFormcreatorActorsNotificationCommandTest extends MapperTestCas
         $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
         $this->assertStringContainsString('Question not found', $tester->getDisplay());
         $this->assertStringContainsString('Disabled sources: 2', $tester->getDisplay());
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $expected,
             $this->getDestination($form)->getConfig()[ActorNotificationField::getKey()],
         );

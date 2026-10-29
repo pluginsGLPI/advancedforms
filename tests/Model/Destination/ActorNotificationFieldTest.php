@@ -71,6 +71,8 @@ use User;
 
 final class ActorNotificationFieldTest extends AdvancedFormsTestCase
 {
+    use ActorNotificationConfigAssertionsTrait;
+
     private static FormSerializer $serializer;
 
     public static function setUpBeforeClass(): void
@@ -505,7 +507,7 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
             ],
         ]);
 
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $this->notificationConfig(assign: ['disabled_actors' => ['users_id-' . $tech->getID()]]),
             $config[ActorNotificationField::getKey()],
         );
@@ -537,7 +539,7 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
             ],
         ]);
 
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $this->notificationConfig(requester: ['disabled_strategies' => ['form_filler']]),
             $config[ActorNotificationField::getKey()],
         );
@@ -572,7 +574,7 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
         $imported_form = current($imported_forms);
         $this->assertNotSame($form->getID(), $imported_form->getID());
 
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $this->notificationConfig(
                 observer: ['disabled_question_ids' => [$this->getQuestionId($imported_form, 'Observers')]],
                 assign: ['disabled_actors' => ['users_id-' . $tech->getID()]],
@@ -602,7 +604,7 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
         $clone_question_id = $this->getQuestionId($clone, 'Observers');
         $this->assertNotSame($question_id, $clone_question_id);
 
-        $this->assertSame(
+        $this->assertNotificationConfigSame(
             $this->notificationConfig(observer: ['disabled_question_ids' => [$clone_question_id]]),
             $this->getDestination($clone)->getConfig()[ActorNotificationField::getKey()],
         );
