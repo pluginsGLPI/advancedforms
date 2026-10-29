@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Add translations management through Transifex
 
+### Added
+
+- "Email followup" destination field to disable the followup per actor source, with a command to import it from Formcreator
+
 ### Fixed
 
 - Fix GLPI compatibility constraint in plugin XML
