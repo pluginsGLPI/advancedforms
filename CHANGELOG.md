@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- "Email followup" destination field: enable or disable the email followup of each actor source (requesters, observers, assignees) of ticket, change and problem destinations
+- `plugins:advancedforms:import-formcreator-actors-notification` command to import the email followup settings of Formcreator actors after the forms migration
+
 ### Fixed
 
 - Fix GLPI compatibility constraint in plugin XML
