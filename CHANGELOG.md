@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [UNRELEASED]
+
+### Added
+
+- Add translations management through Transifex
 
 ### Added
 
@@ -31,6 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Use translated itemtype name for reservation item select groups
 - Filter the '0' empty-selection sentinel in Table and LDAP select questions
 - Fix Table question column type edge cases
+- Fix hidden question not available in anonymous forms
 
 ### Others
 

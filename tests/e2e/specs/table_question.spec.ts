@@ -106,8 +106,9 @@ test.describe('Advanced forms - Table question', () => {
 
             await page.getByRole('button', { name: 'Submit' }).click();
 
-            // A link to the created answer/item confirms the submission succeeded.
-            await expect(page.getByRole('alert').getByRole('link', { name: form_name })).toBeVisible();
+            // Being redirected to the created ticket confirms the submission succeeded.
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
@@ -178,7 +179,8 @@ test.describe('Advanced forms - Table question', () => {
             await expect(table.getEndUserCell(eu_table, 0, 0)).not.toHaveClass(/is-invalid/);
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            await expect(page.getByRole('alert').getByRole('link', { name: form_name })).toBeVisible();
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
@@ -222,7 +224,8 @@ test.describe('Advanced forms - Table question', () => {
 
             await page.getByRole('button', { name: 'Submit' }).click();
 
-            await expect(page.getByRole('alert').getByRole('link', { name: form_name })).toBeVisible();
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 
