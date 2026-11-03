@@ -35,9 +35,11 @@ namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
 use Glpi\Application\View\TemplateRenderer;
+use Glpi\Form\Destination\FormDestinationInterface;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\Destination\Email\EmailDestination;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
@@ -56,6 +58,7 @@ final class ConfigManager
         return $twig->render('@advancedforms/config_form.html.twig', [
             'config_manager' => $this,
             'question_types' => $this->getConfigurableQuestionTypes(),
+            'destinations'   => $this->getConfigurableDestinations(),
         ]);
     }
 
@@ -100,5 +103,22 @@ final class ConfigManager
     public function hasAtLeastOneQuestionTypeEnabled(): bool
     {
         return $this->getEnabledQuestionsTypes() !== [];
+    }
+
+    /** @return array<ConfigurableItemInterface&FormDestinationInterface> */
+    public function getConfigurableDestinations(): array
+    {
+        return [
+            new EmailDestination(),
+        ];
+    }
+
+    /** @return array<ConfigurableItemInterface&FormDestinationInterface> */
+    public function getEnabledDestinations(): array
+    {
+        return array_filter(
+            $this->getConfigurableDestinations(),
+            $this->isConfigurableItemEnabled(...),
+        );
     }
 }

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [UNRELEASED]
 
+### Added
+
+- Add an "Email" form destination, sending a customized email when a form is submitted
+
 ### Fixed
 
 - Fix hidden question not available in anonymous forms
