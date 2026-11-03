@@ -89,7 +89,8 @@ final class ConfigFormTest extends FrontTestCase
     }
 
     #[DataProvider('provideQuestionTypes')]
-    public function testCanDisableQuestionTypeConfig(
+    #[DataProvider('provideDestinations')]
+    public function testCanDisableConfig(
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: enable config
@@ -107,7 +108,8 @@ final class ConfigFormTest extends FrontTestCase
     }
 
     #[DataProvider('provideQuestionTypes')]
-    public function testCanEnableQuestionTypeConfig(
+    #[DataProvider('provideDestinations')]
+    public function testCanEnableConfig(
         ConfigurableItemInterface $item,
     ): void {
         // Arrange: disable config

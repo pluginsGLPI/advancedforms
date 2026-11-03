@@ -45,3 +45,4 @@ require __DIR__ . "/SystemInfoSamples.php";
 require __DIR__ . "/Front/FrontTestCase.php";
 require __DIR__ . "/Model/Mapper/MapperTestCase.php";
 require __DIR__ . "/Model/QuestionType/QuestionTypeTestCase.php";
+require __DIR__ . "/Model/Destination/Email/EmailDestinationTestTrait.php";

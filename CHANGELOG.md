@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Add translations management through Transifex
 - Add "GLPI system information" and "GLPI core or plugins concerned" question types
+- Add an "Email" form destination, sending a customized email when a form is submitted
 
 ### Fixed
 
