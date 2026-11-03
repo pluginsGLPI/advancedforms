@@ -101,7 +101,7 @@ trait ConfigurableItemsTrait
     }
 
     /** @var array<class-string> $classes */
-    private function deleteSingletonInstance(array $classes)
+    protected function deleteSingletonInstance(array $classes)
     {
         foreach ($classes as $class) {
             $reflection_class = new ReflectionClass($class);

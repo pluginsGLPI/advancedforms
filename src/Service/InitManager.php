@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Form\Destination\FormDestination;
 use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Destination\FormDestinationTicket;
 use Glpi\Form\Migration\TypesConversionMapper;
@@ -41,6 +42,7 @@ use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\Destination\Email\EmailDestinationConfigNormalizer;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
@@ -57,9 +59,11 @@ final class InitManager
         $this->registerConfiguration();
         $this->registerPluginTypes();
         $this->registerDestinationFields();
+        $this->registerDestinationTypes();
         $this->registerTimelineHooks();
         $this->registerNotifications();
         $this->registerPurgeHooks();
+        $this->registerDestinationHooks();
     }
 
     private function registerNotifications(): void
@@ -140,6 +144,25 @@ final class InitManager
         );
     }
 
+    private function registerDestinationTypes(): void
+    {
+        $destination_manager = FormDestinationManager::getInstance();
+
+        // init() may run multiple times per process; avoid double-registering a type.
+        $registered_classes = array_map(
+            get_class(...),
+            $destination_manager->getDestinationTypes(),
+        );
+
+        foreach (ConfigManager::getInstance()->getEnabledDestinations() as $destination) {
+            if (in_array($destination::class, $registered_classes, true)) {
+                continue;
+            }
+
+            $destination_manager->registerPluginDestinationType($destination);
+        }
+    }
+
     private function registerTimelineHooks(): void
     {
         global $PLUGIN_HOOKS;
@@ -156,6 +179,24 @@ final class InitManager
         // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
         $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['advancedforms'] = [
             Ticket::class => TicketReservationRequest::purgeForTicket(...),
+        ];
+    }
+
+    /**
+     * Registered even when the email destination is disabled: existing email
+     * destinations stay editable.
+     */
+    private function registerDestinationHooks(): void
+    {
+        global $PLUGIN_HOOKS;
+
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::PRE_ITEM_ADD]['advancedforms'] = [
+            FormDestination::class => EmailDestinationConfigNormalizer::onPreSave(...),
+        ];
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::PRE_ITEM_UPDATE]['advancedforms'] = [
+            FormDestination::class => EmailDestinationConfigNormalizer::onPreSave(...),
         ];
     }
 }
