@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Add translations management through Transifex
+- Add an "Email" form destination, sending a customized email when a form is submitted
 
 ### Fixed
 

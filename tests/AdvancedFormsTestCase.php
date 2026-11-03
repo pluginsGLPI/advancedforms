@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Tests;
 
 use AuthLDAP;
+use Glpi\Form\Destination\FormDestinationInterface;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -56,6 +57,13 @@ abstract class AdvancedFormsTestCase extends DbTestCase
     {
         $types = ConfigManager::getInstance()->getConfigurableQuestionTypes();
         return array_map(fn($c): array => [$c], $types);
+    }
+
+    /** @return array<array{ConfigurableItemInterface&FormDestinationInterface}> */
+    final public static function provideDestinations(): array
+    {
+        $destinations = ConfigManager::getInstance()->getConfigurableDestinations();
+        return array_map(fn($d): array => [$d], $destinations);
     }
 
     public function setUp(): void
