@@ -53,6 +53,7 @@
         </div>
 
         <input type="hidden" name="config_context" value="advancedforms"/>
+        {% if constant('GLPI_VERSION')|slice(0, 2) == '11' %}<input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"/>{% endif %}
 
         <div class="mx-n2 d-flex">
             <button

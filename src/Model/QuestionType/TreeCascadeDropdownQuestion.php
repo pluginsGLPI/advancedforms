@@ -117,14 +117,17 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             return parent::renderEndUserTemplate($question);
         }
 
-        $default_items_id = $this->getDefaultValuesItemIds($question)[0] ?? 0;
+        $default_items_id = method_exists($this, 'getDefaultValuesItemIds')
+            ? ($this->getDefaultValuesItemIds($question)[0] ?? 0)
+            : $this->getDefaultValueItemId($question);
         $aria_label = $this->items_id_aria_label;
 
         $tree_table = $itemtype::getTable();
         $foreign_key = $itemtype::getForeignKeyField();
 
         $rand_tree = random_int(1000000, 9999999);
-        $final_items_id_name = $question->getEndUserInputName() . '[items_ids]';
+        $items_id_key = method_exists($this, 'getDefaultValuesItemIds') ? 'items_ids' : 'items_id';
+        $final_items_id_name = $question->getEndUserInputName() . "[$items_id_key]";
         $level2_container = 'level2_container_' . $rand_tree;
 
         $dropdown_restriction_params = $this->getDropdownRestrictionParams($question);

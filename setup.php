@@ -36,11 +36,11 @@ use Glpi\Plugin\HookManager;
 use GlpiPlugin\Advancedforms\Service\InitManager;
 
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
-define('PLUGIN_ADVANCEDFORMS_VERSION', '1.4.0');
+define('PLUGIN_ADVANCEDFORMS_VERSION', '1.4.1');
 
 // Minimal GLPI version, inclusive
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
-define("PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION", "12.0.0");
+define("PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION", "11.0.0");
 
 // Maximum GLPI version, exclusive
 /** @phpstan-ignore theCodingMachineSafe.function (safe to assume this isn't already defined) */
@@ -63,6 +63,10 @@ function plugin_init_advancedforms(): void
     $hook_manager->registerJavascriptFile('js/advancedforms.js');
 
     ImportMapGenerator::getInstance()->registerModulesPath('advancedforms', '/public/js/modules');
+
+    \GlpiPlugin\Advancedforms\Model\TicketReservationRequest::$itemtype = 'Ticket';
+    \GlpiPlugin\Advancedforms\Model\TicketReservationRequest::$items_id = 'tickets_id';
+    \GlpiPlugin\Advancedforms\Model\TicketReservationRequest::$rightname = 'ticket';
 
     InitManager::getInstance()->init();
 }

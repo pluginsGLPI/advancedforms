@@ -47,12 +47,6 @@ use function getItemForItemtype;
 /** A ticket-driven request to reserve an equipment item for a timeframe. */
 final class TicketReservationRequest extends CommonDBChild
 {
-    public static string $itemtype = 'Ticket';
-
-    public static string $items_id = 'tickets_id';
-
-    public static string $rightname = 'ticket';
-
     public const STATUS_WAITING  = 1;
 
     public const STATUS_ACCEPTED = 2;

@@ -35,7 +35,7 @@
      data-reservation-question-widget
      data-input-name="{{ input_name }}"
      data-allowed-itemtypes="{{ allowed_itemtypes|json_encode }}"
-     {% if show_calendar %}data-now="{{ now }}"{% endif %}
+    {% if show_calendar %}data-now="{{ now }}" data-fullcalendar-v6="{{ constant('GLPI_VERSION')|slice(0, 2) == '12' ? '1' : '0' }}"{% if constant('GLPI_VERSION')|slice(0, 2) == '11' %} data-calendar-css="{{ css_path('lib/fullcalendar.css') }}"{% endif %}{% endif %}
 >
     <select class="form-select" data-reservation-question-item-select>
         <option value=""></option>
@@ -76,6 +76,9 @@
 
     <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
 </div>
+{% if show_calendar and constant('GLPI_VERSION')|slice(0, 2) == '11' %}
+    {% do call(['Html', 'requireJs'], ['fullcalendar']) %}
+{% endif %}
 <script type="module">
     import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
     $(function() {
