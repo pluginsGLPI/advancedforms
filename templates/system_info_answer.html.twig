@@ -1,0 +1,96 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+{% set statuses = {
+    'up_to_date': {'class': 'bg-success', 'label': __('Up to date', 'advancedforms')},
+    'outdated': {'class': 'bg-warning', 'label': __('Update available', 'advancedforms')},
+    'unknown': {'class': 'bg-secondary', 'label': __('Unknown', 'advancedforms')},
+} %}
+
+{% macro status_badge(status, statuses) %}
+    {% set badge = statuses[status] ?? statuses['unknown'] %}
+    <span class="badge {{ badge.class }} text-white">{{ badge.label }}</span>
+{% endmacro %}
+
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th class="border">{{ __('Component', 'advancedforms') }}</th>
+            <th class="border">{{ __('Installed version', 'advancedforms') }}</th>
+            <th class="border">{{ __('Latest version', 'advancedforms') }}</th>
+            <th class="border">{{ __('State', 'advancedforms') }}</th>
+            <th class="border">{{ __('Status', 'advancedforms') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="border">GLPI</td>
+            <td class="border">{{ data.glpi.version }}</td>
+            <td class="border">{{ data.glpi.latest ?? '' }}</td>
+            <td class="border">{{ data.glpi.install_mode }}</td>
+            <td class="border">{{ _self.status_badge(data.glpi.status ?? 'unknown', statuses) }}</td>
+        </tr>
+        {% for plugin in data.plugins ?? [] %}
+            <tr>
+                <td class="border">{{ plugin.name }} ({{ plugin.key }})</td>
+                <td class="border">{{ plugin.version }}</td>
+                <td class="border">{{ plugin.latest ?? '' }}</td>
+                <td class="border">{{ plugin.state }}</td>
+                <td class="border">{{ _self.status_badge(plugin.status ?? 'unknown', statuses) }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% set environment = {
+    (__('PHP', 'advancedforms')): data.environment.php ?? '',
+    (__('Database', 'advancedforms')): data.environment.database ?? '',
+    (__('Web server', 'advancedforms')): data.environment.web_server ?? '',
+    (__('Operating system', 'advancedforms')): data.environment.os ?? '',
+    (__('Source integrity', 'advancedforms')): data.glpi.integrity ?? '',
+} %}
+<table class="table table-sm">
+    <tbody>
+        {% for label, value in environment|filter(value => value is not empty) %}
+            <tr>
+                <th class="border">{{ label }}</th>
+                <td class="border">{{ value }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if show_raw %}
+    <details>
+        <summary>{{ __('Raw system information', 'advancedforms') }}</summary>
+        <pre>{{ raw }}</pre>
+    </details>
+{% endif %}

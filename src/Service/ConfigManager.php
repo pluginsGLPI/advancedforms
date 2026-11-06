@@ -38,11 +38,13 @@ use Glpi\Application\View\TemplateRenderer;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
+use GlpiPlugin\Advancedforms\Model\QuestionType\GlpiScopeQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HiddenQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\HostnameQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\IpAddressQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LdapQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
+use GlpiPlugin\Advancedforms\Model\QuestionType\SystemInfoQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TableQuestion;
 use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 
@@ -70,6 +72,8 @@ final class ConfigManager
             new TreeCascadeDropdownQuestion(),
             new TableQuestion(),
             new ReservationQuestion(),
+            new SystemInfoQuestion(),
+            new GlpiScopeQuestion(),
         ];
     }
 
