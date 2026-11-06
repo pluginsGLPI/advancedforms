@@ -106,7 +106,8 @@ test.describe('Advanced forms - Material reservation question', () => {
             await expect(reservation.getAvailabilityMessage(widget)).toHaveText('This slot is available');
 
             await page.getByRole('button', { name: 'Submit' }).click();
-            await expect(page.getByRole('alert').getByRole('link', { name: form_name })).toBeVisible();
+            await expect(page).toHaveURL(/\/front\/ticket\.form\.php\?id=\d+/);
+            await expect(page.getByRole('heading')).toContainText(form_name);
         });
     });
 

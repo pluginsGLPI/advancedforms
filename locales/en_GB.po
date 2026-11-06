@@ -1,14 +1,14 @@
 # English translations for PACKAGE package.
-# Copyright (C) 2025 THE PACKAGE'S COPYRIGHT HOLDER
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Automatically generated, 2025.
+# Automatically generated, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-26 10:12+0000\n"
-"PO-Revision-Date: 2025-09-26 10:12+0000\n"
+"POT-Creation-Date: 2026-10-22 03:55+0000\n"
+"PO-Revision-Date: 2026-10-22 03:55+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: en_GB\n"
@@ -17,23 +17,308 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: templates/editor/question_types/ldap_select_config.html.twig
-msgid "Data from LDAP directory"
-msgstr "Data from LDAP directory"
+#: templates/destination/prereservation_config_field.html.twig
+msgid "Require technician approval"
+msgstr "Require technician approval"
+
+#: templates/table_end_user.html.twig
+msgid "Please fill in all required columns."
+msgstr "Please fill in all required columns."
+
+#: templates/table_end_user.html.twig
+msgid "This value does not match the expected format."
+msgstr "This value does not match the expected format."
+
+#: templates/table_end_user.html.twig
+msgid "Select a value"
+msgstr "Select a value"
+
+#: templates/table_end_user.html.twig
+msgid "Remove row"
+msgstr "Remove row"
+
+#: templates/table_end_user.html.twig
+msgid "Add a row"
+msgstr "Add a row"
+
+#: templates/reservation_question.html.twig
+msgid "Start date"
+msgstr "Start date"
+
+#: templates/reservation_question.html.twig
+msgid "End date"
+msgstr "End date"
 
 #: templates/config_form.html.twig
 msgid "Advanced forms plugin configuration"
 msgstr "Advanced forms plugin configuration"
 
-#: src/Model/QuestionType/LdapQuestion.php:64
+#: templates/editor/question_types/table_admin.html.twig
+msgid "Define columns below"
+msgstr "Define columns below"
+
+#: templates/editor/question_types/ldap_select_config.html.twig
+msgid "Data from LDAP directory"
+msgstr "Data from LDAP directory"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "Allowed equipment types"
+msgstr "Allowed equipment types"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "All reservable types"
+msgstr "All reservable types"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid "Show availability calendar"
+msgstr "Show availability calendar"
+
+#: templates/editor/question_types/reservation_config.html.twig
+msgid ""
+"Whether a technician must approve the reservation before it is confirmed is "
+"configured on the destination that uses this question, under"
+msgstr ""
+"Whether a technician must approve the reservation before it is confirmed is "
+"configured on the destination that uses this question, under"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Configure table columns"
+msgstr "Configure table columns"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Columns"
+msgstr "Columns"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Column name"
+msgstr "Column name"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Select a type"
+msgstr "Select a type"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Required column"
+msgstr "Required column"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Remove column"
+msgstr "Remove column"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Validation pattern"
+msgstr "Validation pattern"
+
+#: templates/editor/question_types/table_config.html.twig
+msgid "Add column"
+msgstr "Add column"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Pending validation"
+msgstr "Pending validation"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Approved"
+msgstr "Approved"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Refused"
+msgstr "Refused"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Canceled"
+msgstr "Canceled"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Reservation confirmed automatically"
+msgstr "Reservation confirmed automatically"
+
+#: templates/timeline/reservation_request.html.twig
+msgid ""
+"This slot is no longer available. Please submit a new reservation request."
+msgstr ""
+"This slot is no longer available. Please submit a new reservation request."
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Comment (optional)"
+msgstr "Comment (optional)"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Approve"
+msgstr "Approve"
+
+#: templates/timeline/reservation_request.html.twig
+msgid "Refuse"
+msgstr "Refuse"
+
+#: src/Controller/ReservationRequestController.php:81
+msgid "This slot is no longer available."
+msgstr "This slot is no longer available."
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:49
+msgid "New pre-reservation request"
+msgstr "New pre-reservation request"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:50
+msgid "Pre-reservation request approved"
+msgstr "Pre-reservation request approved"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:51
+msgid "Pre-reservation request refused"
+msgstr "Pre-reservation request refused"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:52
+msgid "Reservation slot no longer available"
+msgstr "Reservation slot no longer available"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:96
+msgid "Notification reason"
+msgstr "Notification reason"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:97
+msgid "Reservation start date"
+msgstr "Reservation start date"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:98
+msgid "Reservation end date"
+msgstr "Reservation end date"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:99
+msgid "Validation comment"
+msgstr "Validation comment"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:100
+msgid "Ticket title"
+msgstr "Ticket title"
+
+#: src/Model/NotificationTargetTicketReservationRequest.php:101
+msgid "Ticket URL"
+msgstr "Ticket URL"
+
+#: src/Model/Config/ConfigTab.php:48
+msgid "Advanced forms"
+msgstr "Advanced forms"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:52
+msgid "No pre-reservation"
+msgstr "No pre-reservation"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:53
+msgid "Answer from a specific question"
+msgstr "Answer from a specific question"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:54
+msgid "Answer to last \"Material reservation\" question"
+msgstr "Answer to last \"Material reservation\" question"
+
+#: src/Model/Destination/PreReservationFieldStrategy.php:55
+msgid "All valid \"Material reservation\" answers"
+msgstr "All valid \"Material reservation\" answers"
+
+#: src/Model/Destination/PreReservationField.php:69
+msgid "Pre-reservation"
+msgstr "Pre-reservation"
+
+#: src/Model/Destination/PreReservationField.php:133
+msgid "Select a question..."
+msgstr "Select a question..."
+
+#: src/Model/Destination/PreReservationField.php:176
+msgid "The pre-reservation could not be created: no identifiable requester."
+msgstr "The pre-reservation could not be created: no identifiable requester."
+
+#: src/Model/Destination/PreReservationField.php:220
+msgid ""
+"The pre-reservation could not be created: the selected item is not allowed."
+msgstr ""
+"The pre-reservation could not be created: the selected item is not allowed."
+
+#: src/Model/TicketReservationRequest.php:73
+msgid "Reservation request"
+msgid_plural "Reservation requests"
+msgstr[0] "Reservation request"
+msgstr[1] "Reservation requests"
+
+#: src/Model/QuestionType/TableColumnRule.php:155
+msgid "the value is not valid"
+msgstr "the value is not valid"
+
+#: src/Model/QuestionType/TableColumnRule.php:159
+msgid "the value is not a number"
+msgstr "the value is not a number"
+
+#: src/Model/QuestionType/TableQuestion.php:89
+msgid "Table"
+msgstr "Table"
+
+#: src/Model/QuestionType/TableQuestion.php:279
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" is required."
+msgstr "Row %1$s: the column \"%2$s\" is required."
+
+#: src/Model/QuestionType/TableQuestion.php:292
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" is invalid: %3$s"
+msgstr "Row %1$s: the column \"%2$s\" is invalid: %3$s"
+
+#: src/Model/QuestionType/TableQuestion.php:301
+#, php-format
+msgid "Row %1$s: the column \"%2$s\" does not match the expected format."
+msgstr "Row %1$s: the column \"%2$s\" does not match the expected format."
+
+#: src/Model/QuestionType/TableQuestion.php:661
+msgid "Table question type"
+msgstr "Table question type"
+
+#: src/Model/QuestionType/TableQuestion.php:667
+msgid "Allow users to fill in tabular data with configurable columns."
+msgstr "Allow users to fill in tabular data with configurable columns."
+
+#: src/Model/QuestionType/IpAddressQuestion.php:61
+msgid "Ip address"
+msgstr "Ip address"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:137
+msgid "IP address question type"
+msgstr "IP address question type"
+
+#: src/Model/QuestionType/IpAddressQuestion.php:143
+msgid "This question type will automatically register the user's ip address."
+msgstr "This question type will automatically register the user's ip address."
+
+#: src/Model/QuestionType/HiddenQuestion.php:66
+msgid "Hidden"
+msgstr "Hidden"
+
+#: src/Model/QuestionType/HiddenQuestion.php:140
+msgid "Hidden address question type"
+msgstr "Hidden address question type"
+
+#: src/Model/QuestionType/HiddenQuestion.php:146
+msgid "This question type will insert some hidden data into the form."
+msgstr "This question type will insert some hidden data into the form."
+
+#: src/Model/QuestionType/TreeCascadeDropdownQuestion.php:94
+msgid "Tree Cascade Dropdown"
+msgstr "Tree Cascade Dropdown"
+
+#: src/Model/QuestionType/TreeCascadeDropdownQuestion.php:477
+msgid ""
+"Enable tree cascade dropdown question type (recursive dropdown for "
+"hierarchical data)"
+msgstr ""
+"Enable tree cascade dropdown question type (recursive dropdown for "
+"hierarchical data)"
+
+#: src/Model/QuestionType/LdapQuestion.php:67
 msgid "LDAP select"
 msgstr "LDAP select"
 
-#: src/Model/QuestionType/LdapQuestion.php:162
+#: src/Model/QuestionType/LdapQuestion.php:169
 msgid "LDAP select question type"
 msgstr "LDAP select question type"
 
-#: src/Model/QuestionType/LdapQuestion.php:168
+#: src/Model/QuestionType/LdapQuestion.php:175
 msgid "Select some data from a LDAP directory."
 msgstr "Select some data from a LDAP directory."
 
@@ -41,42 +326,71 @@ msgstr "Select some data from a LDAP directory."
 msgid "Hostname"
 msgstr "Hostname"
 
-#: src/Model/QuestionType/HostnameQuestion.php:130
+#: src/Model/QuestionType/HostnameQuestion.php:137
 msgid "Hostname question type"
 msgstr "Hostname question type"
 
-#: src/Model/QuestionType/HostnameQuestion.php:136
+#: src/Model/QuestionType/HostnameQuestion.php:143
 msgid "This question type will automatically register the user's hostname."
 msgstr "This question type will automatically register the user's hostname."
 
-#: src/Model/QuestionType/AdvancedCategory.php:50
+#: src/Model/QuestionType/AdvancedCategory.php:51
 msgid "Advanced"
 msgstr "Advanced"
 
-#: src/Model/QuestionType/IpAddressQuestion.php:61
-msgid "Ip address"
-msgstr "Ip address"
+#: src/Model/QuestionType/ReservationQuestion.php:64
+msgid "Material reservation"
+msgstr "Material reservation"
 
-#: src/Model/QuestionType/IpAddressQuestion.php:130
-msgid "IP address question type"
-msgstr "IP address question type"
+#: src/Model/QuestionType/ReservationQuestion.php:199
+msgid "Unexpected value"
+msgstr "Unexpected value"
 
-#: src/Model/QuestionType/IpAddressQuestion.php:136
-msgid "This question type will automatically register the user's ip address."
-msgstr "This question type will automatically register the user's ip address."
+#: src/Model/QuestionType/ReservationQuestion.php:221
+msgid "Please select an item and both a start and end date."
+msgstr "Please select an item and both a start and end date."
 
-#: src/Model/QuestionType/HiddenQuestion.php:60
-msgid "Hidden"
-msgstr "Hidden"
+#: src/Model/QuestionType/ReservationQuestion.php:226
+msgid "The end date must be after the start date."
+msgstr "The end date must be after the start date."
 
-#: src/Model/QuestionType/HiddenQuestion.php:127
-msgid "Hidden address question type"
-msgstr "Hidden address question type"
+#: src/Model/QuestionType/ReservationQuestion.php:262
+msgid "Material reservation question type"
+msgstr "Material reservation question type"
 
-#: src/Model/QuestionType/HiddenQuestion.php:133
-msgid "This question type will insert some hidden data into the form."
-msgstr "This question type will insert some hidden data into the form."
+#: src/Model/QuestionType/ReservationQuestion.php:268
+msgid "Allow users to reserve equipment from a form."
+msgstr "Allow users to reserve equipment from a form."
 
-#: src/Model/Config/ConfigTab.php:48
-msgid "Advanced forms"
-msgstr "Advanced forms"
+#: public/js/modules/ReservationQuestionWidget.js:99
+msgid "Select an item to reserve"
+msgstr "Select an item to reserve"
+
+#: public/js/modules/ReservationQuestionWidget.js:223
+msgid "Could not check availability, please try again"
+msgstr "Could not check availability, please try again"
+
+#: public/js/modules/ReservationQuestionWidget.js:240
+msgid "The end date must be after the start date"
+msgstr "The end date must be after the start date"
+
+#: public/js/modules/ReservationQuestionWidget.js:293
+msgid "Reserved"
+msgstr "Reserved"
+
+#: public/js/modules/ReservationQuestionWidget.js:356
+msgid "Existing reservations for this item"
+msgstr "Existing reservations for this item"
+
+#: public/js/modules/ReservationQuestionWidget.js:378
+msgid "This slot is available"
+msgstr "This slot is available"
+
+#: public/js/modules/ReservationQuestionWidget.js:378
+msgid "This slot is no longer available"
+msgstr "This slot is no longer available"
+
+#: public/js/modules/ReservationRequestTimelineActions.js:75
+#: public/js/modules/ReservationRequestTimelineActions.js:79
+msgid "An error occurred"
+msgstr "An error occurred"
