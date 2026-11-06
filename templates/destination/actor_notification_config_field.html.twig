@@ -29,10 +29,30 @@
  # -------------------------------------------------------------------------
  #}
 
-<div data-testid="actor-notification-config">
-    <div class="form-text mt-0 mb-2">
-        {{ __('Actors found only by disabled sources are added without email followup. Sources added to the actors fields are listed once the destination is saved.', 'advancedforms') }}
-    </div>
+{% set container_id = 'actor-notification-config-' ~ random() %}
+{% set helper = __('Actors found only by disabled sources are added without email followup. Sources added to the actors fields are listed once the destination is saved.', 'advancedforms') %}
+<div id="{{ container_id }}" data-testid="actor-notification-config">
+    {# The field label is rendered by GLPI core, which offers no way to add a
+       helper next to it: the script below moves this icon into the label. #}
+    <span class="form-help ms-1" tabindex="0" aria-label="{{ helper }}"
+          data-testid="actor-notification-helper"
+          data-bs-toggle="tooltip" data-bs-trigger="hover focus" data-bs-placement="top"
+          data-bs-title="{{ helper }}">?</span>
+    <script>
+        (() => {
+            const container = document.getElementById('{{ container_id|e('js') }}');
+            const helper = container.querySelector('[data-testid="actor-notification-helper"]');
+            const label = container
+                .closest('[data-glpi-itildestination-field]')
+                ?.querySelector(':scope > div > label.form-label');
+            if (label !== null && label !== undefined) {
+                label.append(helper);
+            }
+            if (typeof initTooltips === 'function') {
+                initTooltips(helper.parentElement);
+            }
+        })();
+    </script>
 
     {% set disabled = options.disabled|default(false) %}
     {% for role in roles %}
