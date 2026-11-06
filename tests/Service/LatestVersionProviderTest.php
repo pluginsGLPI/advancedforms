@@ -182,6 +182,20 @@ final class LatestVersionProviderTest extends GLPITestCase
         $this->hasPhpLogRecordThatContains('Unable to fetch GLPI releases data', LogLevel::WARNING);
     }
 
+    public function testMarketplaceFailureIsNotRetriedOnEachCall(): void
+    {
+        $this->fakeRegistration();
+        $provider = $this->makeProvider([
+            'github'      => [self::GITHUB_RELEASES],
+            'marketplace' => [new MockResponse('', ['http_code' => 503])],
+        ]);
+
+        $this->assertSame([], $provider->getLatestPluginVersions('11.0.12'));
+        $this->assertSame([], $provider->getLatestPluginVersions('11.0.12'));
+        $this->assertCount(2, $this->requests);
+        $this->hasPhpLogRecordThatContains('Unable to fetch GLPI marketplace data', LogLevel::WARNING);
+    }
+
     public function testEnrichComputesStatuses(): void
     {
         $this->fakeRegistration();

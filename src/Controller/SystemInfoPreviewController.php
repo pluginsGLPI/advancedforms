@@ -54,7 +54,7 @@ final class SystemInfoPreviewController extends AbstractController
 {
     use CanCheckAccessPolicies;
 
-    #[SecurityStrategy(Firewall::STRATEGY_AUTHENTICATED)]
+    #[SecurityStrategy(Firewall::STRATEGY_NO_CHECK)] // Some forms can be accessed anonymously, checkFormAccessPolicies() handles access
     #[Route(
         path: 'SystemInfoPreview',
         name: 'advancedforms_system_info_preview',

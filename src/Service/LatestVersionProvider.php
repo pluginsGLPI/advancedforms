@@ -188,9 +188,7 @@ final readonly class LatestVersionProvider
         }
 
         $latest = $this->computeLatestPluginVersions($plugins, $normalized);
-        if ($complete) {
-            $GLPI_CACHE->set($cache_key, $latest, HOUR_TIMESTAMP);
-        }
+        $GLPI_CACHE->set($cache_key, $latest, $complete ? HOUR_TIMESTAMP : self::FAILURE_CACHE_TTL);
 
         return $latest;
     }

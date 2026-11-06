@@ -34,6 +34,8 @@
 namespace GlpiPlugin\Advancedforms\Tests\Controller;
 
 use Glpi\Exception\Http\AccessDeniedHttpException;
+use Glpi\Form\AccessControl\ControlType\DirectAccess;
+use Glpi\Form\AccessControl\ControlType\DirectAccessConfig;
 use Glpi\Exception\Http\BadRequestHttpException;
 use Glpi\Form\Form;
 use Glpi\Form\QuestionType\QuestionTypeShortText;
@@ -75,6 +77,26 @@ final class SystemInfoPreviewControllerTest extends AdvancedFormsTestCase
     {
         $form = $this->createSystemInfoForm(use_default_access_policies: false);
         $this->login('post-only', 'postonly');
+
+        $this->expectException(AccessDeniedHttpException::class);
+        $this->callController($form, 'System information', SystemInfoSamples::MODERN);
+    }
+
+    public function testAnonymousAccessWithValidToken(): void
+    {
+        $form = $this->createAnonymousSystemInfoForm();
+        $this->logOut();
+
+        $response = $this->callController($form, 'System information', SystemInfoSamples::MODERN, '?token=my_token');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertContains('GLPI', json_decode((string) $response->getContent(), true)['components']);
+    }
+
+    public function testAnonymousAccessWithoutTokenIsDenied(): void
+    {
+        $form = $this->createAnonymousSystemInfoForm();
+        $this->logOut();
 
         $this->expectException(AccessDeniedHttpException::class);
         $this->callController($form, 'System information', SystemInfoSamples::MODERN);
@@ -143,9 +165,22 @@ final class SystemInfoPreviewControllerTest extends AdvancedFormsTestCase
         return $this->createForm($builder);
     }
 
-    private function callController(Form $form, string $question_name, string $text): Response
+    private function createAnonymousSystemInfoForm(): Form
     {
-        return (new SystemInfoPreviewController())(Request::create('/', 'POST', [
+        $builder = new FormBuilder('Anonymous system information form');
+        $builder->addQuestion('System information', SystemInfoQuestion::class);
+        $builder->setUseDefaultAccessPolicies(false);
+        $builder->addAccessControl(DirectAccess::class, new DirectAccessConfig(
+            token: 'my_token',
+            allow_unauthenticated: true,
+        ));
+
+        return $this->createForm($builder);
+    }
+
+    private function callController(Form $form, string $question_name, string $text, string $query = ''): Response
+    {
+        return (new SystemInfoPreviewController())(Request::create('/' . $query, 'POST', [
             'questions_id' => $this->getQuestionId($form, $question_name),
             'text'         => $text,
         ]));
