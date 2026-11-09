@@ -41,6 +41,7 @@ if (!Plugin::isPluginActive("advancedforms")) {
 
 require __DIR__ . "/ConfigurableItemsTrait.php";
 require __DIR__ . "/AdvancedFormsTestCase.php";
+require __DIR__ . "/SystemInfoSamples.php";
 require __DIR__ . "/Front/FrontTestCase.php";
 require __DIR__ . "/Model/Destination/ActorNotificationConfigAssertionsTrait.php";
 require __DIR__ . "/Model/Mapper/MapperTestCase.php";
