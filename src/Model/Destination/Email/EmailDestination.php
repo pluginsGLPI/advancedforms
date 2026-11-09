@@ -36,6 +36,7 @@ namespace GlpiPlugin\Advancedforms\Model\Destination\Email;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\DBAL\PrepareForCloneInterface;
 use Glpi\Error\ErrorHandler;
+use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\AnswersSet;
 use Glpi\Form\Clone\FormCloneHelper;
 use Glpi\Form\Destination\AbstractConfigField;
@@ -150,8 +151,41 @@ final class EmailDestination implements FormDestinationInterface, PrepareForClon
                 'recipients_field' => $fields[EmailRecipientsField::getKey()],
                 'addresses_field'  => $fields[EmailAddressesField::getKey()],
                 'can_update'     => FormDestination::canUpdate() && $destination->canUpdateItem(),
+                'recipients_warning' => $this->getRecipientsWarning($form, $config),
             ],
         );
+    }
+
+    /**
+     * Warn the form administrators when the email can be sent to an address
+     * typed in the answers: the form can then send any text to anyone.
+     *
+     * @param array<string, mixed> $config
+     */
+    public function getRecipientsWarning(Form $form, array $config): ?string
+    {
+        $recipients_field = new EmailRecipientsField();
+        $recipients_config = $recipients_field->getConfig($form, $config);
+        if (
+            !$recipients_config instanceof EmailRecipientsFieldConfig
+            || !$recipients_field->usesTypedEmailAddresses($recipients_config, $form)
+        ) {
+            return null;
+        }
+
+        return FormAccessControlManager::getInstance()->allowUnauthenticatedAccess($form)
+            ? self::getUnauthenticatedRecipientsWarning()
+            : self::getTypedRecipientsWarning();
+    }
+
+    public static function getTypedRecipientsWarning(): string
+    {
+        return __('Anyone who can answer this form can have an email sent to any address.', 'advancedforms');
+    }
+
+    public static function getUnauthenticatedRecipientsWarning(): string
+    {
+        return __('Anyone can answer this form without being authenticated and have an email sent to any address.', 'advancedforms');
     }
 
     /**

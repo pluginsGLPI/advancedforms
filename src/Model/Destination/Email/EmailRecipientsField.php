@@ -154,6 +154,40 @@ final class EmailRecipientsField extends ITILActorField
     }
 
     /**
+     * Whether the recipients may include an address typed by the person who
+     * answers the form, from an "Email" question.
+     */
+    public function usesTypedEmailAddresses(EmailRecipientsFieldConfig $config, Form $form): bool
+    {
+        $email_questions_ids = [];
+        foreach ($form->getQuestions() as $question) {
+            if ($question->getQuestionType() instanceof QuestionTypeEmail) {
+                $email_questions_ids[] = $question->getID();
+            }
+        }
+
+        /** @var int[] $specific_question_ids */
+        $specific_question_ids = $config->getSpecificQuestionIds() ?? [];
+        /** @var ITILActorFieldStrategy[] $strategies */
+        $strategies = $config->getStrategies();
+        foreach ($strategies as $strategy) {
+            $uses_email_question = match ($strategy) {
+                ITILActorFieldStrategy::SPECIFIC_ANSWERS  => array_intersect(
+                    $specific_question_ids,
+                    $email_questions_ids,
+                ) !== [],
+                ITILActorFieldStrategy::LAST_VALID_ANSWER => $email_questions_ids !== [],
+                default                                   => false,
+            };
+            if ($uses_email_question) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Email address or user ids to notify for the actor. The notification
      * settings of the actor are respected, like ITIL destinations do.
      *
