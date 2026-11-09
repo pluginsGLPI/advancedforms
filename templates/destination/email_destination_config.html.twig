@@ -1,0 +1,77 @@
+{#
+ # -------------------------------------------------------------------------
+ # advancedforms plugin for GLPI
+ # -------------------------------------------------------------------------
+ #
+ # MIT License
+ #
+ # Permission is hereby granted, free of charge, to any person obtaining a copy
+ # of this software and associated documentation files (the "Software"), to deal
+ # in the Software without restriction, including without limitation the rights
+ # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ # copies of the Software, and to permit persons to whom the Software is
+ # furnished to do so, subject to the following conditions:
+ #
+ # The above copyright notice and this permission notice shall be included in all
+ # copies or substantial portions of the Software.
+ #
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ # SOFTWARE.
+ # -------------------------------------------------------------------------
+ # @copyright Copyright (C) 2025 by the advancedforms plugin team.
+ # @license   MIT https://opensource.org/licenses/mit-license.php
+ # @link      https://github.com/pluginsGLPI/advancedforms
+ # -------------------------------------------------------------------------
+ #}
+
+
+{# @var GlpiPlugin\Advancedforms\Model\Destination\Email\EmailDestination item #}
+{# @var Glpi\Form\Form form #}
+{# @var Glpi\Form\Destination\FormDestination destination #}
+{# @var array config #}
+{# @var bool can_update #}
+{# @var string|null recipients_warning #}
+
+{# The fields are rendered by the same macro as the core ITIL destinations #}
+{% import 'pages/admin/form/form_destination_commonitil_config.html.twig' as itil_config %}
+
+<div class="overflow-x-hidden row d-flex mx-n4 border-top">
+    <div class="col-12 col-lg-8 order-last order-lg-first px-4 py-2 d-flex flex-column">
+        {# Form rows: label above the field, hairline between the fields #}
+        <div class="py-3 border-bottom">
+            <span class="form-label text-secondary">{{ __('Subject', 'advancedforms') }}</span>
+            {{ itil_config.field_config_section(item, destination, title_field, form, config, false) }}
+        </div>
+        {# The label shares the line of the "Auto config" switch of the core field #}
+        <div class="py-3 advancedforms-email-body">
+            <span class="form-label text-secondary">{{ __('Body', 'advancedforms') }}</span>
+            {{ itil_config.field_config_section(item, destination, content_field, form, config, false) }}
+        </div>
+    </div>
+    <div class="col-12 col-lg-4 mt-0 p-0 rounded-0 card-footer border-start border-top-0">
+        <div class="d-flex flex-column space-y-3 p-3">
+            {# Same alert as the warnings of the core destinations tab #}
+            {% if recipients_warning is not null %}
+                <div class="alert alert-warning d-flex align-items-center mb-0" role="alert">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    <span>{{ recipients_warning }}</span>
+                </div>
+            {% endif %}
+            {{ itil_config.field_config_section(item, destination, recipients_field, form, config) }}
+            {{ itil_config.field_config_section(item, destination, addresses_field, form, config) }}
+        </div>
+    </div>
+    <div class="itil-footer card-footer p-0 border-top p-2 ps-4 pe-4">
+        {% if can_update %}
+            {{ include('pages/admin/form/form_destination_actions.html.twig', {
+                form: form,
+                destination: destination
+            }, with_context = false) }}
+        {% endif %}
+    </div>
+</div>
