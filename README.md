@@ -32,6 +32,10 @@ This question won't be displayed to the users.
 
 ![ldap select question](screenshots/ldap-select.png)
 
+### Email destination
+
+![email destination](screenshots/email-destination.png)
+
 ## Contributing
 
 * Open a ticket for each bug/feature so it can be discussed
