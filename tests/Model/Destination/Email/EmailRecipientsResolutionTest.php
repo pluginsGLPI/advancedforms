@@ -95,6 +95,35 @@ final class EmailRecipientsResolutionTest extends AdvancedFormsTestCase
         $this->assertSame(['member1@example.com', 'member2@example.com'], $emails);
     }
 
+    public function testDefaultEmailOfEachUser(): void
+    {
+        // Arrange: users with several emails, the default one is not the
+        // first one (adding a default email unsets the previous default)
+        $group = $this->createItem(Group::class, ['name' => 'Several emails']);
+        $user = $this->createUserWithEmail('Several emails', 'old-default@example.com');
+        $member = $this->createUserWithEmail('Member', 'member-old@example.com');
+        $this->addUserToGroup($group, $member);
+        foreach ([$user, $member] as $item) {
+            $this->createItem(UserEmail::class, [
+                'users_id'   => $item->getID(),
+                'email'      => $item->fields['name'] === 'Member' ? 'member@example.com' : 'default@example.com',
+                'is_default' => 1,
+            ]);
+        }
+
+        // Act
+        $emails = $this->resolve(
+            [ITILActorFieldStrategy::SPECIFIC_VALUES],
+            specific_itilactors_ids: [
+                User::class  => [$user->getID()],
+                Group::class => [$group->getID()],
+            ],
+        );
+
+        // Assert: only the default email of each user
+        $this->assertSame(['default@example.com', 'member@example.com'], $emails);
+    }
+
     public function testUsersOutsideTheirValidityDatesAreIgnored(): void
     {
         // Arrange: an expired account and an account not yet valid, like GLPI notifications skip

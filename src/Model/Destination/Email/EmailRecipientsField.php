@@ -129,31 +129,38 @@ final class EmailRecipientsField extends ITILActorField
      */
     public function getEmailAddresses(EmailRecipientsFieldConfig $config, AnswersSet $answers_set): array
     {
-        $emails = [];
+        $recipients = [];
         /** @var ITILActorFieldStrategy[] $strategies */
         $strategies = $config->getStrategies();
         foreach ($strategies as $strategy) {
             /** @var array<array<string, mixed>> $actors */
             $actors = $strategy->getITILActors($this, $config, $answers_set) ?? [];
             foreach ($actors as $actor) {
-                array_push($emails, ...$this->getActorEmailAddresses($actor));
+                array_push($recipients, ...$this->getActorRecipients($actor));
             }
         }
 
-        return array_values(array_unique(array_filter(
-            $emails,
-            GLPIMailer::validateAddress(...),
-        )));
+        $users_emails = $this->getUsersDefaultEmails(array_filter($recipients, is_int(...)));
+
+        $emails = [];
+        foreach ($recipients as $recipient) {
+            $email = is_int($recipient) ? $users_emails[$recipient] ?? null : $recipient;
+            if ($email !== null && GLPIMailer::validateAddress($email)) {
+                $emails[] = $email;
+            }
+        }
+
+        return array_values(array_unique($emails));
     }
 
     /**
-     * The notification settings of the actor are respected, like ITIL
-     * destinations do.
+     * Email address or user ids to notify for the actor. The notification
+     * settings of the actor are respected, like ITIL destinations do.
      *
      * @param array<string, mixed> $actor
-     * @return list<string>
+     * @return list<string|int>
      */
-    private function getActorEmailAddresses(array $actor): array
+    private function getActorRecipients(array $actor): array
     {
         if (isset($actor['use_notification']) && !$actor['use_notification']) {
             return [];
@@ -170,66 +177,74 @@ final class EmailRecipientsField extends ITILActorField
         }
 
         return match ($actor['itemtype'] ?? null) {
-            User::class  => $this->getUserEmailAddresses((int) $items_id),
-            Group::class => $this->getGroupEmailAddresses((int) $items_id),
+            User::class  => [(int) $items_id],
+            Group::class => $this->getGroupMembersIds((int) $items_id),
             default      => [],
         };
     }
 
-    /** @return list<string> */
-    private function getUserEmailAddresses(int $users_id): array
-    {
-        $user = User::getById($users_id);
-
-        return $user instanceof User ? $this->getUsersEmailAddresses([$user->fields]) : [];
-    }
-
     /**
-     * Default email addresses of the members of the group, unless the group
-     * must not be notified (same rule as GLPI notifications).
+     * Members of the group, unless the group must not be notified (same rule
+     * as GLPI notifications).
      *
-     * @return list<string>
+     * @return list<int>
      */
-    private function getGroupEmailAddresses(int $groups_id): array
+    private function getGroupMembersIds(int $groups_id): array
     {
         $group = Group::getById($groups_id);
         if (!$group instanceof Group || !$group->fields['is_notify']) {
             return [];
         }
 
-        // The members come with their user fields, no need to load each user
-        /** @var array<array<string, mixed>> $members */
+        /** @var list<array{id: int}> $members */
         $members = Group_User::getGroupUsers($groups_id);
 
-        return $this->getUsersEmailAddresses($members);
+        return array_column($members, 'id');
     }
 
     /**
-     * Default email addresses of the given users, skipping the users GLPI
-     * notifications skip: deleted, inactive or outside their validity dates.
+     * Default email of each user, in a single query. The users GLPI
+     * notifications skip are left out: deleted, inactive or outside their
+     * validity dates.
      *
-     * @param array<array<string, mixed>> $users rows of the users table
-     * @return list<string>
+     * @param array<int> $users_ids
+     * @return array<int, string> email by user id
      */
-    private function getUsersEmailAddresses(array $users): array
+    private function getUsersDefaultEmails(array $users_ids): array
     {
-        $emails = [];
-        foreach ($users as $user) {
-            if (
-                !is_numeric($user['id'] ?? null)
-                || !$user['is_active']
-                || $user['is_deleted']
-                || ($user['begin_date'] !== null && $user['begin_date'] > $_SESSION['glpi_currenttime'])
-                || ($user['end_date'] !== null && $user['end_date'] < $_SESSION['glpi_currenttime'])
-            ) {
-                continue;
-            }
+        global $DB;
 
-            $email = UserEmail::getDefaultForUser((int) $user['id']);
-            if (is_string($email) && $email !== '') {
-                $emails[] = $email;
-            }
+        if ($users_ids === []) {
+            return [];
         }
+
+        $emails_table = UserEmail::getTable();
+        $users_table  = User::getTable();
+        $now          = $_SESSION['glpi_currenttime'];
+
+        $iterator = $DB->request([
+            'SELECT'     => [$emails_table . '.users_id', $emails_table . '.email'],
+            'FROM'       => $emails_table,
+            'INNER JOIN' => [
+                $users_table => [
+                    'FKEY' => [
+                        $users_table  => 'id',
+                        $emails_table => 'users_id',
+                    ],
+                ],
+            ],
+            'WHERE'      => [
+                $emails_table . '.users_id'   => array_values(array_unique($users_ids)),
+                $emails_table . '.is_default' => 1,
+                $users_table . '.is_active'   => 1,
+                $users_table . '.is_deleted'  => 0,
+                ['OR' => [[$users_table . '.begin_date' => null], [$users_table . '.begin_date' => ['<=', $now]]]],
+                ['OR' => [[$users_table . '.end_date' => null], [$users_table . '.end_date' => ['>=', $now]]]],
+            ],
+        ]);
+
+        /** @var array<int, string> $emails */
+        $emails = array_column(iterator_to_array($iterator, false), 'email', 'users_id');
 
         return $emails;
     }
