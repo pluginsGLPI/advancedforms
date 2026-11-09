@@ -205,21 +205,18 @@ final class ActorNotificationField extends AbstractConfigField
         }
 
         foreach ($this->getActorFields() as $role => $actor_field) {
+            $persons_to_mute = [];
             $actor_config = $config->getActorsConfig($role);
-            if (!$actor_config instanceof ITILActorFieldConfig || !$config->hasDisabledSources($role)) {
-                continue;
+            if ($actor_config instanceof ITILActorFieldConfig && $config->hasDisabledSources($role)) {
+                [$disabled_persons, $enabled_persons] = $this->getPersons($config, $role, $actor_field, $actor_config, $answers_set);
+
+                // An enabled source wins
+                $persons_to_mute = array_diff_key($disabled_persons, $enabled_persons);
             }
 
-            [$disabled_persons, $enabled_persons] = $this->getPersons($config, $role, $actor_field, $actor_config, $answers_set);
-
-            // An enabled source wins
-            $persons_to_mute = array_diff_key($disabled_persons, $enabled_persons);
-            if ($persons_to_mute === []) {
-                continue;
-            }
-
+            // Always aligned, so the followup does not depend on muted actors
             foreach (self::NOTIFIABLE_ITEMTYPES as $itemtype) {
-                $input = $this->muteActorsInInput($input, $itemtype, $role, $persons_to_mute);
+                $input = $this->alignActorsNotificationsInInput($input, $itemtype, $role, $persons_to_mute);
             }
         }
 
@@ -576,69 +573,16 @@ final class ActorNotificationField extends AbstractConfigField
         $disabled_persons = [];
         $enabled_persons = [];
 
-        foreach ($this->getUniqueStrategies($actor_config) as $strategy) {
-            if ($strategy === ITILActorFieldStrategy::SPECIFIC_VALUES) {
-                $notifiable_itemtypes = $this->getNotifiableItemtypes($actor_field);
-                foreach ($actor_config->getSpecificITILActorsIds() ?? [] as $itemtype => $ids) {
-                    if (!in_array($itemtype, $notifiable_itemtypes, true)) {
-                        continue;
-                    }
-
-                    foreach (is_array($ids) ? $ids : [] as $id) {
-                        $person = $this->getPersonKey(['itemtype' => $itemtype, 'items_id' => $id]);
-                        if ($person === null) {
-                            continue;
-                        }
-
-                        if ($config->isActorDisabled($role, $person)) {
-                            $disabled_persons[$person] = true;
-                        } else {
-                            $enabled_persons[$person] = true;
-                        }
-                    }
-                }
-
-                continue;
-            }
-
-            if ($strategy === ITILActorFieldStrategy::SPECIFIC_ANSWERS) {
-                foreach ($actor_config->getSpecificQuestionIds() ?? [] as $question_id) {
-                    if (!is_numeric($question_id)) {
-                        continue;
-                    }
-
-                    $question_disabled = $config->isQuestionDisabled($role, (int) $question_id);
-                    foreach ($this->getActorsForQuestion($actor_field, (int) $question_id, $answers_set) as $actor) {
-                        $person = $this->getPersonKey($actor);
-                        if ($person === null) {
-                            continue;
-                        }
-
-                        if ($question_disabled) {
-                            $disabled_persons[$person] = true;
-                        } else {
-                            $enabled_persons[$person] = true;
-                        }
-                    }
-                }
-
-                continue;
-            }
-
-            // Template and groups strategies give no user or supplier
-            if (!in_array($strategy, self::STRATEGY_LEVEL_SOURCES, true)) {
-                continue;
-            }
-
-            $strategy_disabled = $config->isStrategyDisabled($role, $strategy);
-            foreach ($strategy->getITILActors($actor_field, $actor_config, $answers_set) ?? [] as $actor) {
+        foreach ($this->getSources($actor_field, $actor_config) as $source) {
+            $source_disabled = $this->isSourceDisabled($config, $role, $source);
+            foreach ($this->getSourceActors($actor_field, $actor_config, $source, $answers_set) as $actor) {
                 $person = $this->getPersonKey($actor);
                 if ($person === null) {
                     continue;
                 }
 
                 // The delegated user keeps the delegation block choice
-                if ($strategy_disabled && !$this->isDelegatedFormFiller($strategy, $actor, $answers_set)) {
+                if ($source_disabled && !$this->isDelegatedFormFiller($source['strategy'], $actor, $answers_set)) {
                     $disabled_persons[$person] = true;
                 } else {
                     $enabled_persons[$person] = true;
@@ -647,6 +591,35 @@ final class ActorNotificationField extends AbstractConfigField
         }
 
         return [$disabled_persons, $enabled_persons];
+    }
+
+    /**
+     * Actors found by a source for the given answers.
+     *
+     * @param Source $source
+     * @return array<mixed>
+     */
+    private function getSourceActors(
+        ITILActorField $actor_field,
+        ITILActorFieldConfig $actor_config,
+        array $source,
+        AnswersSet $answers_set,
+    ): array {
+        switch ($source['list']) {
+            case ActorNotificationFieldConfig::DISABLED_ACTORS:
+                $parsed_actor = self::parseActorKey((string) $source['value']);
+                if ($parsed_actor === null) {
+                    return [];
+                }
+
+                return [['itemtype' => $parsed_actor[0], 'items_id' => $parsed_actor[1]]];
+
+            case ActorNotificationFieldConfig::DISABLED_QUESTION_IDS:
+                return $this->getActorsForQuestion($actor_field, (int) $source['value'], $answers_set);
+
+            default:
+                return $source['strategy']->getITILActors($actor_field, $actor_config, $answers_set) ?? [];
+        }
     }
 
     /** Form filler sent on behalf of another user. */
@@ -719,15 +692,19 @@ final class ActorNotificationField extends AbstractConfigField
     }
 
     /**
-     * Turns off the followup of the given persons. Template lines come first,
-     * without notification entry, and keep the followup.
+     * Indexes the notification entries like the actors, and turns off the
+     * followup of the given persons. Template lines come first, without
+     * notification entry, and keep the followup.
+     *
+     * Core appends the notification entries after the template lines are
+     * added, so they are shifted from the actors they belong to.
      *
      * @param array<mixed>        $input
      * @param class-string<User|Supplier> $itemtype
      * @param array<string, true> $persons_to_mute
      * @return array<mixed>
      */
-    private function muteActorsInInput(array $input, string $itemtype, string $role, array $persons_to_mute): array
+    private function alignActorsNotificationsInInput(array $input, string $itemtype, string $role, array $persons_to_mute): array
     {
         $actors_key = sprintf('_%s_%s', getForeignKeyFieldForItemType($itemtype), $role);
         $notif_key = $actors_key . '_notif';
@@ -744,7 +721,12 @@ final class ActorNotificationField extends AbstractConfigField
 
         $count_actors = count($actors);
         $count_notif = count($use_notification);
-        $template_lines = $count_actors >= $count_notif ? $count_actors - $count_notif : $count_actors;
+        if ($count_notif > $count_actors) {
+            // Unexpected format, left to core
+            return $input;
+        }
+
+        $template_lines = $count_actors - $count_notif;
 
         for ($line = 0; $line < $template_lines; $line++) {
             $person = $this->getPersonKey(['itemtype' => $itemtype, 'items_id' => $actors[$line]]);
@@ -775,7 +757,8 @@ final class ActorNotificationField extends AbstractConfigField
             $new_alternative_email[$line] = $email;
         }
 
-        if (!$has_changes) {
+        if (!$has_changes && $template_lines === 0) {
+            // Already aligned
             return $input;
         }
 

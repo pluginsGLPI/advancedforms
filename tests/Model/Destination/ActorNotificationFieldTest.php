@@ -398,6 +398,36 @@ final class ActorNotificationFieldTest extends AdvancedFormsTestCase
         );
     }
 
+    public function testTemplateActorShiftIsFixedWithoutDisabledSource(): void
+    {
+        $this->login();
+        $template_observer = $this->createItem(User::class, ['name' => 'Template observer']);
+        $this->createItem(TicketTemplatePredefinedField::class, [
+            'tickettemplates_id' => getItemByTypeName(TicketTemplate::class, 'Default', true),
+            'num'                => 66, // User observer
+            'value'              => $template_observer->getID(),
+        ]);
+        $form = $this->createFormWithActorsQuestions();
+        $question_id = $this->getQuestionId($form, 'Email');
+
+        // No disabled source: nobody is muted
+        $this->setDestinationConfig($form, [
+            ObserverField::getKey() => $this->observerConfig(
+                [ITILActorFieldStrategy::SPECIFIC_ANSWERS],
+                question_ids: [$question_id],
+            ),
+        ]);
+
+        $ticket = $this->sendFormAndGetCreatedTicket($form, ['Email' => 'observer@example.com']);
+
+        // The address must stay paired with its own actor line, not with the
+        // template observer one.
+        $notifications = $this->getActorsNotifications($ticket, CommonITILActor::OBSERVER);
+        $this->assertArrayHasKey($this->userKey($template_observer), $notifications);
+        $this->assertSame(1, $notifications['email-observer@example.com'] ?? null);
+        $this->assertCount(2, $notifications);
+    }
+
     public function testDisabledSupplierHasNoFollowup(): void
     {
         $this->login();
