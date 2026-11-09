@@ -35,6 +35,7 @@
 {# @var Glpi\Form\Destination\FormDestination destination #}
 {# @var array config #}
 {# @var bool can_update #}
+{# @var string|null recipients_warning #}
 
 {# The fields are rendered by the same macro as the core ITIL destinations #}
 {% import 'pages/admin/form/form_destination_commonitil_config.html.twig' as itil_config %}
@@ -54,6 +55,13 @@
     </div>
     <div class="col-12 col-lg-4 mt-0 p-0 rounded-0 card-footer border-start border-top-0">
         <div class="d-flex flex-column space-y-3 p-3">
+            {# Same alert as the warnings of the core destinations tab #}
+            {% if recipients_warning is not null %}
+                <div class="alert alert-warning d-flex align-items-center mb-0" role="alert">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    <span>{{ recipients_warning }}</span>
+                </div>
+            {% endif %}
             {{ itil_config.field_config_section(item, destination, recipients_field, form, config) }}
             {{ itil_config.field_config_section(item, destination, addresses_field, form, config) }}
         </div>
