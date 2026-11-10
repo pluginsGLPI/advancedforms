@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Add an "Email" form destination, sending a customized email when a form is submitted
 
+### Changed
+
+- Make the plugin compatible with the Content Security Policy
+
 ### Fixed
 
 - Fix hidden question not available in anonymous forms
