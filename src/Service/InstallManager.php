@@ -37,7 +37,9 @@ use DBmysql;
 use Config;
 use DBConnection;
 use Glpi\DBAL\QueryExpression;
+use Glpi\Form\AccessControl\FormAccessControl;
 use Glpi\Toolbox\SingletonTrait;
+use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Migration;
 use Notification;
@@ -242,6 +244,7 @@ final class InstallManager
         $config->deleteByCriteria(['context' => 'advancedforms']);
 
         $this->uninstallNotifications();
+        $this->uninstallAccessControlPolicies();
 
         $table = TicketReservationRequest::getTable();
         if ($DB->tableExists($table, false)) {
@@ -249,6 +252,16 @@ final class InstallManager
         }
 
         return true;
+    }
+
+    /** Removes the plugin's access policies saved on forms (core ignores them once the plugin is gone). */
+    public function uninstallAccessControlPolicies(): void
+    {
+        global $DB;
+
+        $DB->delete(FormAccessControl::getTable(), [
+            'strategy' => LanguageAccessControl::class,
+        ]);
     }
 
     /** Removes every notification artifact seeded by installNotifications(). */

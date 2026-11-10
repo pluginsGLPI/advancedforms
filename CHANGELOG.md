@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Add translations management through Transifex
+- Add "Allow specific languages" form access policy
 - Add "GLPI system information" and "GLPI core or plugins concerned" question types
 
 ### Fixed
