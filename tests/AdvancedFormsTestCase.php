@@ -34,6 +34,7 @@
 namespace GlpiPlugin\Advancedforms\Tests;
 
 use AuthLDAP;
+use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Form;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -66,6 +67,7 @@ abstract class AdvancedFormsTestCase extends DbTestCase
         $this->deleteSingletonInstance([
             QuestionTypesManager::class,
             TypesConversionMapper::class,
+            FormAccessControlManager::class,
         ]);
     }
 

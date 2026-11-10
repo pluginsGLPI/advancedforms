@@ -35,6 +35,7 @@ namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
 use Glpi\Form\Destination\FormDestinationChange;
+use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Destination\FormDestinationProblem;
 use Glpi\Form\Destination\FormDestinationTicket;
@@ -42,6 +43,7 @@ use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
 use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
+use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
@@ -55,11 +57,15 @@ final class InitManager
 {
     use SingletonTrait;
 
+    /** Manager instance our access policies were registered on (core has no getter to check). */
+    private ?FormAccessControlManager $policies_registered_on = null;
+
     public function init(): void
     {
         $this->registerConfiguration();
         $this->registerPluginTypes();
         $this->registerDestinationFields();
+        $this->registerAccessControlPolicies();
         $this->registerTimelineHooks();
         $this->registerNotifications();
         $this->registerPurgeHooks();
@@ -146,6 +152,20 @@ final class InitManager
 
             $destination_manager->registerPluginCommonITILConfigField($destination_class, $field);
         }
+    }
+
+    private function registerAccessControlPolicies(): void
+    {
+        $manager = FormAccessControlManager::getInstance();
+
+        // init() may run multiple times per process; a duplicate would create
+        // duplicate policy rows on new forms.
+        if ($this->policies_registered_on === $manager) {
+            return;
+        }
+
+        $manager->registerPluginAccessControlPolicy(new LanguageAccessControl());
+        $this->policies_registered_on = $manager;
     }
 
     private function registerTimelineHooks(): void
