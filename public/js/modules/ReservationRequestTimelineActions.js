@@ -30,30 +30,30 @@
  */
 
 export class ReservationRequestTimelineActions {
-    #root;
-    #endpoint_url = `${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationRequest`;
+    static #initialized = false;
 
-    /** @param {HTMLElement} root - one timeline card, rendered by templates/timeline/reservation_request.html.twig */
-    constructor(root) {
-        if (!root) {
+    /**
+     * Handles the approve/refuse buttons of every timeline card, rendered by
+     * templates/timeline/reservation_request.html.twig, with a single delegated
+     * listener: a ticket can carry hundreds of requests. Safe to call several times.
+     */
+    static init() {
+        if (ReservationRequestTimelineActions.#initialized) {
             return;
         }
+        ReservationRequestTimelineActions.#initialized = true;
 
-        this.#root = root;
-
-        this.#initButtons();
+        $(document).on(
+            'click',
+            '.reservation-request-timeline-item [data-reservation-request-action]',
+            (e) => ReservationRequestTimelineActions.#onActionClicked($(e.currentTarget)),
+        );
     }
 
-    #initButtons() {
-        const $buttons = $(this.#root).find('[data-reservation-request-action]');
-        if ($buttons.length === 0) {
-            return;
-        }
+    static #onActionClicked($button) {
+        const $root = $button.closest('.reservation-request-timeline-item');
+        const $buttons = $root.find('[data-reservation-request-action]');
 
-        $buttons.on('click', (e) => this.#onActionClicked($(e.currentTarget), $buttons));
-    }
-
-    #onActionClicked($button, $buttons) {
         // Guard against double-submission while a request is in flight.
         if ($buttons.prop('disabled')) {
             return;
@@ -61,11 +61,11 @@ export class ReservationRequestTimelineActions {
 
         const id = $button.data('reservationRequestId');
         const action = $button.data('reservationRequestAction');
-        const comment = $(this.#root).find('textarea[name="comment"]').val() ?? '';
+        const comment = $root.find('textarea[name="comment"]').val() ?? '';
 
         $buttons.prop('disabled', true);
 
-        $.post(this.#endpoint_url, { id, action, comment })
+        $.post(`${CFG_GLPI.root_doc}/plugins/advancedforms/ReservationRequest`, { id, action, comment })
             .done((data) => {
                 if (data.success) {
                     window.location.reload();

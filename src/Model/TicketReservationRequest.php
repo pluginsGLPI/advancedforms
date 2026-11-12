@@ -208,6 +208,7 @@ final class TicketReservationRequest extends CommonDBChild
     }
 
     /**
+     * @param bool|null $can_update_ticket see canAnswer()
      * @return array{
      *     id: int,
      *     status: int,
@@ -219,7 +220,7 @@ final class TicketReservationRequest extends CommonDBChild
      *     is_direct_reservation: bool,
      * }
      */
-    public function getTimelineInfo(): array
+    public function getTimelineInfo(?bool $can_update_ticket = null): array
     {
         return [
             'id' => $this->getID(),
@@ -228,7 +229,7 @@ final class TicketReservationRequest extends CommonDBChild
             'begin' => $this->getNullableStringField('begin'),
             'end' => $this->getNullableStringField('end'),
             'comment_validation' => $this->getNullableStringField('comment_validation') ?? '',
-            'can_answer' => $this->canAnswer(),
+            'can_answer' => $this->canAnswer($can_update_ticket),
             'is_direct_reservation' => $this->getIntField('status') === self::STATUS_ACCEPTED
                 && $this->getIntField('users_id_validate') === 0,
         ];
@@ -237,38 +238,88 @@ final class TicketReservationRequest extends CommonDBChild
     /** Resolves the reservable asset's display name; empty string if it no longer exists. */
     public static function getReservableItemName(int $reservationitems_id): string
     {
-        $reservation_item = new ReservationItem();
-        if (!$reservation_item->getFromDB($reservationitems_id)) {
-            return '';
-        }
-
-        $itemtype = $reservation_item->fields['itemtype'] ?? '';
-        $itemtype = is_string($itemtype) ? $itemtype : '';
-
-        $items_id = $reservation_item->fields['items_id'] ?? 0;
-        $items_id = is_numeric($items_id) ? (int) $items_id : 0;
-
-        $item = getItemForItemtype($itemtype);
-        if (!$item instanceof CommonDBTM || !$item->getFromDB($items_id)) {
-            return '';
-        }
-
-        return $item->getName();
+        return self::getReservableItemNames([$reservationitems_id])[$reservationitems_id] ?? '';
     }
 
-    /** Whether the current user may approve/refuse this still-waiting request. */
-    public function canAnswer(): bool
+    /**
+     * Resolves the display names of several reservable assets with one query on
+     * the reservation items and one per asset itemtype, whatever their number.
+     *
+     * @param int[] $reservationitems_ids
+     * @return array<int, string> names indexed by reservation item id, without the ids whose asset no longer exists
+     */
+    public static function getReservableItemNames(array $reservationitems_ids): array
+    {
+        global $DB;
+
+        $reservationitems_ids = array_values(array_unique(array_filter(
+            $reservationitems_ids,
+            fn(int $id): bool => $id > 0,
+        )));
+        if ($reservationitems_ids === []) {
+            return [];
+        }
+
+        $reservation_items = $DB->request([
+            'SELECT' => ['id', 'itemtype', 'items_id'],
+            'FROM' => ReservationItem::getTable(),
+            'WHERE' => ['id' => $reservationitems_ids],
+        ]);
+
+        /** @var array<string, array<int, int>> $items_ids_by_itemtype items id indexed by reservation item id, per itemtype */
+        $items_ids_by_itemtype = [];
+        foreach ($reservation_items as $row) {
+            if (
+                !is_array($row)
+                || !is_numeric($row['id'] ?? null)
+                || !is_string($row['itemtype'] ?? null)
+                || !is_numeric($row['items_id'] ?? null)
+            ) {
+                continue;
+            }
+
+            $items_ids_by_itemtype[$row['itemtype']][(int) $row['id']] = (int) $row['items_id'];
+        }
+
+        $names = [];
+        foreach ($items_ids_by_itemtype as $itemtype => $items_ids) {
+            $item = getItemForItemtype($itemtype);
+            if (!$item instanceof CommonDBTM) {
+                continue;
+            }
+
+            $rows = $item->find(['id' => array_values(array_unique($items_ids))]);
+            foreach ($items_ids as $reservationitems_id => $items_id) {
+                if (!is_array($rows[$items_id] ?? null)) {
+                    continue;
+                }
+
+                $item->getFromResultSet($rows[$items_id]);
+                $names[$reservationitems_id] = $item->getName();
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Whether the current user may approve/refuse this still-waiting request.
+     *
+     * @param bool|null $can_update_ticket whether the current user can update the parent ticket, when the caller
+     *                                     already knows it (timeline display); read from the database when null
+     */
+    public function canAnswer(?bool $can_update_ticket = null): bool
     {
         if ($this->getIntField('status') !== self::STATUS_WAITING) {
             return false;
         }
 
-        $ticket = new Ticket();
-        if (!$ticket->getFromDB($this->getIntField('tickets_id'))) {
-            return false;
+        if ($can_update_ticket === null) {
+            $ticket = new Ticket();
+            $can_update_ticket = $ticket->getFromDB($this->getIntField('tickets_id')) && $ticket->canUpdateItem();
         }
 
-        if (!$ticket->canUpdateItem()) {
+        if (!$can_update_ticket) {
             return false;
         }
 

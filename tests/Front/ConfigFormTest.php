@@ -77,14 +77,14 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertCount(1, $config_header);
     }
 
-    public function testTabContentIsEmptyForTech(): void
+    public function testTabContentIsDeniedForTech(): void
     {
+        // Assert: the tab is refused as we lack rights to view config
+        $this->expectException(AccessDeniedHttpException::class);
+
         // Act: go to the advanced form tab on the config
         $this->login('tech');
-        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
-
-        // Assert: no html was rendered as we lack rights to view config
-        $this->assertEmpty($crawler);
+        $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
     }
 
     #[DataProvider('provideQuestionTypes')]
