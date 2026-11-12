@@ -545,9 +545,32 @@ final class TicketReservationRequestTest extends DbTestCase
         $this->assertFalse($info['is_direct_reservation']);
     }
 
-    private function getReservableItem(): ReservationItem
+    public function testGetReservableItemNamesResolvesSeveralItems(): void
     {
-        $computer = $this->createItem('Computer', ['name' => 'test-computer', 'entities_id' => 0]);
+        $this->login();
+        $first = $this->getReservableItem('first-computer');
+        $second = $this->getReservableItem('second-computer');
+
+        $names = TicketReservationRequest::getReservableItemNames([
+            $first->getID(),
+            $second->getID(),
+            $first->getID(),
+            0,
+            999999,
+        ]);
+
+        // Unknown ids are left out
+        $this->assertSame([
+            $first->getID() => 'first-computer',
+            $second->getID() => 'second-computer',
+        ], $names);
+        $this->assertSame('second-computer', TicketReservationRequest::getReservableItemName($second->getID()));
+        $this->assertSame('', TicketReservationRequest::getReservableItemName(999999));
+    }
+
+    private function getReservableItem(string $name = 'test-computer'): ReservationItem
+    {
+        $computer = $this->createItem('Computer', ['name' => $name, 'entities_id' => 0]);
         return $this->createItem('ReservationItem', [
             'itemtype' => 'Computer',
             'items_id' => $computer->getID(),

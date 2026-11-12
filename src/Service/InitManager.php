@@ -54,6 +54,9 @@ final class InitManager
 
     public function init(): void
     {
+        // Read the configuration once per init, it may have changed since the last one.
+        ConfigManager::getInstance()->clearCache();
+
         $this->registerConfiguration();
         $this->registerPluginTypes();
         $this->registerDestinationFields();
@@ -87,6 +90,12 @@ final class InitManager
 
         // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
         $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['advancedforms'] = $url;
+
+        // Saved configuration values must be seen by the rest of the request.
+        foreach ([Hooks::ITEM_ADD, Hooks::ITEM_UPDATE, Hooks::ITEM_PURGE] as $hook) {
+            // @phpstan-ignore offsetAccess.nonOffsetAccessible, offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+            $PLUGIN_HOOKS[$hook]['advancedforms'][Config::class] = ConfigManager::onConfigChange(...);
+        }
 
         // Add configuration tab
         Plugin::registerClass(ConfigTab::class, [
@@ -153,9 +162,7 @@ final class InitManager
     {
         global $PLUGIN_HOOKS;
 
-        // @phpstan-ignore offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
-        $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['advancedforms'] = [
-            Ticket::class => TicketReservationRequest::purgeForTicket(...),
-        ];
+        // @phpstan-ignore offsetAccess.nonOffsetAccessible, offsetAccess.nonOffsetAccessible (we don't have type hint for this array at this time)
+        $PLUGIN_HOOKS[Hooks::ITEM_PURGE]['advancedforms'][Ticket::class] = TicketReservationRequest::purgeForTicket(...);
     }
 }
