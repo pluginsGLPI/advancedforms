@@ -361,6 +361,7 @@ final class TimelineManagerTest extends DbTestCase
         foreach ($contents as $content) {
             $this->assertStringContainsString('data-reservation-request-action="approve"', $content);
         }
+
         $this->assertSame(1, substr_count(implode('', $contents), 'ReservationRequestTimelineActions.js'));
     }
 
