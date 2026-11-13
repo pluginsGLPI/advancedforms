@@ -35,6 +35,8 @@ namespace GlpiPlugin\Advancedforms\Model\QuestionType;
 
 use DBmysql;
 use CommonTreeDropdown;
+use DropdownTranslation;
+use Glpi\DBAL\QueryExpression;
 use Glpi\Application\View\TemplateRenderer;
 use Glpi\DBAL\JsonFieldInterface;
 use Glpi\Form\Condition\ConditionHandler\ItemAsTextConditionHandler;
@@ -47,6 +49,7 @@ use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use InvalidArgumentException;
 use Override;
+use Session;
 
 final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown implements ConfigurableItemInterface
 {
@@ -139,6 +142,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             $root_item = getItemForItemtype($itemtype);
             if ($root_item instanceof CommonTreeDropdown && $root_item->getFromDB($root_items_id)) {
                 $root_item_name = is_string($root_item->fields['name'] ?? '') ? (string) ($root_item->fields['name'] ?? '') : '';
+                $root_item_name = (string) DropdownTranslation::getTranslatedValue($root_items_id, $itemtype, 'name', '', $root_item_name);
             }
         }
 
@@ -298,7 +302,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
 
             /** @var array<string, mixed> $typed_base_where */
             $typed_base_where = $base_where;
-            $node['siblings'] = $this->getValidItemsForLevel($table, $typed_base_where, $raw_where);
+            $node['siblings'] = $this->getValidItemsForLevel($itemtype, $typed_base_where, $raw_where);
         }
 
         return $chain;
@@ -356,25 +360,22 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
 
         /** @var array<string, mixed> $typed_base_where */
         $typed_base_where = $base_where;
-        return $this->getValidItemsForLevel($table, $typed_base_where, $raw_where);
+        return $this->getValidItemsForLevel($itemtype, $typed_base_where, $raw_where);
     }
 
     /**
+     * @param class-string<CommonTreeDropdown> $itemtype
      * @param array<string, mixed> $base_where
      * @param array<string, mixed> $raw_where
      * @return array<int, array{id: int, name: string}>
      */
-    private function getValidItemsForLevel(string $table, array $base_where, array $raw_where): array
+    private function getValidItemsForLevel(string $itemtype, array $base_where, array $raw_where): array
     {
+        $table = $itemtype::getTable();
         /** @var DBmysql $DB */
         global $DB;
 
-        $raw_iterator = $DB->request([
-            'SELECT' => ['id', 'name'],
-            'FROM'   => $table,
-            'WHERE'  => $raw_where,
-            'ORDER'  => 'name ASC',
-        ]);
+        $raw_iterator = $DB->request(self::getTranslatedItemsCriteria($itemtype, $raw_where));
 
         /** @var array<int, array{id: int, name: string}> $raw_items */
         $raw_items = [];
@@ -429,6 +430,59 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
         }
 
         return $items;
+    }
+
+    /**
+     * Request criteria selecting `id` and `name` of items, with `name` translated
+     * in the session language when dropdown translations exist, sorted by that name.
+     *
+     * @param class-string<CommonTreeDropdown> $itemtype
+     * @param array<mixed> $where
+     * @return array<string, mixed>
+     */
+    public static function getTranslatedItemsCriteria(string $itemtype, array $where): array
+    {
+        $table = $itemtype::getTable();
+        $name_field = DBmysql::quoteName($table . '.name');
+
+        $criteria = [
+            'SELECT' => [$table . '.id', $table . '.name'],
+            'FROM'   => $table,
+            'WHERE'  => $where,
+            'ORDER'  => [$table . '.name ASC'],
+        ];
+
+        if (!Session::haveTranslations($itemtype, 'name')) {
+            return $criteria;
+        }
+
+        $translated_name = sprintf(
+            "COALESCE(NULLIF(%s, ''), %s)",
+            DBmysql::quoteName('namet.value'),
+            $name_field,
+        );
+        $criteria['SELECT'] = [
+            $table . '.id',
+            new QueryExpression($translated_name . ' AS ' . DBmysql::quoteName('name')),
+        ];
+        $criteria['LEFT JOIN'] = [
+            'glpi_dropdowntranslations AS namet' => [
+                'ON' => [
+                    'namet' => 'items_id',
+                    $table  => 'id',
+                    [
+                        'AND' => [
+                            'namet.itemtype' => $itemtype,
+                            'namet.language' => $_SESSION['glpilanguage'],
+                            'namet.field'    => 'name',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $criteria['ORDER'] = [new QueryExpression($translated_name . ' ASC')];
+
+        return $criteria;
     }
 
     #[Override]
