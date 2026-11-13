@@ -449,7 +449,7 @@ final class TreeCascadeDropdownQuestion extends QuestionTypeItemDropdown impleme
             'SELECT' => [$table . '.id', $table . '.name'],
             'FROM'   => $table,
             'WHERE'  => $where,
-            'ORDER'  => [new QueryExpression($name_field . ' ASC')],
+            'ORDER'  => [$table . '.name ASC'],
         ];
 
         if (!Session::haveTranslations($itemtype, 'name')) {
