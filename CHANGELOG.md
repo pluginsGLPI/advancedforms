@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Fix hidden question not available in anonymous forms
+- Fix `Tree Cascade Dropdown` question ignoring dropdown translations
 
 ## [1.3.1] - 2026-10-06
 
