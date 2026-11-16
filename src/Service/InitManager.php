@@ -34,8 +34,10 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+use Glpi\Form\Destination\FormDestinationChange;
 use Glpi\Form\AccessControl\FormAccessControlManager;
 use Glpi\Form\Destination\FormDestinationManager;
+use Glpi\Form\Destination\FormDestinationProblem;
 use Glpi\Form\Destination\FormDestinationTicket;
 use Glpi\Form\Migration\TypesConversionMapper;
 use Glpi\Form\QuestionType\QuestionTypesManager;
@@ -43,6 +45,7 @@ use Glpi\Plugin\Hooks;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
+use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
@@ -129,21 +132,26 @@ final class InitManager
 
     private function registerDestinationFields(): void
     {
+        $fields = [
+            [FormDestinationTicket::class, new PreReservationField()],
+            [FormDestinationTicket::class, new ActorNotificationField()],
+            [FormDestinationChange::class, new ActorNotificationField()],
+            [FormDestinationProblem::class, new ActorNotificationField()],
+        ];
+
         $destination_manager = FormDestinationManager::getInstance();
+        foreach ($fields as [$destination_class, $field]) {
+            // init() may run multiple times per process; avoid double-registering the field.
+            $already_registered = array_filter(
+                $destination_manager->getPluginCommonITILConfigFields($destination_class),
+                fn($registered_field) => $registered_field instanceof $field,
+            );
+            if ($already_registered !== []) {
+                continue;
+            }
 
-        // init() may run multiple times per process; avoid double-registering the field.
-        $already_registered = array_filter(
-            $destination_manager->getPluginCommonITILConfigFields(FormDestinationTicket::class),
-            fn($field) => $field instanceof PreReservationField,
-        );
-        if ($already_registered !== []) {
-            return;
+            $destination_manager->registerPluginCommonITILConfigField($destination_class, $field);
         }
-
-        $destination_manager->registerPluginCommonITILConfigField(
-            FormDestinationTicket::class,
-            new PreReservationField(),
-        );
     }
 
     private function registerAccessControlPolicies(): void

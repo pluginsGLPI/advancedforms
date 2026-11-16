@@ -39,6 +39,7 @@ use DBConnection;
 use Glpi\DBAL\QueryExpression;
 use Glpi\Form\AccessControl\FormAccessControl;
 use Glpi\Toolbox\SingletonTrait;
+use GlpiPlugin\Advancedforms\Console\ImportFormcreatorActorsNotificationCommand;
 use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Migration;
@@ -241,7 +242,10 @@ final class InstallManager
         global $DB;
 
         $config = new Config();
-        $config->deleteByCriteria(['context' => 'advancedforms']);
+        $config->deleteByCriteria(['context' => [
+            'advancedforms',
+            ImportFormcreatorActorsNotificationCommand::IMPORTED_DESTINATIONS_CONFIG_CONTEXT,
+        ]]);
 
         $this->uninstallNotifications();
         $this->uninstallAccessControlPolicies();
