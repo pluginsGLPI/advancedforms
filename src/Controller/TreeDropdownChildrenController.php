@@ -42,6 +42,7 @@ use Glpi\Controller\AbstractController;
 use Glpi\Controller\Form\Utils\CanCheckAccessPolicies;
 use Glpi\Http\Firewall;
 use Glpi\Security\Attribute\SecurityStrategy;
+use GlpiPlugin\Advancedforms\Model\QuestionType\TreeCascadeDropdownQuestion;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -128,12 +129,7 @@ final class TreeDropdownChildrenController extends AbstractController
         $where[$foreign_key] = $parent_id;
 
         $children = [];
-        $iterator = $DB->request([
-            'SELECT' => ['id', 'name'],
-            'FROM'   => $table,
-            'WHERE'  => $where,
-            'ORDER'  => 'name ASC',
-        ]);
+        $iterator = $DB->request(TreeCascadeDropdownQuestion::getTranslatedItemsCriteria($itemtype, $where));
 
         foreach ($iterator as $row) {
             if (!is_array($row)) {
