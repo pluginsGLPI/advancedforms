@@ -16,7 +16,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+<<<<<<< HEAD
 - Fix GLPI compatibility constraint in plugin XML
+=======
+- Fix hidden question not available in anonymous forms
+- Fix `Tree Cascade Dropdown` question ignoring dropdown translations
+>>>>>>> b8ea8fd (Fix: translate tree cascade dropdown labels (#91))
 
 ## [1.4.0] - 2026-10-06
 
