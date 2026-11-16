@@ -268,8 +268,8 @@ final class TicketReservationRequest extends CommonDBChild
             return false;
         }
 
-        // Answering is a validator action: the requester (who passes canUpdateItem() on a fresh ticket)
-        // must not approve their own request, so require the right core asks to reserve on behalf of others.
+        // canUpdateItem() alone lets any requester answer while the ticket is fresh, so also require the right
+        // core asks to reserve for others; such a user may answer their own request, as they could reserve directly.
         return Session::getCurrentInterface() === 'central'
             && Session::haveRight(Reservation::$rightname, CREATE)
             && $ticket->canUpdateItem();
