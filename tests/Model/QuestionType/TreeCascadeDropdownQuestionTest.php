@@ -45,6 +45,7 @@ use IPNetwork;
 use SoftwareCategory;
 use WebhookCategory;
 use Dropdown;
+use DropdownTranslation;
 use Glpi\Form\Form;
 use Glpi\Controller\Form\RendererController;
 use Glpi\Form\QuestionType\QuestionTypeInterface;
@@ -813,6 +814,87 @@ final class TreeCascadeDropdownQuestionTest extends QuestionTypeTestCase
         $this->assertNotContains('Root', $all_option_texts);
         $this->assertNotContains('Root 2', $all_option_texts);
         $this->assertNotContains('Test 2 Option', $all_option_texts);
+    }
+
+    /**
+     * Verify that every level (first level, default value ancestors, AJAX children
+     * and selectable root) shows names translated in the user language, sorted by translated name.
+     */
+    public function testDropdownsShowTranslatedNames(): void
+    {
+        $this->login();
+        $this->enableConfigurableItem(TreeCascadeDropdownQuestion::class);
+
+        $entity_id = Session::getActiveEntity();
+        $hardware = $this->createItem(ITILCategory::class, [
+            'name'              => 'Matériel',
+            'itilcategories_id' => 0,
+            'entities_id'       => $entity_id,
+        ]);
+        $screen = $this->createItem(ITILCategory::class, [
+            'name'              => 'Écran',
+            'itilcategories_id' => $hardware->getID(),
+            'entities_id'       => $entity_id,
+        ]);
+        $software = $this->createItem(ITILCategory::class, [
+            'name'              => 'Logiciel',
+            'itilcategories_id' => 0,
+            'entities_id'       => $entity_id,
+        ]);
+
+        $language = $_SESSION['glpilanguage'];
+        foreach ([[$hardware, 'Hardware'], [$screen, 'Screen'], [$software, 'Software']] as [$category, $translation]) {
+            $this->createItem(DropdownTranslation::class, [
+                'itemtype' => ITILCategory::class,
+                'items_id' => $category->getID(),
+                'language' => $language,
+                'field'    => 'name',
+                'value'    => $translation,
+            ]);
+        }
+
+        // First level and default value ancestor chain
+        $builder = new FormBuilder("Tree Cascade Translations");
+        $builder->addQuestion(
+            "My category",
+            TreeCascadeDropdownQuestion::class,
+            $screen->getID(),
+            json_encode(new QuestionTypeItemDropdownExtraDataConfig(itemtype: ITILCategory::class)),
+        );
+        $form = $this->createForm($builder);
+        $selects = $this->renderHelpdeskForm($form)->filter('.af-tree-cascade-select');
+        $first_options = array_values(array_filter(
+            $selects->eq(0)->filter('option')->each(fn(Crawler $node) => $node->text()),
+            fn(string $text) => in_array($text, ['Hardware', 'Software', 'Matériel', 'Logiciel'], true),
+        ));
+        $this->assertSame(['Hardware', 'Software'], $first_options);
+        $this->assertContains('Screen', $selects->eq(1)->filter('option')->each(fn(Crawler $node) => $node->text()));
+
+        // Children loaded on selection
+        $question = array_values($form->getQuestions())[0];
+        $response = (new TreeDropdownChildrenController())->__invoke(
+            Request::create('', 'GET', ['questions_id' => $question->getID(), 'parent_id' => $hardware->getID()]),
+        );
+        $this->assertStringContainsString('Screen', (string) $response->getContent());
+        $this->assertStringNotContainsString('Écran', (string) $response->getContent());
+
+        // Selectable root
+        $builder = new FormBuilder("Tree Cascade Translated Root");
+        $builder->addQuestion(
+            "My category",
+            TreeCascadeDropdownQuestion::class,
+            '',
+            json_encode(new QuestionTypeItemDropdownExtraDataConfig(
+                itemtype: ITILCategory::class,
+                root_items_id: $hardware->getID(),
+                selectable_tree_root: true,
+            )),
+        );
+        $root_options = $this->renderHelpdeskForm($this->createForm($builder))
+            ->filter('.af-tree-cascade-select')->eq(0)->filter('option')
+            ->each(fn(Crawler $node) => $node->text());
+        $this->assertContains('Hardware', $root_options);
+        $this->assertNotContains('Matériel', $root_options);
     }
 
     private function renderHelpdeskForm(Form $form): Crawler
