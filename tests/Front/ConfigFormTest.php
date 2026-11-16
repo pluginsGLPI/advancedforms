@@ -77,18 +77,15 @@ final class ConfigFormTest extends FrontTestCase
         $this->assertCount(1, $config_header);
     }
 
-    public function testTabContentIsDeniedForTech(): void
+    public function testTabContentIsEmptyForTech(): void
     {
+        // Act: go to the advanced form tab on the config
         $this->login('tech');
+        $crawler = $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
 
-<<<<<<< HEAD
         // Assert: no html was rendered as we lack rights to view config
         $config_header = $crawler->filter('[data-testid="advanced-forms-config-header"]');
         $this->assertCount(0, $config_header);
-=======
-        $this->expectException(AccessDeniedHttpException::class);
-        $this->get("/ajax/common.tabs.php", $this->getConfigTabUrlParams());
->>>>>>> b8ea8fd (Fix: translate tree cascade dropdown labels (#91))
     }
 
     #[DataProvider('provideQuestionTypes')]
