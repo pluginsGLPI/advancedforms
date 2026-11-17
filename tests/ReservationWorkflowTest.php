@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests;
 
+use CommonITILActor;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use Glpi\Tests\FormBuilder;
 use GlpiPlugin\Advancedforms\Controller\ReservationRequestController;
@@ -51,6 +52,8 @@ use ReservationItem;
 use Session;
 use Symfony\Component\HttpFoundation\Request;
 use Ticket;
+use Ticket_User;
+use User;
 use UserEmail;
 
 /** End-to-end test covering the integration seams across all reservation pieces (see per-class unit tests for the rest). */
@@ -294,6 +297,57 @@ final class ReservationWorkflowTest extends AdvancedFormsTestCase
         // The denial must be a real gate: the request itself stays untouched.
         $this->assertTrue($request->getFromDB($request->getID()));
         $this->assertSame(TicketReservationRequest::STATUS_WAITING, (int) $request->fields['status']);
+    }
+
+    public function testRequesterCannotApproveOwnRequest(): void
+    {
+        [$ticket] = $this->submitReservationForm(require_approval: true);
+
+        $request = new TicketReservationRequest();
+        $rows = $request->find(['tickets_id' => $ticket->getID()]);
+        $this->assertCount(1, $rows);
+        $this->assertTrue($request->getFromDB((int) array_key_first($rows)));
+
+        // Make the self-service "post-only" user the requester of both the ticket and the reservation request.
+        $users_id = getItemByTypeName(User::class, 'post-only', true);
+        $this->createItem(Ticket_User::class, [
+            'tickets_id' => $ticket->getID(),
+            'users_id'   => $users_id,
+            'type'       => CommonITILActor::REQUESTER,
+        ]);
+        $this->updateItem(TicketReservationRequest::class, $request->getID(), ['users_id' => $users_id]);
+        $this->assertTrue($request->getFromDB($request->getID()));
+
+        $this->login('post-only', 'postonly');
+        $this->assertTrue($ticket->getFromDB($ticket->getID()));
+        $this->assertTrue($ticket->canUpdateItem());
+
+        $this->assertFalse($request->canAnswer());
+
+        $this->expectException(AccessDeniedHttpException::class);
+        (new ReservationRequestController())(Request::create('/', 'POST', [
+            'id' => $request->getID(),
+            'action' => 'approve',
+        ]));
+    }
+
+    public function testCentralRequesterWithoutReservationCreateRightCannotAnswer(): void
+    {
+        [$ticket] = $this->submitReservationForm(require_approval: true);
+
+        $request = new TicketReservationRequest();
+        $rows = $request->find(['tickets_id' => $ticket->getID()]);
+        $this->assertCount(1, $rows);
+        $this->assertTrue($request->getFromDB((int) array_key_first($rows)));
+
+        $this->updateItem(TicketReservationRequest::class, $request->getID(), ['users_id' => Session::getLoginUserID()]);
+        $this->assertTrue($request->getFromDB($request->getID()));
+        $this->assertTrue($request->canAnswer());
+
+        $_SESSION['glpiactiveprofile'][Reservation::$rightname] = READ | ReservationItem::RESERVEANITEM;
+        $this->assertTrue($ticket->canUpdateItem());
+
+        $this->assertFalse($request->canAnswer());
     }
 
     /** Counts queued notifications for TicketReservationRequest only, ignoring unrelated core ones (New ticket, etc). */
