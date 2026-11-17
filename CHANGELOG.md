@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fix hidden question not available in anonymous forms
 - Fix `Tree Cascade Dropdown` question ignoring dropdown translations
+- Fix users without the right to reserve for others being able to approve or refuse reservation requests
 
 ## [1.3.1] - 2026-10-06
 
