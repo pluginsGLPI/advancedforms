@@ -268,22 +268,11 @@ final class TicketReservationRequest extends CommonDBChild
             return false;
         }
 
-        if (!$ticket->canUpdateItem()) {
-            return false;
-        }
-
-        // Approving/refusing creates (or would create) a Reservation for this
-        // request's own requester, not for whoever answers it. Mirror core's
-        // rule in Reservation::handleAddForm(): creating a reservation for
-        // someone else requires CREATE, not just RESERVEANITEM.
-        if (
-            $this->getIntField('users_id') !== (int) Session::getLoginUserID()
-            && !Session::haveRight(Reservation::$rightname, CREATE)
-        ) {
-            return false;
-        }
-
-        return true;
+        // canUpdateItem() alone lets any requester answer while the ticket is fresh, so also require the right
+        // core asks to reserve for others; such a user may answer their own request, as they could reserve directly.
+        return Session::getCurrentInterface() === 'central'
+            && Session::haveRight(Reservation::$rightname, CREATE)
+            && $ticket->canUpdateItem();
     }
 
     /** Removes every pending/accepted request tied to a purged Ticket, along with any Reservation it created. */
