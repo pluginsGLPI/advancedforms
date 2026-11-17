@@ -52,6 +52,16 @@
             {% endfor %}
         </div>
 
+        <h3 class="mt-3">{{ __("Destinations", "advancedforms") }}</h3>
+        <div class="row">
+            {% for destination in destinations %}
+                {{ include('@advancedforms/configurable_item.html.twig', {
+                    config_manager: config_manager,
+                    item: destination,
+                }, with_context: false) }}
+            {% endfor %}
+        </div>
+
         <input type="hidden" name="config_context" value="advancedforms"/>
         <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"/>
 
