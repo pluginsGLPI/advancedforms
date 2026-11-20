@@ -50,6 +50,9 @@ final class ConfigManager
 {
     use SingletonTrait;
 
+    /** @var array<mixed>|null */
+    private ?array $config_values = null;
+
     public function renderConfigForm(): string
     {
         $twig = TemplateRenderer::getInstance();
@@ -76,16 +79,38 @@ final class ConfigManager
     public function isConfigurableItemEnabled(
         ConfigurableItemInterface $item,
     ): bool {
-        $config = Config::getConfigurationValue(
-            'advancedforms',
-            $item->getConfigKey(),
-        );
+        $config = $this->getConfigValues()[$item->getConfigKey()] ?? null;
 
         if ($config === null) {
             return false;
         }
 
         return (bool) $config;
+    }
+
+    /** Forgets the loaded configuration, the next read queries it again. */
+    public function clearCache(): void
+    {
+        $this->config_values = null;
+    }
+
+    /** Clears the cache when a configuration value of this plugin is saved. */
+    public static function onConfigChange(Config $config): void
+    {
+        if (($config->fields['context'] ?? null) === 'advancedforms') {
+            self::getInstance()->clearCache();
+        }
+    }
+
+    /**
+     * The plugin configuration is read on every request (plugin init) and many
+     * times per form editor display, so it is loaded once and kept in memory.
+     *
+     * @return array<mixed>
+     */
+    private function getConfigValues(): array
+    {
+        return $this->config_values ??= Config::getConfigurationValues('advancedforms');
     }
 
     /** @return QuestionTypeInterface[] */
