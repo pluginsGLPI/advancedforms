@@ -10,13 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Faster display of tickets with many reservation requests, of the reservable item list and of the form editor, and fewer SQL queries on every page
-
-### Fixed
-
 - Fix hidden question not available in anonymous forms
 - Fix `Tree Cascade Dropdown` question ignoring dropdown translations
 - Fix users without the right to reserve for others being able to approve or refuse reservation requests
+- Faster display of tickets with many reservation requests, of the reservable item list and of the form editor, and fewer SQL queries on every page
 
 ## [1.3.1] - 2026-10-06
 
