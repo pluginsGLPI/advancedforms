@@ -71,11 +71,10 @@ final class ReservationQuestionTest extends QuestionTypeTestCase
         $this->assertGreaterThan(0, $html->filter('input[name$="[begin]"]')->count());
         $this->assertGreaterThan(0, $html->filter('input[name$="[end]"]')->count());
 
-        $module_scripts_text = implode(
-            "\n",
-            $html->filter('script[type="module"]')->each(fn(Crawler $node) => $node->text()),
+        $this->assertGreaterThan(
+            0,
+            $html->filter('script[src*="/plugins/advancedforms/js/reservation_question.js"]')->count(),
         );
-        $this->assertStringContainsString("ReservationQuestionWidget.js", $module_scripts_text);
     }
 
     #[Override]
