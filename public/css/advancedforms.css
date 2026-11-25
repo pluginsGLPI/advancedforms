@@ -93,3 +93,16 @@
     max-width: none;
     margin-top: 0;
 }
+
+/* Email destination: "Body" label on the line of the "Auto config" switch */
+.advancedforms-email-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+}
+.advancedforms-email-body > [data-glpi-itildestination-field] {
+    display: contents;
+}
+.advancedforms-email-body > [data-glpi-itildestination-field] > [data-glpi-itildestination-field-configs] {
+    grid-column: 1 / -1;
+}
