@@ -44,32 +44,12 @@
     multiple
     aria-label="{{ label }}"
     data-placeholder="{{ __('Type an email address…', 'advancedforms') }}"
+    data-af-email-addresses
+    data-email-pattern="{{ constant('Toolbox::ACTOR_EMAIL_VALIDATION_REGEX')|slice(1, -2) }}"
 >
     {% for address in addresses %}
         <option value="{{ address }}" selected>{{ address }}</option>
     {% endfor %}
 </select>
 
-<script>
-    (() => {
-        // Same tags dropdown as the actors fields of the ITIL objects
-        const email_regex = new RegExp({{ constant('Toolbox::ACTOR_EMAIL_VALIDATION_REGEX')|slice(1, -2)|json_encode|raw }}, 'u');
-        const template = (option) => option.id
-            ? $('<span>').append('<i class="ti ti-mail mx-1"></i>', document.createTextNode(option.text))
-            : option.text;
-
-        $(document.getElementById({{ field_id|json_encode|raw }})).select2({
-            tags: true,
-            width: '100%',
-            tokenSeparators: [',', ';', ' '],
-            templateSelection: template,
-            templateResult: template,
-            createTag: (params) => {
-                const term = $.trim(params.term);
-
-                // Return null to disable tag creation when it is not an email
-                return email_regex.test(term) ? {id: term, text: term} : null;
-            },
-        });
-    })();
-</script>
+{{ call('Html::script', ['/plugins/advancedforms/js/email_addresses_field.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}
