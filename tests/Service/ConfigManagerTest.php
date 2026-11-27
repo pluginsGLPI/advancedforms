@@ -33,6 +33,7 @@
 
 namespace GlpiPlugin\Advancedforms\Tests\Service;
 
+use Config;
 use DOMElement;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigurableItemInterface;
 use GlpiPlugin\Advancedforms\Model\QuestionType\ReservationQuestion;
@@ -124,6 +125,22 @@ final class ConfigManagerTest extends AdvancedFormsTestCase
 
         // Assert: the config should be enabled
         $this->assertFalse($config_disabled);
+    }
+
+    #[DataProvider('provideQuestionTypes')]
+    public function testSavedConfigValueIsSeenWithoutInit(
+        ConfigurableItemInterface $item,
+    ): void {
+        // Arrange: enable question type and load the configuration in memory
+        $this->enableConfigurableItem($item);
+        $manager = $this->getConfigManager();
+        $this->assertTrue($manager->isConfigurableItemEnabled($item));
+
+        // Act: save the value again, without running the plugin init
+        Config::setConfigurationValues('advancedforms', [$item->getConfigKey() => 0]);
+
+        // Assert: the cached configuration has been refreshed
+        $this->assertFalse($manager->isConfigurableItemEnabled($item));
     }
 
     private function getConfigManager(): ConfigManager

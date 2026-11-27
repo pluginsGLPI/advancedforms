@@ -98,23 +98,33 @@ final class ReservableItemsController extends AbstractReservationWidgetControlle
             ]);
         }
 
-        $rows = $DB->request([
-            'FROM' => ReservationItem::getTable(),
-            'WHERE' => $where,
+        $rows = array_filter(
+            iterator_to_array($DB->request([
+                'FROM' => ReservationItem::getTable(),
+                'WHERE' => $where,
+            ]), false),
+            fn($row): bool => is_array($row) && isset($row['items_id']) && is_numeric($row['items_id']),
+        );
+        if ($rows === []) {
+            return [];
+        }
+
+        // The list can hold thousands of assets: load them in one query, not one per item.
+        $items_rows = $item->find([
+            'id' => array_values(array_unique(array_map(fn(array $row): int => (int) $row['items_id'], $rows))),
         ]);
 
+        $itemtype_label = $itemtype::getTypeName(1);
         $results = [];
         foreach ($rows as $row) {
-            if (!is_array($row) || !isset($row['items_id']) || !is_numeric($row['items_id'])) {
+            $item_row = $items_rows[(int) $row['items_id']] ?? null;
+            if (!is_array($item_row)) {
                 continue;
             }
 
-            if (!$item->getFromDB((int) $row['items_id'])) {
-                continue;
-            }
+            $item->getFromResultSet($item_row);
 
             $id = $row['id'] ?? null;
-            $itemtype_label = $itemtype::getTypeName(1);
             $results[] = [
                 'id' => is_numeric($id) ? (int) $id : 0,
                 'text' => sprintf('%s (%s)', $item->getName(), $itemtype_label),

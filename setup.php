@@ -52,12 +52,6 @@ define("PLUGIN_ADVANCEDFORMS_MAX_GLPI_VERSION", "11.0.99");
  */
 function plugin_init_advancedforms(): void
 {
-    // Stop here if the plugin is not active
-    $is_active = (new Plugin())->isActivated("advancedforms");
-    if (!$is_active) {
-        return;
-    }
-
     $hook_manager = new HookManager('advancedforms');
     $hook_manager->registerCSSFile('css/advancedforms.css');
     $hook_manager->registerJavascriptFile('js/advancedforms.js');

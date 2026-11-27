@@ -332,6 +332,39 @@ final class TimelineManagerTest extends DbTestCase
         $this->assertStringContainsString('2026-05-06 10:30:00', $content);
     }
 
+    public function testAddTimelineItemsEmitsActionsScriptOnce(): void
+    {
+        $this->login();
+        $ticket = $this->createItem('Ticket', ['name' => 't', 'content' => 'c', 'entities_id' => $this->getTestRootEntity(true)]);
+        $item = $this->getReservableItem();
+
+        $requests = [];
+        foreach (['09', '11'] as $hour) {
+            $requests[] = $this->createItem(TicketReservationRequest::class, [
+                'tickets_id' => $ticket->getID(),
+                'reservationitems_id' => $item->getID(),
+                'users_id' => Session::getLoginUserID(),
+                'begin' => sprintf('2026-05-07 %s:00:00', $hour),
+                'end' => sprintf('2026-05-07 %s:30:00', $hour),
+                'status' => TicketReservationRequest::STATUS_WAITING,
+            ]);
+        }
+
+        $timeline = [];
+        TimelineManager::addTimelineItems(['item' => $ticket, 'timeline' => &$timeline]);
+
+        // Every request gets its buttons, the script handling them is emitted only once.
+        $contents = array_map(
+            fn(TicketReservationRequest $request): string => $timeline['TicketReservationRequest_' . $request->getID()]['item']['content'],
+            $requests,
+        );
+        foreach ($contents as $content) {
+            $this->assertStringContainsString('data-reservation-request-action="approve"', $content);
+        }
+
+        $this->assertSame(1, substr_count(implode('', $contents), 'ReservationRequestTimelineActions.js'));
+    }
+
     private function getReservableItem(): ReservationItem
     {
         $computer = $this->createItem('Computer', ['name' => 'test-computer', 'entities_id' => $this->getTestRootEntity(true)]);

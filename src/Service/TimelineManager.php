@@ -58,22 +58,39 @@ final class TimelineManager
         $timeline = &$params['timeline'];
 
         $request = new TicketReservationRequest();
+        $rows = array_filter($request->find(['tickets_id' => $ticket->getID()]), is_array(...));
+        if ($rows === []) {
+            return;
+        }
 
-        foreach ($request->find(['tickets_id' => $ticket->getID()]) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
+        // A ticket can carry many requests: names and rights are resolved once for all of them.
+        $equipment_names = TicketReservationRequest::getReservableItemNames(array_map(
+            fn(array $row): int => is_numeric($row['reservationitems_id'] ?? null) ? (int) $row['reservationitems_id'] : 0,
+            $rows,
+        ));
+        $can_update_ticket = null;
+        $actions_script_added = false;
 
+        foreach ($rows as $row) {
             // find() already returns the full row; hydrate in place, no extra query.
             $request->getFromResultSet($row);
 
             $reservationitems_id = $request->fields['reservationitems_id'] ?? 0;
             $reservationitems_id = is_numeric($reservationitems_id) ? (int) $reservationitems_id : 0;
 
+            $status = $request->fields['status'] ?? 0;
+            if ($can_update_ticket === null && is_numeric($status) && (int) $status === TicketReservationRequest::STATUS_WAITING) {
+                $can_update_ticket = $ticket->canUpdateItem();
+            }
+
+            $info = $request->getTimelineInfo($can_update_ticket ?? false);
             $content = TemplateRenderer::getInstance()->render('@advancedforms/timeline/reservation_request.html.twig', [
-                'request' => $request->getTimelineInfo(),
-                'equipment_name' => TicketReservationRequest::getReservableItemName($reservationitems_id),
+                'request' => $info,
+                'equipment_name' => $equipment_names[$reservationitems_id] ?? '',
+                // The script handles the buttons of every request of the page, one copy is enough.
+                'include_actions_script' => $info['can_answer'] && !$actions_script_added,
             ]);
+            $actions_script_added = $actions_script_added || $info['can_answer'];
 
             $date_creation = $request->fields['date_creation'] ?? null;
             $users_id = $request->fields['users_id'] ?? 0;
