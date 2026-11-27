@@ -37,6 +37,9 @@
         data-af-tree-questions-id="{{ questions_id }}"
         data-af-tree-field-name="{{ final_field_name }}"
         data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+        {% if not parent_is_selectable and children|length > 0 %}
+        data-af-tree-autoselect
+        {% endif %}
     >
         {% if parent_is_selectable %}
             <option value="0">---</option>
@@ -47,13 +50,4 @@
     </select>
 </div>
 
-{% if not parent_is_selectable and children|length > 0 %}
-<script>
-    setTimeout(() => {
-        const select = document.getElementById('{{ select_id }}');
-        if (select) {
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-    }, 50);
-</script>
-{% endif %}
+{{ call('Html::script', ['/plugins/advancedforms/js/tree_cascade_dropdown_children.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}

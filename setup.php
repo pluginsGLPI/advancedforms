@@ -93,6 +93,7 @@ function plugin_version_advancedforms(): array
         'author'         => '<a href="http://www.teclib.com">Teclib\'</a>',
         'license'        => '',
         'homepage'       => '',
+        'csp_compliant'  => true,
         'requirements'   => [
             'glpi' => [
                 'min' => PLUGIN_ADVANCEDFORMS_MIN_GLPI_VERSION,
