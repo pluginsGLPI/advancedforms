@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+<<<<<<< HEAD
 - Add translations management through Transifex
 - "Email followup" destination field to disable the followup per actor source, with a command to import it from Formcreator
 - Add "Allow specific languages" form access policy
 - Add "GLPI system information" and "GLPI core or plugins concerned" question types
+=======
+- Add an "Email" form destination, sending a customized email when a form is submitted
+- "Email followup" destination field to disable the followup per actor source, with a command to import it from Formcreator
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 
 ### Fixed
 

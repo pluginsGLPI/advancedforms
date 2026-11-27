@@ -34,6 +34,10 @@
 namespace GlpiPlugin\Advancedforms\Console;
 
 use Config;
+<<<<<<< HEAD
+=======
+use DBmysql;
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 use Glpi\Console\AbstractCommand;
 use Glpi\Form\Destination\CommonITILField\ITILActorFieldConfig;
 use Glpi\Form\Destination\CommonITILField\ITILActorFieldStrategy;
@@ -47,6 +51,10 @@ use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationFieldConfig;
 use Override;
 use Ramsey\Uuid\Uuid;
+<<<<<<< HEAD
+=======
+use RuntimeException;
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 use Supplier;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -207,6 +215,19 @@ final class ImportFormcreatorActorsNotificationCommand extends AbstractCommand
         return $this->has_failed_destinations ? Command::FAILURE : Command::SUCCESS;
     }
 
+<<<<<<< HEAD
+=======
+    /** GLPI 11 has no AbstractCommand::getDb() (added in GLPI 12). */
+    private function getDb(): DBmysql
+    {
+        if ($this->db === null) {
+            throw new RuntimeException('No database connection available.');
+        }
+
+        return $this->db;
+    }
+
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
     /** @return list<string> */
     private function getMissingFormcreatorTables(): array
     {

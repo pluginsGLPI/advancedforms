@@ -34,8 +34,13 @@
 namespace GlpiPlugin\Advancedforms\Service;
 
 use Config;
+<<<<<<< HEAD
 use Glpi\Form\Destination\FormDestinationChange;
 use Glpi\Form\AccessControl\FormAccessControlManager;
+=======
+use Glpi\Form\Destination\FormDestination;
+use Glpi\Form\Destination\FormDestinationChange;
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 use Glpi\Form\Destination\FormDestinationManager;
 use Glpi\Form\Destination\FormDestinationProblem;
 use Glpi\Form\Destination\FormDestinationTicket;
@@ -46,6 +51,10 @@ use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
 use GlpiPlugin\Advancedforms\Model\Config\ConfigTab;
 use GlpiPlugin\Advancedforms\Model\Destination\ActorNotificationField;
+<<<<<<< HEAD
+=======
+use GlpiPlugin\Advancedforms\Model\Destination\Email\EmailDestinationConfigNormalizer;
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 use GlpiPlugin\Advancedforms\Model\Destination\PreReservationField;
 use GlpiPlugin\Advancedforms\Model\QuestionType\AdvancedCategory;
 use GlpiPlugin\Advancedforms\Model\QuestionType\LegacyQuestionTypeInterface;
@@ -147,6 +156,28 @@ final class InitManager
                 fn($registered_field) => $registered_field instanceof $field,
             );
             if ($already_registered !== []) {
+<<<<<<< HEAD
+=======
+                continue;
+            }
+
+            $destination_manager->registerPluginCommonITILConfigField($destination_class, $field);
+        }
+    }
+
+    private function registerDestinationTypes(): void
+    {
+        $destination_manager = FormDestinationManager::getInstance();
+
+        // init() may run multiple times per process; avoid double-registering a type.
+        $registered_classes = array_map(
+            get_class(...),
+            $destination_manager->getDestinationTypes(),
+        );
+
+        foreach (ConfigManager::getInstance()->getEnabledDestinations() as $destination) {
+            if (in_array($destination::class, $registered_classes, true)) {
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
                 continue;
             }
 
