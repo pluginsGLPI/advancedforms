@@ -251,14 +251,11 @@ final class TableQuestionRenderingTest extends AdvancedFormsTestCase
      * would not match that key, and would cost both the content-based cache
      * busting and the root_doc prefix.
      */
-    public function testTheJsModuleIsImportedThroughTheImportMap(): void
+    public function testTheJsModuleLoaderIsIncluded(): void
     {
         $html = $this->render([$this->column('Name', QuestionTypeShortText::class)]);
 
-        $this->assertStringContainsString(
-            "from '" . self::MODULE_PATH . "'",
-            $html,
-        );
+        $this->assertStringContainsString('/plugins/advancedforms/js/table_end_user.js', $html);
     }
 
     public function testTheImportMapVersionsTheModuleOnItsContent(): void

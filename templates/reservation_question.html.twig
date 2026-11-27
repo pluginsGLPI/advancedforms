@@ -80,11 +80,4 @@
     {# Session-deduped, also loads the FullCalendar locale matching the user language #}
     {% do call(['Html', 'requireJs'], ['fullcalendar']) %}
 {% endif %}
-<script type="module">
-    import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
-    $(function() {
-        new ReservationQuestionWidget(
-            document.querySelector('[data-reservation-question-widget][data-input-name="{{ input_name|e('js') }}"]')
-        );
-    });
-</script>
+{{ call('Html::script', ['/plugins/advancedforms/js/reservation_question.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}

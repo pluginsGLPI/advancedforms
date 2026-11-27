@@ -100,7 +100,7 @@ final class TimelineManagerTest extends DbTestCase
         $this->assertArrayHasKey($key, $timeline);
         $content = $timeline[$key]['item']['content'];
 
-        $this->assertStringContainsString('ReservationRequestTimelineActions.js', $content);
+        $this->assertStringContainsString('reservation_request_timeline.js', $content);
         $this->assertStringContainsString('data-reservation-request-action="approve"', $content);
     }
 
