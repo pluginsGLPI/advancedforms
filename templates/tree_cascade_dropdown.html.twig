@@ -47,27 +47,17 @@
             data-af-tree-questions-id="{{ question.fields['id'] }}"
             data-af-tree-field-name="{{ final_items_id_name }}"
             data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+            data-af-tree-cascade
+            data-af-tree-level="1"
+            {% if root_is_preselected and ancestor_chain|length == 0 %}
+            data-af-tree-next-container="{{ level2_container }}"
+            data-af-tree-auto-load-parent="{{ root_items_id }}"
+            {% endif %}
         >
             <option value="0">---</option>
             <option value="{{ root_items_id }}" {{ root_is_preselected ? 'selected' : '' }}>{{ root_item_name }}</option>
         </select>
     </div>
-
-    <script type="module">
-    import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
-    $(function() {
-        new AfTreeCascadeDropdown({
-            selector_id: '{{ root_selector_id }}',
-            questions_id: {{ question.fields['id'] }},
-            ajax_limit_count: {{ ajax_limit_count }},
-            level: 1,
-            {% if root_is_preselected and ancestor_chain|length == 0 %}
-            next_container_id: '{{ level2_container }}',
-            auto_load_parent_id: {{ root_items_id }},
-            {% endif %}
-        });
-    });
-    </script>
 
     {% if root_is_preselected and ancestor_chain|length == 0 %}
         <div id="{{ level2_container }}" class="af-tree-next-container"></div>
@@ -89,6 +79,12 @@
                 data-af-tree-questions-id="{{ question.fields['id'] }}"
                 data-af-tree-field-name="{{ final_items_id_name }}"
                 data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+                data-af-tree-cascade
+                data-af-tree-level="{{ level_num }}"
+                {% if is_last %}
+                data-af-tree-next-container="{{ level2_container }}"
+                data-af-tree-auto-load-parent="{{ node.id }}"
+                {% endif %}
             >
                 <option value="0">---</option>
                 {% for sibling in node.siblings %}
@@ -96,22 +92,6 @@
                 {% endfor %}
             </select>
         </div>
-
-        <script type="module">
-        import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
-        $(function() {
-            new AfTreeCascadeDropdown({
-                selector_id: '{{ selector_id }}',
-                questions_id: {{ question.fields['id'] }},
-                ajax_limit_count: {{ ajax_limit_count }},
-                level: {{ level_num }},
-                {% if is_last %}
-                next_container_id: '{{ level2_container }}',
-                auto_load_parent_id: {{ node.id }},
-                {% endif %}
-            });
-        });
-        </script>
 
         {% if is_last %}
             <div id="{{ level2_container }}" class="af-tree-next-container"></div>
@@ -128,6 +108,8 @@
             data-af-tree-questions-id="{{ question.fields['id'] }}"
             data-af-tree-field-name="{{ final_items_id_name }}"
             data-af-tree-ajax-limit="{{ ajax_limit_count }}"
+            data-af-tree-cascade
+            data-af-tree-next-container="{{ level2_container }}"
         >
             <option value="0">---</option>
             {% for item in first_level_items %}
@@ -137,16 +119,6 @@
     </div>
 
     <div id="{{ level2_container }}" class="af-tree-next-container"></div>
-
-    <script type="module">
-    import { AfTreeCascadeDropdown } from '/plugins/advancedforms/js/modules/AfTreeCascadeDropdown.js';
-    $(function() {
-        new AfTreeCascadeDropdown({
-            selector_id: '{{ selector_id }}',
-            questions_id: {{ question.fields['id'] }},
-            ajax_limit_count: {{ ajax_limit_count }},
-            next_container_id: '{{ level2_container }}',
-        });
-    });
-    </script>
 {% endif %}
+
+{{ call('Html::script', ['/plugins/advancedforms/js/tree_cascade_dropdown.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}

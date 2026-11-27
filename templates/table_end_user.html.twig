@@ -205,8 +205,4 @@
     ></i>
 </div>
 
-<script type="module">
-    import { AfTableQuestion } from '/plugins/advancedforms/js/modules/AfTableQuestion.js';
-    const el = document.querySelector('[data-af-table-question="{{ rand_eu|e('js') }}"]');
-    if (el) { new AfTableQuestion(el); }
-</script>
+{{ call('Html::script', ['/plugins/advancedforms/js/table_end_user.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}

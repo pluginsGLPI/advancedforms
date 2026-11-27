@@ -76,6 +76,7 @@
 
     <input type="hidden" name="{{ input_name }}[reservationitems_id]" data-reservation-question-field="reservationitems_id">
 </div>
+<<<<<<< HEAD
 <script type="module">
     import { ReservationQuestionWidget } from '/plugins/advancedforms/js/modules/ReservationQuestionWidget.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
     $(function() {
@@ -84,3 +85,10 @@
         );
     });
 </script>
+=======
+{% if show_calendar %}
+    {# Session-deduped, also loads the FullCalendar locale matching the user language #}
+    {% do call(['Html', 'requireJs'], ['fullcalendar']) %}
+{% endif %}
+{{ call('Html::script', ['/plugins/advancedforms/js/reservation_question.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}
+>>>>>>> b6682f0 (feat: make plugin CSP compliant (#89))

@@ -31,19 +31,13 @@
 
 {% set rand = random() %}
 
-<script>
-    window.afTableColumnTypeTemplate = window.afTableColumnTypeTemplate || function (item) {
-        const icons = {{ icons_json|raw }};
-        if (!item.id || !icons[item.id]) {
-            return item.text;
-        }
-        return $('<span>', { 'class': 'd-flex align-items-center gap-1' })
-            .append($('<i>', { 'class': icons[item.id] }))
-            .append(document.createTextNode(' ' + item.text));
-    };
-</script>
-
-<div class="dropdown" data-glpi-form-editor-question-extra-details>
+<div
+    class="dropdown"
+    data-glpi-form-editor-question-extra-details
+    data-af-table-config="{{ rand }}"
+    data-af-table-config-icons="{{ icons_json }}"
+    data-af-table-config-ajax-limit="{{ ajax_limit_count }}"
+>
     <button
         id="af-table-cfg-{{ rand }}"
         class="btn btn-icon"
@@ -267,21 +261,4 @@
     </div>
 </div>
 
-<script>
-    window.select2_configs = window.select2_configs || {};
-    window.select2_configs['af-table-type-template-{{ rand }}'] = {
-        type: 'adapt',
-        field_id: 'af-table-type-template-{{ rand }}',
-        width: '200px',
-        dropdown_css_class: '',
-        placeholder: '',
-        ajax_limit_count: {{ ajax_limit_count }},
-        templateresult: window.afTableColumnTypeTemplate,
-        templateselection: window.afTableColumnTypeTemplate,
-    };
-</script>
-
-<script type="module">
-    import { AfTableQuestionConfig } from '/plugins/advancedforms/js/modules/AfTableQuestionConfig.js';
-    new AfTableQuestionConfig();
-</script>
+{{ call('Html::script', ['/plugins/advancedforms/js/table_config.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}

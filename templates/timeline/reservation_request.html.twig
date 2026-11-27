@@ -43,7 +43,7 @@
     (constant(request_class ~ '::STATUS_CANCELED')): __('Canceled', 'advancedforms'),
 } %}
 
-<div class="reservation-request-timeline-item" data-reservation-request-id="{{ request.id }}">
+<div class="reservation-request-timeline-item" data-reservation-request-id="{{ request.id }}" data-af-reservation-request-timeline>
     <div class="d-flex align-items-center gap-2 mb-2">
         <i class="ti ti-calendar-event fs-4 text-muted"></i>
         <div class="flex-grow-1">
@@ -104,13 +104,6 @@
                 </button>
             </div>
         </form>
-        <script type="module">
-            import { ReservationRequestTimelineActions } from '/plugins/advancedforms/js/modules/ReservationRequestTimelineActions.js?v={{ constant('PLUGIN_ADVANCEDFORMS_VERSION') }}';
-            $(function() {
-                new ReservationRequestTimelineActions(
-                    document.querySelector('[data-reservation-request-id="{{ request.id }}"]')
-                );
-            });
-        </script>
+        {{ call('Html::script', ['/plugins/advancedforms/js/reservation_request_timeline.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}
     {% endif %}
 </div>

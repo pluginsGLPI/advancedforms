@@ -34,6 +34,7 @@
 {# @var array<string, string> languages #}
 {# @var string label #}
 
+<<<<<<< HEAD:templates/access_control/language.html.twig
 {{ call('Dropdown::showFromArray', [
     access_control.getNormalizedInputName(input_name),
     languages,
@@ -45,3 +46,24 @@
         'display'   : false,
     }
 ])|raw }}
+=======
+{# Same id as the label of the core field section points to #}
+{% set field_id = input_name ~ '_' ~ (options.rand ?? random()) %}
+
+<select
+    id="{{ field_id }}"
+    name="{{ input_name }}[]"
+    class="form-select"
+    multiple
+    aria-label="{{ label }}"
+    data-placeholder="{{ __('Type an email address…', 'advancedforms') }}"
+    data-af-email-addresses
+    data-email-pattern="{{ constant('Toolbox::ACTOR_EMAIL_VALIDATION_REGEX')|slice(1, -2) }}"
+>
+    {% for address in addresses %}
+        <option value="{{ address }}" selected>{{ address }}</option>
+    {% endfor %}
+</select>
+
+{{ call('Html::script', ['/plugins/advancedforms/js/email_addresses_field.js', {'version': constant('PLUGIN_ADVANCEDFORMS_VERSION')}, false])|raw }}
+>>>>>>> b6682f0 (feat: make plugin CSP compliant (#89)):templates/destination/email_addresses_field.html.twig
