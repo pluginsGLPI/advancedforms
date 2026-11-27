@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Add an "Email" form destination, sending a customized email when a form is submitted
+- "Email followup" destination field to disable the followup per actor source, with a command to import it from Formcreator
 
 ### Fixed
 
