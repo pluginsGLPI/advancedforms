@@ -40,7 +40,10 @@ use Glpi\DBAL\QueryExpression;
 use Glpi\Form\AccessControl\FormAccessControl;
 use Glpi\Toolbox\SingletonTrait;
 use GlpiPlugin\Advancedforms\Console\ImportFormcreatorActorsNotificationCommand;
+<<<<<<< HEAD
 use GlpiPlugin\Advancedforms\Model\AccessControl\LanguageAccessControl;
+=======
+>>>>>>> 6c51cde (Fix email follow up by actor (GLPI 11.0.x) (#97))
 use GlpiPlugin\Advancedforms\Model\TicketReservationRequest;
 use Migration;
 use Notification;
